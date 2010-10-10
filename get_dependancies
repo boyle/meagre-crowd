@@ -1,12 +1,14 @@
 #! /bin/sh
 
 # select implimentations
-MPI="local" # mpich2 or openmpi or local or skip
+MPI="openmpi" # mpich2 or mpich1 or openmpi or local or skip
 BLAS="netlib" # netlib or atlas or local
 LAPACK="netlib" # netlib or local
 
 # select versions
 MPICH2_MPI_VER="1.2.1p1"
+MPICH1_MPI_VER="1.2.7p1"
+OPENMPI_MPI_VER="1.4.3"
 ATLAS_BLAS_VER=3.8.3 #latest stable
 MUMPS_VER=4.9.2
 # Note: no versionable downloads for netlib BLAS, ScaLAPACK, LAPACK
@@ -25,11 +27,14 @@ function info() {
 # Note: compile requires -fPIC to be relocatable
 # a2so <static_lib.a>
 function a2so() {
-  mkdir $1-d
-  cp $1 $1-d/
-  cd $1-d
-  ar -x $1
-  gcc -shared *.o -o ../${1/.a/.so}
+  I=$1
+  F=$(basename $I)
+  D=$(dirname $I)
+  mkdir $F-d
+  cp $I $F-d/
+  cd $F-d
+  ar -x $F
+  gcc -shared *.o -o $D/${F/.a/.so}
   cd - > /dev/null
   rm -rf $1-d
 }
@@ -41,7 +46,7 @@ function get_and_unpack() {
   DL=dl
   cd ${S}
   F=$(basename $R)
-  
+
   [ ! -f ${DL}/${F} ] && info "  Fetching $F" && wget --directory-prefix=${DL} ${R} &> /dev/null
   # if the version/selection has changed, clear it out
   mkdir ${D} &> /dev/null
@@ -72,7 +77,7 @@ INSTALL_BIN_DIR=${INSTALL_BASE_DIR}/bin
 NCPU=$(grep "cpu cores" /proc/cpuinfo  |head -1 | cut -d ' ' -f 3)
 info "Detected ${NCPU} cores for compile."
 let NCPU_P1=${NCPU}+1
-#MAKE="make -j${NCPU_P1}" 
+#MAKE="make -j${NCPU_P1}"
 MAKE="make"
 
 
@@ -87,7 +92,7 @@ case ${MPI} in
   "mpich2" )
     get_and_unpack mpi http://www.mcs.anl.gov/research/projects/mpich2/downloads/tarballs/${MPICH2_MPI_VER}/mpich2-${MPICH2_MPI_VER}.tar.gz
     cd ${S}/mpi/mpich2-${MPICH2_MPI_VER} || err mpi "wrong dir"
-    mkdir build-${MACHINE} # build dir
+    mkdir build-${MACHINE} &> /dev/null # build dir
     BUILD_DIR=${S}/mpi/mpich2-${MPICH2_MPI_VER}/build-${MACHINE}
     cd ${BUILD_DIR}
     # configure options:
@@ -106,7 +111,40 @@ case ${MPI} in
     MPI_PATH=${INSTALL_BASE_DIR}
   ;;
   # TODO openmpi -- Something w/include files that BLACS doesn't like: mpif-common.h
-  # TODO mpich1
+  "mpich1" )
+    get_and_unpack mpi ftp://ftp.mcs.anl.gov/pub/mpi/mpich-${MPICH1_MPI_VER}.tar.gz
+    cd ${S}/mpi/mpich-${MPICH1_MPI_VER} || err mpi "wrong dir"
+    mkdir build-${MACHINE} &> /dev/null # build dir
+    BUILD_DIR=${S}/mpi/mpich-${MPICH1_MPI_VER}/build-${MACHINE}
+    cd ${BUILD_DIR}
+    info "  Configure"
+    ../configure --prefix=${INSTALL_BASE_DIR} --enable-fast=O3 --enable-sharedlib  &> /dev/null || err ${MPI} "config failed"
+    # Note: if build fails, add VERBOSE=1 below
+    info "  build"
+    ${MAKE} &> /dev/null || err ${MPI} "make failed"
+    info "  install"
+    ${MAKE} install &> /dev/null || err ${MPI} "install failed"
+    # TODO need to convert to .a -> .so (libtool!)
+    # Note: need "bin" in the path so we can get at mpd, mpicc, mpiexec, mpirun
+    MPI_PATH=${INSTALL_BASE_DIR}
+  ;;
+  "openmpi" )
+    get_and_unpack mpi http://www.open-mpi.org/software/ompi/v1.4/downloads/openmpi-${OPENMPI_MPI_VER}.tar.gz
+    cd ${S}/mpi/openmpi-${OPENMPI_MPI_VER} || err mpi "wrong dir"
+    mkdir build-${MACHINE} &> /dev/null # build dir
+    BUILD_DIR=${S}/mpi/openmpi-${OPENMPI_MPI_VER}/build-${MACHINE}
+    cd ${BUILD_DIR}
+    info "  Configure"
+    ../configure --prefix=${INSTALL_BASE_DIR} &> /dev/null || err ${MPI} "config failed"
+    # Note: if build fails, add VERBOSE=1 below
+    info "  build"
+    ${MAKE} &> /dev/null || err ${MPI} "make failed"
+    info "  install"
+    ${MAKE} install &> /dev/null || err ${MPI} "install failed"
+    # TODO need to convert to .a -> .so (libtool!)
+    # Note: need "bin" in the path so we can get at mpd, mpicc, mpiexec, mpirun
+    MPI_PATH=${INSTALL_BASE_DIR}
+  ;;
   "local" )
     O=$(mpirun -V 2>&1 | head -1)
     info "  Using local version of MPI: ${O}"
@@ -127,6 +165,7 @@ case ${MPI} in
 esac
 MPI_LIB=${MPI_PATH}/lib/libmpi.so
 MPI_INC=${MPI_PATH}/include
+
 
 # matrix tools:
 # get blas (atlas, netlib, goto, mkl, acml, parblas)
