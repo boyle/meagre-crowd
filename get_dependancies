@@ -1,0 +1,299 @@
+#! /bin/sh
+
+# select implimentations
+MPI="local" # mpich2 or openmpi or local or skip
+BLAS="netlib" # netlib or atlas or local
+LAPACK="netlib" # netlib or local
+
+# select versions
+MPICH2_MPI_VER="1.2.1p1"
+ATLAS_BLAS_VER=3.8.3 #latest stable
+MUMPS_VER=4.9.2
+# Note: no versionable downloads for netlib BLAS, ScaLAPACK, LAPACK
+
+# necessary functions
+function err() {
+  echo "ERROR: ${1} - ${2}"
+  exit 1
+}
+
+function info() {
+  echo "* $*"
+}
+
+# convert static library .a to dynamic lib .so
+function a2so() {
+  mkdir $1-d
+  cp $1 $1-d/
+  cd $1-d
+  ar -x $1
+  gcc -shared *.o -o ${1/.a/.so}
+  cd -
+  rm -rf $1-d
+}
+
+# get_and_unpack <dest> <src_url>
+function get_and_unpack() {
+  D=$1
+  R=$2
+  DL=dl
+  cd ${S}
+  F=$(basename $R)
+  
+  [ ! -f ${DL}/${F} ] && info "  Fetching $F" && wget --directory-prefix=${DL} ${R} &> /dev/null
+  # if the version/selection has changed, clear it out
+  mkdir ${D} &> /dev/null
+  info "  Extracting $F" && tar zxvf ${DL}/${F} -C ${D} &> /dev/null
+}
+
+# setup
+S=${PWD}
+MACHINE=$(gcc -dumpmachine)
+INSTALL_BASE_DIR=${PWD}/${MACHINE}
+DEP_DIRS="blas blacs lapack mpi mumps scalapack"
+
+# clean out any old install
+[ "$1" == "clean" ] && rm -rf ${INSTALL_BASE_DIR} ${DEP_DIRS} && exit 0
+
+mkdir -p ${INSTALL_BASE_DIR}/lib
+mkdir -p ${INSTALL_BASE_DIR}/include
+mkdir -p ${INSTALL_BASE_DIR}/bin
+INSTALL_LIB_DIR=${INSTALL_BASE_DIR}/lib
+INSTALL_INC_DIR=${INSTALL_BASE_DIR}/include
+INSTALL_BIN_DIR=${INSTALL_BASE_DIR}/bin
+
+
+# determine parallel make capacity
+NCPU=$(grep "cpu cores" /proc/cpuinfo  |head -1 | cut -d ' ' -f 3)
+info "Detected ${NCPU} cores for compile."
+let NCPU_P1=${NCPU}+1
+#MAKE="make -j${NCPU_P1}" 
+MAKE="make"
+
+
+# TODO ?? does whatever version of gcc support openmp
+# TODO ?? OMP_NUM_THREADS is passed in by mpirun/exec -- does sqsub get this right?
+
+# TODO are lib/include platform specific?? should be! so when running on a new platform we don't need to mess about too much!
+
+info "MPI"
+cd ${S}
+case ${MPI} in
+  "mpich2" )
+    get_and_unpack mpi http://www.mcs.anl.gov/research/projects/mpich2/downloads/tarballs/${MPICH2_MPI_VER}/mpich2-${MPICH2_MPI_VER}.tar.gz
+    cd ${S}/mpi/mpich2-${MPICH2_MPI_VER} || err mpi "wrong dir"
+    mkdir build-${MACHINE} # build dir
+    BUILD_DIR=${S}/mpi/mpich2-${MPICH2_MPI_VER}/build-${MACHINE}
+    cd ${BUILD_DIR}
+    # configure options:
+    # --enable-fast=O3 : production, non-testing programs
+    # --enable-sharedlibs=gcc
+    # --with-pm=mpd:gforker:hydra : process manager to build (all three)
+    # --with-java=/opt/jdk1.6.0 : path to java for debug/perf tools (Jumpshot)
+    info "  Configure"
+    ../configure --prefix=${INSTALL_BASE_DIR} --enable-fast=O3 || err ${MPI} "config failed"
+    # Note: if build fails, add VERBOSE=1 below
+    info "  Build"
+    ${MAKE} || err ${MPI} "make failed"
+    ${MAKE} install || err ${MPI} "install failed"
+    # TODO need to convert to .a -> .so (libtool!)
+    # Note: need "bin" in the path so we can get at mpd, mpicc, mpiexec, mpirun
+    MPI_PATH=${INSTALL_BASE_DIR}
+  ;;
+  # TODO openmpi -- Something w/include files that BLACS doesn't like: mpif-common.h
+  # TODO mpich1
+  "local" )
+    O=$(mpirun -V 2>&1 | head -1)
+    info "  Using local version of MPI: ${O}"
+    # need this for BLACS openmpi fix
+    [[ ${O} =~ "Open MPI" ]] && MPI="openmpi" && info "    setting MPI variable to match: ${MPI}"
+    MPI_PATH=/usr
+  ;;
+  "skip" )
+    info -n "Skipped MPI install: "
+    MPI_PATH=/usr
+    [ -f ${INSTALL_BASE_DIR}/bin/mpirun ] && MPI_PATH=${INSTALL_BASE_DIR}
+    ${MPI_PATH}/bin/mpirun -V 2>&1 | head -1 || err ${MPI}-skipped "missing mpirun"
+  ;;
+  # TODO what about making use of a local mpi version??
+  * )
+    err ${MPI} "build/install not yet implemented"
+  ;;
+esac
+MPI_LIB=${MPI_PATH}/lib/libmpi.so
+
+
+# matrix tools:
+# get blas (atlas, netlib, goto, mkl, acml, parblas)
+#   -- which are openMP? atlas -- need to disable or messes up scheduling??
+info "BLAS"
+cd ${S}
+case ${BLAS} in
+  "atlas" )
+    get_and_unpack blas http://sourceforge.net/projects/math-atlas/files/Stable/${ATLAS_BLAS_VER}/atlas${ATLAS_BLAS_VER}.tar.gz
+    cd ${S}/blas/atlas-${ATLAS_BLAS_VER} || err blas "wrong dir"
+    mkdir build-${MACHINE} # build dir
+    BUILD_DIR=${S}/blas/atlas-${ATLAS_BLAS_VER}/build-${MACHINE}
+    cd ${BUILD_DIR}
+ #TODO   # turn off throttling
+    #/usr/bin/cpufreq-selector -g performance
+    #cp /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor \
+    #      /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor
+    # OR disable throttling check: ./configure -Si cputhrchk 0
+    #../configure  -b 64 -D c -DPentiumCPS=2400 --prefix=/home/whaley/lib/atlas
+    # TODO config options
+    ../configure  -b 64 -D c --prefix=${INSTALL_LIB_DIR}
+    ${MAKE} build || err blas "build failed"
+    ${MAKE} check || err blas "check failed"
+    ${MAKE} time  || err blas "time failed"
+    ${MAKE} install || err blas "install failed"
+  ;;
+  "netlib" )
+    get_and_unpack blas http://www.netlib.org/blas/blas.tgz
+    cd ${S}/blas/BLAS
+    sed -i s/_LINUX/-${MACHINE}/ make.inc
+    sed -i s/g77/gfortran/ make.inc
+    info "  build"
+    ${MAKE} all &> /dev/null || err blas "build failed"
+    #a2so blas-${MACHINE}.a
+    cp blas-${MACHINE}.a  ${INSTALL_LIB_DIR}/libblas.a
+    #cp blas-${MACHINE}.so ${INSTALL_LIB_DIR}/libblas.so
+    BLAS_LIB=${INSTALL_LIB_DIR}/libblas.a
+  ;;
+  "local" )
+    info "Assuming local version of BLAS"
+    BLAS_LIB=/usr/lib/libblas.a
+  ;;
+  *) err ${BLAS} "bad blas choice";;
+esac
+for i in ${BLAS_LIB}; do
+  [ ! -f ${i} ] && err blas "missing lib ${BLAS_LIB}"
+done
+
+
+info "LAPACK"
+cd ${S}
+case ${LAPACK} in
+  "netlib" )
+    get_and_unpack lapack http://www.netlib.org/lapack/lapack.tgz
+    # compile blas
+    cd ${S}/lapack/lapack-3.2.2 || err lapack "unexpected version"
+    cp INSTALL/make.inc.gfortran make.inc
+    sed -i s/_LINUX/-${MACHINE}/ make.inc
+    sed -i "s/\(BLASLIB *=\) .*/\1 ${BLAS_LIB//\//\\/}/" make.inc
+    info "  build"
+    ${MAKE} all > /dev/null || err lapack "build failed"
+    #a2so lapack-${MACHINE}.a
+    cp lapack-${MACHINE}.a  ${INSTALL_LIB_DIR}/liblapack.a
+    #cp lapack-${MACHINE}.so ${INSTALL_LIB_DIR}/liblapack.so
+    LAPACK_LIB=${INSTALL_LIB_DIR}/liblapack.a
+  ;;
+  "local" )
+    info "Assuming local version of LAPACK"
+    LAPACK_LIB=/usr/lib/liblapack.a
+  ;;
+  *) err ${LAPACK} "bad lapack choice";;
+esac
+for i in ${LAPACK_LIB}; do
+  [ ! -f ${i} ] && err lapack "missing lib ${LAPACK_LIB}"
+done
+
+
+# get BLACS [ScaLAPACK communications]
+info "BLACS"
+cd ${S}
+get_and_unpack blacs http://www.netlib.org/blacs/mpiblacs.tgz
+# TODO use patch??
+# TODO need mpiblacs-patch03.tgz
+# TODO gunzip -c mpiblacs-patch03.tgz | tar xvf -
+cd ${S}/blacs
+cp BMAKES/Bmake.MPI-LINUX Bmake.inc
+# fix up makefile
+# Note: have to escape paths to make sed happy
+sed -i "s/\(BTOPdir =\) .*/\1 ${PWD//\//\\/}/" Bmake.inc
+sed -i "s/\(PLAT =\) .*/\1 ${MACHINE}/" Bmake.inc
+sed -i "s/\(MPIdir =\) .*/\1 ${MPI_PATH//\//\\/}/" Bmake.inc
+sed -i s/g77/gfortran/ Bmake.inc
+# for openmpi, must fix for mpif.h
+info "  MPI is ${MPI}"
+if [ ${MPI} == "openmpi" ]; then
+  sed -i 's/ln -s $(MPIINCdir)\/mpif.h mpif.h/ln -s $(MPIINCdir)\/mpif*.h ./' SRC/MPI/Makefile
+  sed -i 's/mpif.h/mpif*.h/' SRC/MPI/Makefile
+fi
+# TODO set TRANSCOM: make mpich non-globally-blocking...
+info "  build"
+${MAKE} mpi &> /dev/null || err blacs "build failed"
+for i in blacsCinit blacsF77init blacs; do # rename
+  #a2so LIB/${i}_MPI-${MACHINE}-0.a
+  cp LIB/${i}_MPI-${MACHINE}-0.a  ${INSTALL_LIB_DIR}/libmpi${i}.a
+  #cp LIB/${i}_MPI-${MACHINE}-0.so ${INSTALL_LIB_DIR}/libmpi${i}.so
+done
+# TODO convert from .a -> .so (libtool!)
+BLACS_PATH=${INSTALL_LIB_DIR}
+
+
+
+# get ScaLAPACK
+info "ScaLAPACK"
+cd ${S}
+get_and_unpack scalapack http://www.netlib.org/scalapack/scalapack.tgz
+# compile ScaLAPACK
+cd ${S}/scalapack
+cp INSTALL/SLmake.LINUX SLmake.inc
+sed -i "s/\(^home *=\) .*/\1 ${PWD//\//\\/}/" SLmake.inc
+sed -i "s/\(^PLAT *=\) .*/\1 ${MACHINE}/" SLmake.inc
+sed -i "s/\(^BLACSdir *=\) .*/\1 ${BLACS_PATH//\//\\/}/" SLmake.inc
+sed -i "s/\(^SMPLIB *=\) .*/\1 ${MPI_LIB//\//\\/}/" SLmake.inc
+sed -i "s/-p4//" SLmake.inc # fix BLACS library names
+  #TODO and convert from .a -> .so?
+sed -i "s/mpif77/${MPI_PATH//\//\\/}\/bin\/mpif77/" SLmake.inc
+sed -i "s/mpicc/${MPI_PATH//\//\\/}\/bin\/mpicc/" SLmake.inc
+sed -i "s/\(^BLASLIB *=\) .*/\1 ${BLAS_LIB//\//\\/}/" SLmake.inc
+sed -i "s/\(^LAPACKLIB *=\) .*/\1 ${LAPACK_LIB//\//\\/}/" SLmake.inc
+sed -i "s/\(^BLACSFINIT *=\) .*/\1 \$(BLACSdir)\/libmpiblacsF77init.a/" SLmake.inc
+sed -i "s/\(^BLACSCINIT *=\) .*/\1 \$(BLACSdir)\/libmpiblacsCinit.a/" SLmake.inc
+sed -i "s/\(^BLACSLIB *=\) .*/\1 \$(BLACSdir)\/libmpiblacs.a/" SLmake.inc
+info "  build"
+${MAKE} lib > /dev/null || err scalapack "build failed"
+#a2so libscalapack.a
+cp libscalapack.a  ${INSTALL_LIB_DIR}
+#cp libscalapack.so ${INSTALL_LIB_DIR}
+
+
+
+# orderings:
+# TODO get AMD
+# TODO get AMF
+# TODO get PORD
+# TODO get METIS
+# TODO get parMETIS
+# TODO get SCOTCH
+# TODO get pt-SCOTCH
+
+# get mumps
+info "MUMPS"
+get_and_unpack mumps http://mumps.enseeiht.fr/MUMPS_${MUMPS_VER}.tar.gz
+# TODO currently only for INTEL
+cd ${S}/mumps
+cp Make.inc/Makefile.INTEL.PAR ./Makefile.inc
+sed -i "s/\(^PLAT *=\) .*/\1 ${MACHINE}/" Makefile.inc
+sed -i "s/\(^FC *=\) .*/\1 gfortran/" Makefile.inc
+sed -i "s/\(^FL *=\) .*/\1 gfortran/" Makefile.inc
+sed -i "s/\(^RANLIB *=\) .*/\1 ranlib/" Makefile.inc
+# libscalapack.a blacs_MPI-LINUX-0.a blacsF77init_MPI-LINUX-0.a
+sed -i "s/\(^SCALAP *=\) .*/\1 ${SCALAPACK_LIB//\//\\/} ${BLACS_DIR//\//\\/}/libmpiblacs.a ${BLACS_DIR//\//\\/}/libmpiblacs.a/" Makefile.inc
+sed -i "s/\(^INCPAR *=\) .*/\1 -I${INSTALL_INC_DIR//\//\\/}/" Makefile.inc
+# -llammpio -llamf77mpi -lmpi -llam
+sed -i "s/\(^LIBPAR *=\) .*/\1 \$(SCALAP) -L${INSTALL_LIB_DIR//\//\\/} -lutil -ldl -lpthread/" Makefile.inc
+
+# TODO configure links to dependancies, vars: LIBBLAS, SCALAP, INCPAR, LIBPAR
+# d: double precision real (default), c: complex double, s: single precision real, z: single precision complex
+err mumps "install TODO"
+info "  build"
+#${MAKE} d > /dev/null || err mumps "build failed"
+${MAKE} d || err mumps "build failed"
+# install MUMPS
+for i in lib/libxmumps.a lib/libmumps_common.a include/*.h; do
+  cp $i ${INSTALL_DIR_BASE}/$i
+done
+
