@@ -1,15 +1,23 @@
 #! /bin/sh
 
 # select implimentations
-MPI="openmpi" # mpich2 or mpich1 or openmpi or local or skip
+MPI="local" # mpich2 or mpich1 or openmpi or local or skip
 BLAS="netlib" # netlib or atlas or local
 LAPACK="netlib" # netlib or local
+METIS="metis" # parmetis or metis
 
 # select versions
+# toolkits
 MPICH2_MPI_VER="1.2.1p1"
 MPICH1_MPI_VER="1.2.7p1"
 OPENMPI_MPI_VER="1.4.3"
 ATLAS_BLAS_VER=3.8.3 #latest stable
+# orderings
+AMD_VER=2.2.1
+PARMETIS_VER=3.1.1
+METIS_VER=4.0
+SCOTCH_VER="5.1.10b"
+# solvers
 MUMPS_VER=4.9.2
 # Note: no versionable downloads for netlib BLAS, ScaLAPACK, LAPACK
 
@@ -25,7 +33,7 @@ function info() {
 
 # convert static library .a to dynamic lib .so
 # Note: compile requires -fPIC to be relocatable
-# a2so <static_lib.a>
+# a2so <path/static_lib.a>
 function a2so() {
   I=$1
   F=$(basename $I)
@@ -36,7 +44,7 @@ function a2so() {
   ar -x $F
   gcc -shared *.o -o $D/${F/.a/.so}
   cd - > /dev/null
-  rm -rf $1-d
+  rm -rf $F-d
 }
 
 # get_and_unpack <dest> <src_url>
@@ -57,7 +65,7 @@ function get_and_unpack() {
 S=${PWD}
 MACHINE=$(gcc -dumpmachine)
 INSTALL_BASE_DIR=${PWD}/${MACHINE}
-DEP_DIRS="blas blacs lapack mpi mumps scalapack"
+DEP_DIRS="blas blacs lapack mpi mumps scalapack amd metis scotch"
 
 # clean out any old install
 [ "$1" == "clean" ] && rm -rf ${INSTALL_BASE_DIR} ${DEP_DIRS} && exit 0
@@ -77,19 +85,19 @@ INSTALL_BIN_DIR=${INSTALL_BASE_DIR}/bin
 NCPU=$(grep "cpu cores" /proc/cpuinfo  |head -1 | cut -d ' ' -f 3)
 info "Detected ${NCPU} cores for compile."
 let NCPU_P1=${NCPU}+1
-#MAKE="make -j${NCPU_P1}"
-MAKE="make"
+MAKE="make -j${NCPU_P1}"
 
 
 # TODO ?? does whatever version of gcc support openmp
 # TODO ?? OMP_NUM_THREADS is passed in by mpirun/exec -- does sqsub get this right?
 
 # TODO are lib/include platform specific?? should be! so when running on a new platform we don't need to mess about too much!
-
+info "== toolkits =="
 info "MPI"
 cd ${S}
 case ${MPI} in
   "mpich2" )
+    info " ------ compile is broken somewhere..."
     get_and_unpack mpi http://www.mcs.anl.gov/research/projects/mpich2/downloads/tarballs/${MPICH2_MPI_VER}/mpich2-${MPICH2_MPI_VER}.tar.gz
     cd ${S}/mpi/mpich2-${MPICH2_MPI_VER} || err mpi "wrong dir"
     mkdir build-${MACHINE} &> /dev/null # build dir
@@ -105,6 +113,7 @@ case ${MPI} in
     # Note: if build fails, add VERBOSE=1 below
     info "  Build"
     ${MAKE} || err ${MPI} "make failed"
+    info "  install"
     ${MAKE} install || err ${MPI} "install failed"
     # TODO need to convert to .a -> .so (libtool!)
     # Note: need "bin" in the path so we can get at mpd, mpicc, mpiexec, mpirun
@@ -112,6 +121,7 @@ case ${MPI} in
   ;;
   # TODO openmpi -- Something w/include files that BLACS doesn't like: mpif-common.h
   "mpich1" )
+    info " ------ compile is broken somewhere..."
     get_and_unpack mpi ftp://ftp.mcs.anl.gov/pub/mpi/mpich-${MPICH1_MPI_VER}.tar.gz
     cd ${S}/mpi/mpich-${MPICH1_MPI_VER} || err mpi "wrong dir"
     mkdir build-${MACHINE} &> /dev/null # build dir
@@ -165,7 +175,7 @@ case ${MPI} in
 esac
 MPI_LIB=${MPI_PATH}/lib/libmpi.so
 MPI_INC=${MPI_PATH}/include
-
+MPICC=${MPI_PATH}/bin/mpicc
 
 # matrix tools:
 # get blas (atlas, netlib, goto, mkl, acml, parblas)
@@ -186,10 +196,15 @@ case ${BLAS} in
     # OR disable throttling check: ./configure -Si cputhrchk 0
     #../configure  -b 64 -D c -DPentiumCPS=2400 --prefix=/home/whaley/lib/atlas
     # TODO config options
+    info "  configure"
     ../configure  -b 64 -D c --prefix=${INSTALL_LIB_DIR}
+    info "  build"
     ${MAKE} build || err blas "build failed"
+    info "  check"
     ${MAKE} check || err blas "check failed"
+    info "  time"
     ${MAKE} time  || err blas "time failed"
+    info " install"
     ${MAKE} install || err blas "install failed"
   ;;
   "netlib" )
@@ -200,9 +215,8 @@ case ${BLAS} in
     sed -i "s/\(^OPTS *=\) .*/\1 -O3 -fPIC/" make.inc
     info "  build"
     ${MAKE} all &> /dev/null || err blas "build failed"
-    a2so blas-${MACHINE}.a
     cp blas-${MACHINE}.a  ${INSTALL_LIB_DIR}/libblas.a
-    cp blas-${MACHINE}.so ${INSTALL_LIB_DIR}/libblas.so
+    a2so ${INSTALL_LIB_DIR}/libblas.a
     BLAS_LIB=${INSTALL_LIB_DIR}/libblas.a
   ;;
   "local" )
@@ -214,7 +228,7 @@ esac
 for i in ${BLAS_LIB}; do
   [ ! -f ${i} ] && err blas "missing lib ${BLAS_LIB}"
 done
-
+BLAS_DIR=$(dirname ${BLAS_LIB})
 
 info "LAPACK"
 cd ${S}
@@ -228,9 +242,8 @@ case ${LAPACK} in
     sed -i "s/\(BLASLIB *=\) .*/\1 ${BLAS_LIB//\//\\/}/" make.inc
     info "  build"
     ${MAKE} all > /dev/null || err lapack "build failed"
-    #a2so lapack-${MACHINE}.a
     cp lapack-${MACHINE}.a  ${INSTALL_LIB_DIR}/liblapack.a
-    #cp lapack-${MACHINE}.so ${INSTALL_LIB_DIR}/liblapack.so
+    #TODO a2so ${INSTALL_LIB_DIR}/liblapack.a
     LAPACK_LIB=${INSTALL_LIB_DIR}/liblapack.a
   ;;
   "local" )
@@ -269,11 +282,9 @@ fi
 info "  build"
 ${MAKE} mpi &> /dev/null || err blacs "build failed"
 for i in blacsCinit blacsF77init blacs; do # rename
-  #a2so LIB/${i}_MPI-${MACHINE}-0.a
   cp LIB/${i}_MPI-${MACHINE}-0.a  ${INSTALL_LIB_DIR}/libmpi${i}.a
-  #cp LIB/${i}_MPI-${MACHINE}-0.so ${INSTALL_LIB_DIR}/libmpi${i}.so
+  #TODO a2so ${INSTALL_LIB_DIR}/libmpi${i}.a
 done
-# TODO convert from .a -> .so (libtool!)
 BLACS_PATH=${INSTALL_LIB_DIR}
 BLACS_LIB=${BLACS_PATH}/libmpiblacs.a
 BLACSF_LIB=${BLACS_PATH}/libmpiblacsF77init.a
@@ -281,6 +292,10 @@ BLACSC_LIB=${BLACS_PATH}/libmpiblacsCinit.a
 
 
 # get ScaLAPACK
+# Note: ScaLAPACK breaks on parallel build
+MAKE_SAVE=${MAKE}
+MAKE="make"
+
 info "ScaLAPACK"
 cd ${S}
 get_and_unpack scalapack http://www.netlib.org/scalapack/scalapack.tgz
@@ -302,20 +317,75 @@ sed -i "s/\(^BLACSCINIT *=\) .*/\1 \$(BLACSdir)\/libmpiblacsCinit.a/" SLmake.inc
 sed -i "s/\(^BLACSLIB *=\) .*/\1 \$(BLACSdir)\/libmpiblacs.a/" SLmake.inc
 info "  build"
 ${MAKE} lib > /dev/null || err scalapack "build failed"
-#a2so libscalapack.a
 cp libscalapack.a  ${INSTALL_LIB_DIR}
-#cp libscalapack.so ${INSTALL_LIB_DIR}
+#TODO a2so ${INSTALL_LIB_DIR}/libscalapack.a
 SCALAPACK_LIB=${INSTALL_LIB_DIR}/libscalapack.a
 
+MAKE=${MAKE_SAVE}
 
 # orderings:
-# TODO get AMD
+info "== orderings =="
+
+info "AMD"
+get_and_unpack amd http://www.cise.ufl.edu/research/sparse/amd/AMD-${AMD_VER}.tar.gz
+get_and_unpack amd http://www.cise.ufl.edu/research/sparse/UFconfig/UFconfig-3.5.0.tar.gz
+cd ${S}/amd/AMD || err amd "bad dir"
+info "  build"
+${MAKE} lib &> /dev/null || err amd "build failed"
+cp Include/amd.h ${INSTALL_INC_DIR}/
+cp Lib/libamd.a  ${INSTALL_LIB_DIR}/
+
+case ${METIS} in
+  "parmetis" )
+    info "ParMETIS"
+    get_and_unpack metis http://glaros.dtc.umn.edu/gkhome/fetch/sw/parmetis/ParMetis-${PARMETIS_VER}.tar.gz
+    cd ${S}/metis/ParMetis-${PARMETIS_VER} || err metis "bad dir"
+    sed -i "s/\(^CC *=\) .*/\1 ${MPICC//\//\\/}/" Makefile.in
+    sed -i "s/\(^COPTIONS *= \).*/\1 -DNDEBUG -fPIC/" Makefile.in
+    info "  build"
+    ${MAKE} &> /dev/null || err "build failed"
+    cp parmetis.h     ${INSTALL_INC_DIR}/
+    for i in libmetis.a libparmetis.a; do
+      cp ${i} ${INSTALL_LIB_DIR}/
+      a2so ${INSTALL_LIB_DIR}/${i}
+    done
+  ;;
+  "metis" )
+    info "METIS"
+    get_and_unpack metis http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/metis-${METIS_VER}.tar.gz
+    cd ${S}/metis/metis-${METIS_VER} || err metis "bad dir"
+    sed -i "s/\(^COPTIONS *= \).*/\1 -DNDEBUG -fPIC/" Makefile.in
+    # for some reason metis redefines log2 -- its in glibc
+    sed -i "s/log2\([^_]\)/log2_local\1/g" $(grep -lr log2 .)
+    sed -i "s/log2\$/log2_local/g" $(grep -lr log2 .)
+    info "  build"
+    ${MAKE} &> /dev/null || err metis "build failed"
+    cp libmetis.a ${INSTALL_LIB_DIR}/
+    a2so ${INSTALL_LIB_DIR}/libmetis.a
+  ;;
+  * ) err metis "bad selection - ${METIS}";;
+esac
+
+info "pt-SCOTCH/SCOTCH"
+get_and_unpack scotch https://gforge.inria.fr/frs/download.php/27583/scotch_${SCOTCH_VER}.tar.gz
+cd ${S}/scotch/scotch_${SCOTCH_VER} || err scotch "bad dir"
+cd src
+cp Make.inc/Makefile.inc.x86-64_pc_linux2 Makefile.inc
+sed -i "s/\(^CFLAGS.*= *-O3\)/\1 -fPIC/" Makefile.inc
+sed -i "s/\(^CCP.*=\).*/\1 ${MPICC//\//\\/}/" Makefile.inc
+info "  build"
+${MAKE} scotch &> /dev/null || err scotch "scotch build failed"
+${MAKE} ptscotch &> /dev/null || err scotch "ptscotch build failed"
+info "  install"
+${MAKE} prefix=${INSTALL_BASE_DIR} install &> /dev/null || err scotch "install failed"
+a2so ${INSTALL_LIB_DIR}/libscotch.a
+a2so ${INSTALL_LIB_DIR}/libptscotch.a
+
+
 # TODO get AMF
-# TODO get PORD
-# TODO get METIS
-# TODO get parMETIS
-# TODO get SCOTCH
-# TODO get pt-SCOTCH
+# Note: PORD is included in MUMPS
+
+info "== solvers =="
 
 # get mumps
 info "MUMPS"
@@ -332,17 +402,29 @@ sed -i "s/\(^SCALAP *=\) .*/\1 ${SCALAPACK_LIB//\//\\/} ${BLACS_LIB//\//\\/} ${B
 sed -i "s/\(^INCPAR *=\) .*/\1 -I${INSTALL_INC_DIR//\//\\/} -I${MPI_INC//\//\\/}/" Makefile.inc
 # -llammpio -llamf77mpi -lmpi -llam
 sed -i "s/\(^LIBPAR *=\) .*/\1 \$(SCALAP) -L${INSTALL_LIB_DIR//\//\\/} -lutil -ldl -lpthread/" Makefile.inc
+sed -i "s/\(^LIBBLAS *=\) .*/\1 -L${BLAS_DIR//\//\\/} -lblas/" Makefile.inc
+
+# update for AMD, METIS/parMETIS, SCOTCH/ptSCOTCH
+sed -i "s/^#SCOTCHDIR.*/SCOTCHDIR = ${INSTALL_BASE_DIR//\//\\/}/" Makefile.inc
+sed -i "s/^#ISCOTCH/ISCOTCH/" Makefile.inc
+sed -i "s/^#LSCOTCH/LSCOTCH/" Makefile.inc
+
+sed -i "s/^#LMETISDIR.*/LMETISDIR = ${INSTALL_LIB_DIR//\//\\/}/" Makefile.inc
+sed -i "s/^#LMETIS/LMETIS/" Makefile.inc
+
+sed -i "s/^ORDERINGSF.*/ORDERINGSF = -Dscotch -Dmetis -Dpord -Dptscotch -Dparmetis/" Makefile.inc
+
 
 # TODO configure links to dependancies, vars: LIBBLAS, SCALAP, INCPAR, LIBPAR
 # d: double precision real (default), c: complex double, s: single precision real, z: single precision complex
 info "  build"
 #${MAKE} d > /dev/null || err mumps "build failed"
-${MAKE} d &> /dev/null || err mumps "build failed"
+${MAKE} s d c z &> /dev/null || err mumps "build failed"
 # install MUMPS
-for i in lib/libdmumps.a lib/libmumps_common.a include/*.h; do
+for i in lib/lib?mumps.a lib/libmumps_common.a include/*.h; do
   cp $i ${INSTALL_BASE_DIR}/$i
 done
 
 TOC=$(date +%s)
 let DELTA=${TOC}-${TIC}
-info "Finished $(date) ($(date --date=0:0:${DELTA} +%T))"
+info "Finished $(date) (${DELTA}s)"  #TODO $(date --date=${DELTA} +%T))"
