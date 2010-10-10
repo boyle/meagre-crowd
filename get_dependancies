@@ -22,13 +22,15 @@ function info() {
 }
 
 # convert static library .a to dynamic lib .so
+# Note: compile requires -fPIC to be relocatable
+# a2so <static_lib.a>
 function a2so() {
   mkdir $1-d
   cp $1 $1-d/
   cd $1-d
   ar -x $1
-  gcc -shared *.o -o ${1/.a/.so}
-  cd -
+  gcc -shared *.o -o ../${1/.a/.so}
+  cd - > /dev/null
   rm -rf $1-d
 }
 
@@ -54,6 +56,9 @@ DEP_DIRS="blas blacs lapack mpi mumps scalapack"
 
 # clean out any old install
 [ "$1" == "clean" ] && rm -rf ${INSTALL_BASE_DIR} ${DEP_DIRS} && exit 0
+
+info "Started $(date)"
+TIC=$(date +%s)
 
 mkdir -p ${INSTALL_BASE_DIR}/lib
 mkdir -p ${INSTALL_BASE_DIR}/include
@@ -121,7 +126,7 @@ case ${MPI} in
   ;;
 esac
 MPI_LIB=${MPI_PATH}/lib/libmpi.so
-
+MPI_INC=${MPI_PATH}/include
 
 # matrix tools:
 # get blas (atlas, netlib, goto, mkl, acml, parblas)
@@ -153,11 +158,12 @@ case ${BLAS} in
     cd ${S}/blas/BLAS
     sed -i s/_LINUX/-${MACHINE}/ make.inc
     sed -i s/g77/gfortran/ make.inc
+    sed -i "s/\(^OPTS *=\) .*/\1 -O3 -fPIC/" make.inc
     info "  build"
     ${MAKE} all &> /dev/null || err blas "build failed"
-    #a2so blas-${MACHINE}.a
+    a2so blas-${MACHINE}.a
     cp blas-${MACHINE}.a  ${INSTALL_LIB_DIR}/libblas.a
-    #cp blas-${MACHINE}.so ${INSTALL_LIB_DIR}/libblas.so
+    cp blas-${MACHINE}.so ${INSTALL_LIB_DIR}/libblas.so
     BLAS_LIB=${INSTALL_LIB_DIR}/libblas.a
   ;;
   "local" )
@@ -206,7 +212,7 @@ get_and_unpack blacs http://www.netlib.org/blacs/mpiblacs.tgz
 # TODO use patch??
 # TODO need mpiblacs-patch03.tgz
 # TODO gunzip -c mpiblacs-patch03.tgz | tar xvf -
-cd ${S}/blacs
+cd ${S}/blacs/BLACS
 cp BMAKES/Bmake.MPI-LINUX Bmake.inc
 # fix up makefile
 # Note: have to escape paths to make sed happy
@@ -230,7 +236,9 @@ for i in blacsCinit blacsF77init blacs; do # rename
 done
 # TODO convert from .a -> .so (libtool!)
 BLACS_PATH=${INSTALL_LIB_DIR}
-
+BLACS_LIB=${BLACS_PATH}/libmpiblacs.a
+BLACSF_LIB=${BLACS_PATH}/libmpiblacsF77init.a
+BLACSC_LIB=${BLACS_PATH}/libmpiblacsCinit.a
 
 
 # get ScaLAPACK
@@ -238,7 +246,7 @@ info "ScaLAPACK"
 cd ${S}
 get_and_unpack scalapack http://www.netlib.org/scalapack/scalapack.tgz
 # compile ScaLAPACK
-cd ${S}/scalapack
+cd ${S}/scalapack/scalapack-1.8.0 || err scalapack "unexpected version"
 cp INSTALL/SLmake.LINUX SLmake.inc
 sed -i "s/\(^home *=\) .*/\1 ${PWD//\//\\/}/" SLmake.inc
 sed -i "s/\(^PLAT *=\) .*/\1 ${MACHINE}/" SLmake.inc
@@ -258,7 +266,7 @@ ${MAKE} lib > /dev/null || err scalapack "build failed"
 #a2so libscalapack.a
 cp libscalapack.a  ${INSTALL_LIB_DIR}
 #cp libscalapack.so ${INSTALL_LIB_DIR}
-
+SCALAPACK_LIB=${INSTALL_LIB_DIR}/libscalapack.a
 
 
 # orderings:
@@ -274,26 +282,28 @@ cp libscalapack.a  ${INSTALL_LIB_DIR}
 info "MUMPS"
 get_and_unpack mumps http://mumps.enseeiht.fr/MUMPS_${MUMPS_VER}.tar.gz
 # TODO currently only for INTEL
-cd ${S}/mumps
+cd ${S}/mumps/MUMPS_${MUMPS_VER}
 cp Make.inc/Makefile.INTEL.PAR ./Makefile.inc
 sed -i "s/\(^PLAT *=\) .*/\1 ${MACHINE}/" Makefile.inc
 sed -i "s/\(^FC *=\) .*/\1 gfortran/" Makefile.inc
 sed -i "s/\(^FL *=\) .*/\1 gfortran/" Makefile.inc
 sed -i "s/\(^RANLIB *=\) .*/\1 ranlib/" Makefile.inc
 # libscalapack.a blacs_MPI-LINUX-0.a blacsF77init_MPI-LINUX-0.a
-sed -i "s/\(^SCALAP *=\) .*/\1 ${SCALAPACK_LIB//\//\\/} ${BLACS_DIR//\//\\/}/libmpiblacs.a ${BLACS_DIR//\//\\/}/libmpiblacs.a/" Makefile.inc
-sed -i "s/\(^INCPAR *=\) .*/\1 -I${INSTALL_INC_DIR//\//\\/}/" Makefile.inc
+sed -i "s/\(^SCALAP *=\) .*/\1 ${SCALAPACK_LIB//\//\\/} ${BLACS_LIB//\//\\/} ${BLACSF_LIB//\//\\/}/" Makefile.inc
+sed -i "s/\(^INCPAR *=\) .*/\1 -I${INSTALL_INC_DIR//\//\\/} -I${MPI_INC//\//\\/}/" Makefile.inc
 # -llammpio -llamf77mpi -lmpi -llam
 sed -i "s/\(^LIBPAR *=\) .*/\1 \$(SCALAP) -L${INSTALL_LIB_DIR//\//\\/} -lutil -ldl -lpthread/" Makefile.inc
 
 # TODO configure links to dependancies, vars: LIBBLAS, SCALAP, INCPAR, LIBPAR
 # d: double precision real (default), c: complex double, s: single precision real, z: single precision complex
-err mumps "install TODO"
 info "  build"
 #${MAKE} d > /dev/null || err mumps "build failed"
-${MAKE} d || err mumps "build failed"
+${MAKE} d &> /dev/null || err mumps "build failed"
 # install MUMPS
-for i in lib/libxmumps.a lib/libmumps_common.a include/*.h; do
-  cp $i ${INSTALL_DIR_BASE}/$i
+for i in lib/libdmumps.a lib/libmumps_common.a include/*.h; do
+  cp $i ${INSTALL_BASE_DIR}/$i
 done
 
+TOC=$(date +%s)
+let DELTA=${TOC}-${TIC}
+info "Finished $(date) ($(date --date=0:0:${DELTA} +%T))"
