@@ -311,13 +311,19 @@ cp ${INSTALL_LIB_DIR}/libmpiblacs.a .
 ar x libmpiblacsF77init.a
 ar x libmpiblacs.a
 ar x libmpiblacsF77init.a
-gcc -shared *.o -o libblacs-mpi-f77.so ${MPI_DLIB} -lmpi_f77
+for i in *.C; do
+  mv $i ${i/.C/.oo}
+done
+gcc -shared *.o *.oo -o libblacs-mpi-f77.so ${MPI_DLIB} -lmpi_f77
 mv libblacs-mpi-f77.so ${INSTALL_LIB_DIR}/
 rm *.o
 ar x libmpiblacsCinit.a
 ar x libmpiblacs.a
 ar x libmpiblacsCinit.a
-gcc -shared *.o -o libblacs-mpi-c.so ${MPI_DLIB} -lmpi_f77
+for i in *.C; do
+  mv $i ${i/.C/.oo}
+done
+gcc -shared *.o *.oo -o libblacs-mpi-c.so ${MPI_DLIB} -lmpi_f77
 mv libblacs-mpi-c.so ${INSTALL_LIB_DIR}/
 cd ..
 rm -rf t
