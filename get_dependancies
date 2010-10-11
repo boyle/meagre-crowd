@@ -4,7 +4,7 @@
 MPI="local" # mpich2 or mpich1 or openmpi or local or skip
 BLAS="netlib" # netlib or atlas or local
 LAPACK="netlib" # netlib or local
-METIS="metis" # parmetis or metis
+METIS="parmetis" # parmetis or metis
 
 # select versions
 # toolkits
@@ -42,7 +42,9 @@ function a2so() {
   cp $I $F-d/
   cd $F-d
   ar -x $F
-  gcc -shared *.o -o $D/${F/.a/.so}
+  O=$D/${F/.a/.so}
+  gcc -shared *.o $* -o $O
+  [ $(LD_LIBRARY_PATH="$D:${LD_LIBRARY_PATH}" ldd -r -d -u $O 2>&1 | wc -l) != "2" ] && LD_LIBRARY_PATH="$D:${LD_LIBRARY_PATH}" ldd -r -d -u $O
   cd - > /dev/null
   rm -rf $F-d
 }
@@ -54,7 +56,6 @@ function get_and_unpack() {
   DL=dl
   cd ${S}
   F=$(basename $R)
-
   [ ! -f ${DL}/${F} ] && info "  Fetching $F" && wget --directory-prefix=${DL} ${R} &> /dev/null
   # if the version/selection has changed, clear it out
   mkdir ${D} &> /dev/null
@@ -151,7 +152,6 @@ case ${MPI} in
     ${MAKE} &> /dev/null || err ${MPI} "make failed"
     info "  install"
     ${MAKE} install &> /dev/null || err ${MPI} "install failed"
-    # TODO need to convert to .a -> .so (libtool!)
     # Note: need "bin" in the path so we can get at mpd, mpicc, mpiexec, mpirun
     MPI_PATH=${INSTALL_BASE_DIR}
   ;;
@@ -173,7 +173,8 @@ case ${MPI} in
     err ${MPI} "build/install not yet implemented"
   ;;
 esac
-MPI_LIB=${MPI_PATH}/lib/libmpi.so
+MPI_LIB=${MPI_PATH}/lib/libmpi.a
+MPI_DLIB="-L${MPI_PATH}/lib -lmpi"
 MPI_INC=${MPI_PATH}/include
 MPICC=${MPI_PATH}/bin/mpicc
 
@@ -216,7 +217,7 @@ case ${BLAS} in
     info "  build"
     ${MAKE} all &> /dev/null || err blas "build failed"
     cp blas-${MACHINE}.a  ${INSTALL_LIB_DIR}/libblas.a
-    a2so ${INSTALL_LIB_DIR}/libblas.a
+    a2so ${INSTALL_LIB_DIR}/libblas.a -lgfortran -lm
     BLAS_LIB=${INSTALL_LIB_DIR}/libblas.a
   ;;
   "local" )
@@ -229,6 +230,7 @@ for i in ${BLAS_LIB}; do
   [ ! -f ${i} ] && err blas "missing lib ${BLAS_LIB}"
 done
 BLAS_DIR=$(dirname ${BLAS_LIB})
+BLAS_DLIB="-L${BLAS_DIR} -lblas"
 
 info "LAPACK"
 cd ${S}
@@ -239,11 +241,13 @@ case ${LAPACK} in
     cd ${S}/lapack/lapack-3.2.2 || err lapack "unexpected version"
     cp INSTALL/make.inc.gfortran make.inc
     sed -i s/_LINUX/-${MACHINE}/ make.inc
-    sed -i "s/\(BLASLIB *=\) .*/\1 ${BLAS_LIB//\//\\/}/" make.inc
+    sed -i "s/\(^OPTS.*=\).*/\1 -O2 -fPIC/" make.inc
+    sed -i "s/\(^NOOPT.*=\).*/\1 -O0 -fPIC/" make.inc
+    sed -i "s/\(BLASLIB *=\) .*/\1 ${BLAS_DLIB//\//\\/}/" make.inc
     info "  build"
     ${MAKE} all > /dev/null || err lapack "build failed"
     cp lapack-${MACHINE}.a  ${INSTALL_LIB_DIR}/liblapack.a
-    #TODO a2so ${INSTALL_LIB_DIR}/liblapack.a
+    a2so ${INSTALL_LIB_DIR}/liblapack.a ${BLAS_DLIB} -lgfortran -lm
     LAPACK_LIB=${INSTALL_LIB_DIR}/liblapack.a
   ;;
   "local" )
@@ -255,41 +259,75 @@ esac
 for i in ${LAPACK_LIB}; do
   [ ! -f ${i} ] && err lapack "missing lib ${LAPACK_LIB}"
 done
+LAPACK_DIR=$(dirname ${LAPACK_LIB})
+LAPACK_DLIB="-L${LAPACK_DIR} -llapack"
 
 
 # get BLACS [ScaLAPACK communications]
 info "BLACS"
 cd ${S}
 get_and_unpack blacs http://www.netlib.org/blacs/mpiblacs.tgz
-# TODO use patch??
-# TODO need mpiblacs-patch03.tgz
-# TODO gunzip -c mpiblacs-patch03.tgz | tar xvf -
+cd ${S}/blacs
+info "  patching"
+wget http://www.netlib.org/blacs/mpiblacs-patch03.tgz &> /dev/null
+tar zxvf mpiblacs-patch03.tgz &> /dev/null
 cd ${S}/blacs/BLACS
 cp BMAKES/Bmake.MPI-LINUX Bmake.inc
 # fix up makefile
 # Note: have to escape paths to make sed happy
+sed -i "s/g77/${MPI_PATH//\//\\/}\/bin\/mpif77/" Bmake.inc
+sed -i "s/gcc/${MPI_PATH//\//\\/}\/bin\/mpicc/" Bmake.inc
 sed -i "s/\(BTOPdir =\) .*/\1 ${PWD//\//\\/}/" Bmake.inc
 sed -i "s/\(PLAT =\) .*/\1 ${MACHINE}/" Bmake.inc
 sed -i "s/\(MPIdir =\) .*/\1 ${MPI_PATH//\//\\/}/" Bmake.inc
-sed -i s/g77/gfortran/ Bmake.inc
+sed -i "s/\(MPILIB =\) .*/\1 ${MPI_DLIB//\//\\/}/" Bmake.inc
+sed -i "s/\(F77NO_OPTFLAGS =\) .*/\1 -fPIC/" Bmake.inc
+sed -i "s/\(CCFLAGS.*=\) .*/\1 -O4 -fPIC/" Bmake.inc
+# from INSTALL/EXE/xintface helper program
+sed -i "s/\(INTFACE.*=\) .*/\1 -DAdd_/" Bmake.inc
+# from INSTALL/EXE/xtc_CsameF77 helper program
+# TODO when next line is uncommented F works C fails, and vice-versa for commenting it (C works, but not F)
+# TODO F version hangs on repeated sums test (xFbtest)
+sed -i "s/\(TRANSCOMM.*=\) .*/\1 -DUseMpi2/" Bmake.inc
+#sed -i "s/\(TRANSCOMM.*=\) .*/\1 /" Bmake.inc
+#sed -i "s/\(WHATMPI.*=\) .*/\1 -DUseCMpi/" Bmake.inc
 # for openmpi, must fix for mpif.h
-info "  MPI is ${MPI}"
+info "    MPI is ${MPI}"
 if [ ${MPI} == "openmpi" ]; then
   sed -i 's/ln -s $(MPIINCdir)\/mpif.h mpif.h/ln -s $(MPIINCdir)\/mpif*.h ./' SRC/MPI/Makefile
   sed -i 's/mpif.h/mpif*.h/' SRC/MPI/Makefile
 fi
-# TODO set TRANSCOM: make mpich non-globally-blocking...
 info "  build"
 ${MAKE} mpi &> /dev/null || err blacs "build failed"
 for i in blacsCinit blacsF77init blacs; do # rename
   cp LIB/${i}_MPI-${MACHINE}-0.a  ${INSTALL_LIB_DIR}/libmpi${i}.a
-  #TODO a2so ${INSTALL_LIB_DIR}/libmpi${i}.a
 done
+# Note: blacs is stupid - try and fix the broken circular dependancies w/in
+mkdir t
+cd t
+cp ${INSTALL_LIB_DIR}/libmpiblacsCinit.a .
+cp ${INSTALL_LIB_DIR}/libmpiblacsF77init.a .
+cp ${INSTALL_LIB_DIR}/libmpiblacs.a .
+ar x libmpiblacsF77init.a
+ar x libmpiblacs.a
+ar x libmpiblacsF77init.a
+gcc -shared *.o -o libblacs-mpi-f77.so ${MPI_DLIB} -lmpi_f77
+mv libblacs-mpi-f77.so ${INSTALL_LIB_DIR}/
+rm *.o
+ar x libmpiblacsCinit.a
+ar x libmpiblacs.a
+ar x libmpiblacsCinit.a
+gcc -shared *.o -o libblacs-mpi-c.so ${MPI_DLIB} -lmpi_f77
+mv libblacs-mpi-c.so ${INSTALL_LIB_DIR}/
+cd ..
+rm -rf t
+
 BLACS_PATH=${INSTALL_LIB_DIR}
 BLACS_LIB=${BLACS_PATH}/libmpiblacs.a
 BLACSF_LIB=${BLACS_PATH}/libmpiblacsF77init.a
 BLACSC_LIB=${BLACS_PATH}/libmpiblacsCinit.a
-
+BLACSF_DLIB="-L${BLACS_PATH} -lblacs-mpi-f77"
+BLACSC_DLIB="-L${BLACS_PATH} -lblacs-mpi-c"
 
 # get ScaLAPACK
 # Note: ScaLAPACK breaks on parallel build
@@ -305,21 +343,25 @@ cp INSTALL/SLmake.LINUX SLmake.inc
 sed -i "s/\(^home *=\) .*/\1 ${PWD//\//\\/}/" SLmake.inc
 sed -i "s/\(^PLAT *=\) .*/\1 ${MACHINE}/" SLmake.inc
 sed -i "s/\(^BLACSdir *=\) .*/\1 ${BLACS_PATH//\//\\/}/" SLmake.inc
-sed -i "s/\(^SMPLIB *=\) .*/\1 ${MPI_LIB//\//\\/}/" SLmake.inc
+sed -i "s/\(^SMPLIB *=\) .*/\1 ${MPI_DLIB//\//\\/}/" SLmake.inc
 sed -i "s/-p4//" SLmake.inc # fix BLACS library names
   #TODO and convert from .a -> .so?
 sed -i "s/mpif77/${MPI_PATH//\//\\/}\/bin\/mpif77/" SLmake.inc
 sed -i "s/mpicc/${MPI_PATH//\//\\/}\/bin\/mpicc/" SLmake.inc
-sed -i "s/\(^BLASLIB *=\) .*/\1 ${BLAS_LIB//\//\\/}/" SLmake.inc
-sed -i "s/\(^LAPACKLIB *=\) .*/\1 ${LAPACK_LIB//\//\\/}/" SLmake.inc
-sed -i "s/\(^BLACSFINIT *=\) .*/\1 \$(BLACSdir)\/libmpiblacsF77init.a/" SLmake.inc
-sed -i "s/\(^BLACSCINIT *=\) .*/\1 \$(BLACSdir)\/libmpiblacsCinit.a/" SLmake.inc
-sed -i "s/\(^BLACSLIB *=\) .*/\1 \$(BLACSdir)\/libmpiblacs.a/" SLmake.inc
+sed -i "s/\(^NOOPT.*=\) .*/\1 -fPIC/" SLmake.inc
+sed -i "s/\(^CCFLAGS.*=\) .*/\1 -O4 -fPIC/" SLmake.inc
+sed -i "s/\(^BLASLIB *=\) .*/\1 ${BLAS_DLIB//\//\\/}/" SLmake.inc
+sed -i "s/\(^LAPACKLIB *=\) .*/\1 ${LAPACK_DLIB//\//\\/}/" SLmake.inc
+sed -i "s/\(^BLACSFINIT *=\) .*/\1 ${BLACSF_DLIB//\//\\/}/" SLmake.inc
+sed -i "s/\(^BLACSCINIT *=\) .*/\1 ${BLACSC_DLIB//\//\\/}/" SLmake.inc
+sed -i "s/\(^BLACSLIB *=\) .*/\1 /" SLmake.inc
+sed -i "s/\(^CDEFS.*=\) .*/\1 -DAdd_ -DNO_IEEE \$(USEMPI)/" SLmake.inc
 info "  build"
 ${MAKE} lib > /dev/null || err scalapack "build failed"
 cp libscalapack.a  ${INSTALL_LIB_DIR}
-#TODO a2so ${INSTALL_LIB_DIR}/libscalapack.a
+a2so ${INSTALL_LIB_DIR}/libscalapack.a ${LAPACK_DLIB} ${BLAS_DLIB} ${BLACSC_DLIB} -lgfortran -lm
 SCALAPACK_LIB=${INSTALL_LIB_DIR}/libscalapack.a
+SCALAPACK_DLIB="-L${INSTALL_LIB_DIR} -lscalapack"
 
 MAKE=${MAKE_SAVE}
 
@@ -347,7 +389,7 @@ case ${METIS} in
     cp parmetis.h     ${INSTALL_INC_DIR}/
     for i in libmetis.a libparmetis.a; do
       cp ${i} ${INSTALL_LIB_DIR}/
-      a2so ${INSTALL_LIB_DIR}/${i}
+      a2so ${INSTALL_LIB_DIR}/${i} ${BLAS_DLIB} ${MPI_DLIB}
     done
   ;;
   "metis" )
@@ -361,7 +403,7 @@ case ${METIS} in
     info "  build"
     ${MAKE} &> /dev/null || err metis "build failed"
     cp libmetis.a ${INSTALL_LIB_DIR}/
-    a2so ${INSTALL_LIB_DIR}/libmetis.a
+    a2so ${INSTALL_LIB_DIR}/libmetis.a ${BLAS_DLIB}
   ;;
   * ) err metis "bad selection - ${METIS}";;
 esac
@@ -378,9 +420,9 @@ ${MAKE} scotch &> /dev/null || err scotch "scotch build failed"
 ${MAKE} ptscotch &> /dev/null || err scotch "ptscotch build failed"
 info "  install"
 ${MAKE} prefix=${INSTALL_BASE_DIR} install &> /dev/null || err scotch "install failed"
-a2so ${INSTALL_LIB_DIR}/libscotch.a
-a2so ${INSTALL_LIB_DIR}/libptscotch.a
-
+for i in scotch ptscotch ptscotcherr scotcherr; do
+  a2so ${INSTALL_LIB_DIR}/lib${i}.a ${BLAS_DLIB}
+done
 
 # TODO get AMF
 # Note: PORD is included in MUMPS
