@@ -18,6 +18,6 @@ helloworld-mpi: helloworld-mpi.c
 helloworld-mumps: helloworld-mumps.c
 	@echo "** TEST: $@"
 	# need fortran compiler to compile C that is linking into fortran
-	${FC} -I${INCL} -Wl,-rpath,${RPATH} $^ -ldmumps -lmumps_common -lscalapack -lpord -lparmetis -lptscotch -lptesmumps -lblacs-mpi-c -lptscotcherr -o $@
+	${FC} -I${INCL} -Wl,-rpath,${RPATH} $^ -ldmumps -o $@
 	${EXEC} $@	
 

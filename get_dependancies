@@ -43,7 +43,7 @@ function a2so() {
   cd $F-d
   ar -x $F
   O=$D/${F/.a/.so}
-  gcc -shared *.o $* -o $O
+  gcc -shared *.o -Wl,-rpath,${D} $* -o $O
   [ $(LD_LIBRARY_PATH="$D:${LD_LIBRARY_PATH}" ldd -r -d -u $O 2>&1 | wc -l) != "2" ] && LD_LIBRARY_PATH="$D:${LD_LIBRARY_PATH}" ldd -r -d -u $O
   cd - > /dev/null
   rm -rf $F-d
