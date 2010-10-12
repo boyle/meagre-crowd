@@ -267,10 +267,8 @@ LAPACK_DLIB="-L${LAPACK_DIR} -llapack"
 info "BLACS"
 cd ${S}
 get_and_unpack blacs http://www.netlib.org/blacs/mpiblacs.tgz
-cd ${S}/blacs
 info "  patching"
-wget http://www.netlib.org/blacs/mpiblacs-patch03.tgz &> /dev/null
-tar zxvf mpiblacs-patch03.tgz &> /dev/null
+get_and_unpack blacs http://www.netlib.org/blacs/mpiblacs-patch03.tgz
 cd ${S}/blacs/BLACS
 cp BMAKES/Bmake.MPI-LINUX Bmake.inc
 # fix up makefile
@@ -374,14 +372,16 @@ MAKE=${MAKE_SAVE}
 # orderings:
 info "== orderings =="
 
-info "AMD"
-get_and_unpack amd http://www.cise.ufl.edu/research/sparse/amd/AMD-${AMD_VER}.tar.gz
-get_and_unpack amd http://www.cise.ufl.edu/research/sparse/UFconfig/UFconfig-3.5.0.tar.gz
-cd ${S}/amd/AMD || err amd "bad dir"
-info "  build"
-${MAKE} lib &> /dev/null || err amd "build failed"
-cp Include/amd.h ${INSTALL_INC_DIR}/
-cp Lib/libamd.a  ${INSTALL_LIB_DIR}/
+# Note: AMD isn't used by MUMPS!
+#info "AMD"
+#get_and_unpack amd http://www.cise.ufl.edu/research/sparse/amd/AMD-${AMD_VER}.tar.gz
+#get_and_unpack amd http://www.cise.ufl.edu/research/sparse/UFconfig/UFconfig-3.5.0.tar.gz
+#cd ${S}/amd/AMD || err amd "bad dir"
+#info "  build"
+#${MAKE} lib &> /dev/null || err amd "build failed"
+#cp Include/amd.h ${INSTALL_INC_DIR}/
+#cp Lib/libamd.a  ${INSTALL_LIB_DIR}/
+
 
 case ${METIS} in
   "parmetis" )
@@ -395,8 +395,10 @@ case ${METIS} in
     cp parmetis.h     ${INSTALL_INC_DIR}/
     for i in libmetis.a libparmetis.a; do
       cp ${i} ${INSTALL_LIB_DIR}/
-      a2so ${INSTALL_LIB_DIR}/${i} ${BLAS_DLIB} ${MPI_DLIB}
     done
+    a2so ${INSTALL_LIB_DIR}/libmetis.a -lm
+    a2so ${INSTALL_LIB_DIR}/libparmetis.a -L${INSTALL_LIB_DIR} -lmetis ${MPI_DLIB}
+    METIS_DLIB="-L${INSTALL_LIB_DIR} -lparmetis"
   ;;
   "metis" )
     info "METIS"
@@ -409,26 +411,39 @@ case ${METIS} in
     info "  build"
     ${MAKE} &> /dev/null || err metis "build failed"
     cp libmetis.a ${INSTALL_LIB_DIR}/
-    a2so ${INSTALL_LIB_DIR}/libmetis.a ${BLAS_DLIB}
+    a2so ${INSTALL_LIB_DIR}/libmetis.a -lm 
+    METIS_DLIB="-L${INSTALL_LIB_DIR} -lmetis"
   ;;
   * ) err metis "bad selection - ${METIS}";;
 esac
 
+# Note: parallel make broken for esmumps releases
 info "pt-SCOTCH/SCOTCH"
-get_and_unpack scotch https://gforge.inria.fr/frs/download.php/27583/scotch_${SCOTCH_VER}.tar.gz
-cd ${S}/scotch/scotch_${SCOTCH_VER} || err scotch "bad dir"
+get_and_unpack scotch https://gforge.inria.fr/frs/download.php/27584/scotch_${SCOTCH_VER}_esmumps.tar.gz 
+cd ${S}/scotch/scotch_${SCOTCH_VER}_esmumps || err scotch "bad dir"
 cd src
 cp Make.inc/Makefile.inc.x86-64_pc_linux2 Makefile.inc
 sed -i "s/\(^CFLAGS.*= *-O3\)/\1 -fPIC/" Makefile.inc
 sed -i "s/\(^CCP.*=\).*/\1 ${MPICC//\//\\/}/" Makefile.inc
 info "  build"
 ${MAKE} scotch &> /dev/null || err scotch "scotch build failed"
+MAKE_SAVE=${MAKE}
+MAKE=make
 ${MAKE} ptscotch &> /dev/null || err scotch "ptscotch build failed"
+MAKE=${MAKE_SAVE}
 info "  install"
 ${MAKE} prefix=${INSTALL_BASE_DIR} install &> /dev/null || err scotch "install failed"
-for i in scotch ptscotch ptscotcherr scotcherr; do
-  a2so ${INSTALL_LIB_DIR}/lib${i}.a ${BLAS_DLIB}
-done
+cp ../lib/*mumps.a ${INSTALL_LIB_DIR}/
+a2so ${INSTALL_LIB_DIR}/libscotcherr.a
+a2so ${INSTALL_LIB_DIR}/libscotch.a   -L${INSTALL_LIB_DIR} -lscotcherr -lz -lrt -lpthread -lm
+a2so ${INSTALL_LIB_DIR}/libptscotcherr.a ${MPI_DLIB}
+a2so ${INSTALL_LIB_DIR}/libptscotch.a -L${INSTALL_LIB_DIR} -lptscotcherr ${MPI_DLIB} -lz 
+a2so ${INSTALL_LIB_DIR}/libscotchmetis.a -L${INSTALL_LIB_DIR} -lscotch 
+a2so ${INSTALL_LIB_DIR}/libesmumps.a   -L${INSTALL_LIB_DIR} -lscotch
+a2so ${INSTALL_LIB_DIR}/libptesmumps.a -L${INSTALL_LIB_DIR} -lptscotch
+SCOTCH_DLIB="-L${INSTALL_LIB_DIR} -lscotch -lesmumps"
+PTSCOTCH_DLIB="-L${INSTALL_LIB_DIR} -lptscotch -lptesmumps"
+
 
 # TODO get AMF
 # Note: PORD is included in MUMPS
@@ -442,15 +457,16 @@ get_and_unpack mumps http://mumps.enseeiht.fr/MUMPS_${MUMPS_VER}.tar.gz
 cd ${S}/mumps/MUMPS_${MUMPS_VER}
 cp Make.inc/Makefile.INTEL.PAR ./Makefile.inc
 sed -i "s/\(^PLAT *=\) .*/\1 ${MACHINE}/" Makefile.inc
-sed -i "s/\(^FC *=\) .*/\1 gfortran/" Makefile.inc
-sed -i "s/\(^FL *=\) .*/\1 gfortran/" Makefile.inc
+sed -i "s/\(^CC *=\) .*/\1 mpicc/"  Makefile.inc
+sed -i "s/\(^FC *=\) .*/\1 mpif77/" Makefile.inc
+sed -i "s/\(^FL *=\) .*/\1 mpif77/" Makefile.inc
 sed -i "s/\(^RANLIB *=\) .*/\1 ranlib/" Makefile.inc
 # libscalapack.a blacs_MPI-LINUX-0.a blacsF77init_MPI-LINUX-0.a
-sed -i "s/\(^SCALAP *=\) .*/\1 ${SCALAPACK_LIB//\//\\/} ${BLACS_LIB//\//\\/} ${BLACSF_LIB//\//\\/}/" Makefile.inc
+sed -i "s/\(^SCALAP *=\) .*/\1 ${SCALAPACK_DLIB//\//\\/} ${BLACSF_DLIB//\//\\/}/" Makefile.inc
 sed -i "s/\(^INCPAR *=\) .*/\1 -I${INSTALL_INC_DIR//\//\\/} -I${MPI_INC//\//\\/}/" Makefile.inc
 # -llammpio -llamf77mpi -lmpi -llam
 sed -i "s/\(^LIBPAR *=\) .*/\1 \$(SCALAP) -L${INSTALL_LIB_DIR//\//\\/} -lutil -ldl -lpthread/" Makefile.inc
-sed -i "s/\(^LIBBLAS *=\) .*/\1 -L${BLAS_DIR//\//\\/} -lblas/" Makefile.inc
+sed -i "s/\(^LIBBLAS *=\) .*/\1 -L${BLAS_DLIB//\//\\/}/" Makefile.inc
 
 # update for AMD, METIS/parMETIS, SCOTCH/ptSCOTCH
 sed -i "s/^#SCOTCHDIR.*/SCOTCHDIR = ${INSTALL_BASE_DIR//\//\\/}/" Makefile.inc
@@ -461,7 +477,7 @@ sed -i "s/^#LMETISDIR.*/LMETISDIR = ${INSTALL_LIB_DIR//\//\\/}/" Makefile.inc
 sed -i "s/^#LMETIS/LMETIS/" Makefile.inc
 
 sed -i "s/^ORDERINGSF.*/ORDERINGSF = -Dscotch -Dmetis -Dpord -Dptscotch -Dparmetis/" Makefile.inc
-
+sed -i "s/^\(OPT.*=\) /\1 -fPIC /" Makefile.inc
 
 # TODO configure links to dependancies, vars: LIBBLAS, SCALAP, INCPAR, LIBPAR
 # d: double precision real (default), c: complex double, s: single precision real, z: single precision complex
@@ -469,8 +485,13 @@ info "  build"
 #${MAKE} d > /dev/null || err mumps "build failed"
 ${MAKE} s d c z &> /dev/null || err mumps "build failed"
 # install MUMPS
-for i in lib/lib?mumps.a lib/libmumps_common.a include/*.h; do
+for i in lib/lib?mumps.a lib/libmumps_common.a lib/libpord.a include/*.h; do
   cp $i ${INSTALL_BASE_DIR}/$i
+done
+a2so ${INSTALL_LIB_DIR}/libpord.a
+a2so ${INSTALL_LIB_DIR}/libmumps_common.a -L${INSTALL_LIB_DIR} -lpord ${METIS_DLIB} ${PTSCOTCH_DLIB} ${MPI_DLIB} -lmpi_f77 -lgfortran -lm
+for i in s d c z; do
+  a2so ${INSTALL_LIB_DIR}/lib${i}mumps.a -L${INSTALL_LIB_DIR} -lmumps_common ${SCALAPACK_DLIB}
 done
 
 TOC=$(date +%s)
