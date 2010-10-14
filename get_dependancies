@@ -31,6 +31,14 @@ function info() {
   echo "* $*"
 }
 
+# some notes on dynamic library tools:
+# ldd lib.so will show what libraries (and where they are) that a .so depends upon
+# ldd -u -r -d lib.so will check that all the necessary symbols can be found
+# gcc -shared *.so -Wl,-rpath,${IPATH} -o lib.so will add ${IPATH} as if LD_LIBRARY_PATH was set, so the .so can find its dependancies if they aren't installed in the standard locations
+# nm lib.so/a will show the symbols included in a library
+# readelf -a lib.so |grep RPATH will show what the rpath is set to
+
+
 # convert static library .a to dynamic lib .so
 # Note: compile requires -fPIC to be relocatable
 # a2so <path/static_lib.a>
@@ -66,7 +74,7 @@ function get_and_unpack() {
 S=${PWD}
 MACHINE=$(gcc -dumpmachine)
 INSTALL_BASE_DIR=${PWD}/${MACHINE}
-DEP_DIRS="blas blacs lapack mpi mumps scalapack amd metis scotch"
+DEP_DIRS="blas blacs lapack mpi mumps scalapack amd metis scotch bebop"
 
 # clean out any old install
 [ "$1" == "clean" ] && rm -rf ${INSTALL_BASE_DIR} ${DEP_DIRS} && exit 0
@@ -312,7 +320,7 @@ ar x libmpiblacsF77init.a
 for i in *.C; do
   mv $i ${i/.C/.oo}
 done
-gcc -shared *.o *.oo -o libblacs-mpi-f77.so ${MPI_DLIB} -lmpi_f77
+gcc -shared *.o *.oo -Wl,-rpath,${INSTALL_LIB_DIR} -o libblacs-mpi-f77.so ${MPI_DLIB} -lmpi_f77
 mv libblacs-mpi-f77.so ${INSTALL_LIB_DIR}/
 rm *.o
 ar x libmpiblacsCinit.a
@@ -321,7 +329,7 @@ ar x libmpiblacsCinit.a
 for i in *.C; do
   mv $i ${i/.C/.oo}
 done
-gcc -shared *.o *.oo -o libblacs-mpi-c.so ${MPI_DLIB} -lmpi_f77
+gcc -shared *.o *.oo -Wl,-rpath,${INSTALL_LIB_DIR} -o libblacs-mpi-c.so ${MPI_DLIB} -lmpi_f77
 mv libblacs-mpi-c.so ${INSTALL_LIB_DIR}/
 cd ..
 rm -rf t
@@ -493,6 +501,28 @@ a2so ${INSTALL_LIB_DIR}/libmumps_common.a -L${INSTALL_LIB_DIR} -lpord ${METIS_DL
 for i in s d c z; do
   a2so ${INSTALL_LIB_DIR}/lib${i}mumps.a -L${INSTALL_LIB_DIR} -lmumps_common ${SCALAPACK_DLIB}
 done
+
+
+info "== I/O =="
+info "BeBOP Sparse Matrix Converter"
+get_and_unpack bebop http://bebop.cs.berkeley.edu/smc/tarballs/bebop_make.tar.gz
+get_and_unpack bebop http://bebop.cs.berkeley.edu/smc/tarballs/bebop_util.tar.gz
+get_and_unpack bebop http://bebop.cs.berkeley.edu/smc/tarballs/sparse_matrix_converter.tar.gz
+cd ${S}/bebop/bebop_make
+sed -i "s/\(^LDFLAGS\)=.*/\1=-Wl,-rpath,${INSTALL_LIB_DIR//\//\\/}/" Makefile.include
+cd ${S}/bebop/bebop_util
+info "  build util lib"
+make &> /dev/null || err bebop "util build failed"
+cd ${S}/bebop/sparse_matrix_converter
+info "  build sparse matrix convertor"
+make &> /dev/null || err bebop "sparse matrix convertor build failed"
+info "  install"
+cd ${S}/bebop
+for i in bebop_util sparse_matrix_converter; do
+  cp ${S}/bebop/${i}/lib${i}.so ${INSTALL_LIB_DIR}/
+  cp ${S}/bebop/${i}/lib${i}.a  ${INSTALL_LIB_DIR}/
+done
+cp ${S}/bebop/sparse_matrix_converter/sparse_matrix_converter ${INSTALL_BIN_DIR}/
 
 TOC=$(date +%s)
 let DELTA=${TOC}-${TIC}
