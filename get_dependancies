@@ -523,6 +523,11 @@ for i in bebop_util sparse_matrix_converter; do
   cp ${S}/bebop/${i}/lib${i}.a  ${INSTALL_LIB_DIR}/
 done
 cp ${S}/bebop/sparse_matrix_converter/sparse_matrix_converter ${INSTALL_BIN_DIR}/
+mkdir -p ${INSTALL_INC_DIR}/bebop/util
+mkdir -p ${INSTALL_INC_DIR}/bebop/smc
+cp ${S}/bebop/bebop_util/include/bebop/util/init.h ${INSTALL_INC_DIR}/bebop/util/
+cp ${S}/bebop/sparse_matrix_converter/include/bebop/smc/sparse_matrix.h ${INSTALL_INC_DIR}/bebop/smc/
+cp ${S}/bebop/sparse_matrix_converter/include/bebop/smc/sparse_matrix_ops.h ${INSTALL_INC_DIR}/bebop/smc/
 
 TOC=$(date +%s)
 let DELTA=${TOC}-${TIC}
