@@ -11,7 +11,7 @@ RPATH=../$(MACHINE)/lib
 all: helloworld-mpi helloworld-mumps file
 
 clean:
-	rm -f helloworld-mpi helloworld-mumps file tags
+	rm -f helloworld-mpi helloworld-mumps file tags out-test.*
 
 helloworld-mpi: helloworld-mpi.c
 	@echo "** TEST: $@"

@@ -22,16 +22,30 @@ int main (argc, argv)
   bebop_default_initialize (argc, argv, &errcode);
   assert (errcode == 0);
 
+  struct sparse_matrix_t* A;
 
-  const char* out = "test-out.mm";
-  //struct sparse_matrix_t* A = load_sparse_matrix (HARWELL_BOEING, "test.hb");
-  //struct sparse_matrix_t* A = load_sparse_matrix (HARWELL_BOEING, "test.rb");
-  struct sparse_matrix_t* A = load_sparse_matrix (MATRIX_MARKET, "test.mm");
+  printf("harwell-boeing\n");
+  A = load_sparse_matrix (HARWELL_BOEING, "test.hb");
   assert (A != NULL);
-  save_sparse_matrix (out, A, MATRIX_MARKET);
+  //save_sparse_matrix ("out-test.hb2mm", A, MATRIX_MARKET); // TODO broken output (all zeros)
+  //save_sparse_matrix ("out-test.hb2hb", A, HARWELL_BOEING); TODO broken output (all zeros)
+  destroy_sparse_matrix (A);
+  
+  printf("rutherford-boeing\n");
+  A = load_sparse_matrix (HARWELL_BOEING, "test.rb");
+  assert (A != NULL);
+  //save_sparse_matrix ("out-test.rb2mm", A, MATRIX_MARKET); // TODO segfault
+  //save_sparse_matrix ("out-test.rb2hb", A, HARWELL_BOEING); // TODO broken output (all zeros)
   destroy_sparse_matrix (A);
 
-  bebop_exit(errcode);
-  assert(errcode == 0);
+  printf("matrix market\n");
+  A = load_sparse_matrix (MATRIX_MARKET, "test.mm");
+  assert (A != NULL);
+  save_sparse_matrix ("out-test.mm2mm", A, MATRIX_MARKET);
+  save_sparse_matrix ("out-test.mm2hb", A, HARWELL_BOEING);
+  destroy_sparse_matrix (A);
+  
+  // clean up
+  printf("PASS\n");
   return 0;
 }
