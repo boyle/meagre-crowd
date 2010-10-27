@@ -15,12 +15,29 @@
 #include <bebop/smc/sparse_matrix_ops.h>
 #include <bebop/smc/coo_matrix.h>
 
+int results_match(const double * const expected, const double const * result, const int n, const double precision);
+int results_match(const double * const expected, const double const * result, const int n, const double precision) {
+  int i;
+  for(i=0;i<n;i++) {
+    if( (result[i] < (expected[i] - precision)) ||
+        (result[i] > (expected[i] + precision)) ) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+
 #define JOB_INIT -1
 #define JOB_END -2
+#define JOB_ANALYSE 1
+#define JOB_FACTORIZE 2
+#define JOB_SOLVE 3
+#define JOB_ALL 6
 #define USE_COMM_WORLD -987654
 int main(int argc, char ** argv) {
   DMUMPS_STRUC_C id;
-  int myid, ierr;
+  int myid, ierr, retval;
 
   ierr = MPI_Init(&argc, &argv);               assert(ierr == 0);
   ierr = MPI_Comm_rank(MPI_COMM_WORLD, &myid); assert(ierr == 0);
@@ -38,7 +55,8 @@ int main(int argc, char ** argv) {
 
     // check somethings are as expected
     struct coo_matrix_t* Acoo = A->repr;
-    assert(Acoo->index_base == ZERO); // index zero is the first entry
+    coo_c_to_fortran(Acoo); assert(Acoo != NULL);
+    assert(Acoo->index_base == ONE); // index zero is the first entry
     assert(Acoo->symmetry_type == UNSYMMETRIC);
     assert(Acoo->value_type == REAL); // don't handle complex... yet TODO
 
@@ -68,9 +86,17 @@ int main(int argc, char ** argv) {
   }
   #define ICNTL(I) icntl[(I)-1] /* macro s.t. indices match documentation */
   /* No outputs */
-  id.ICNTL(1)=-1; id.ICNTL(2)=-1; id.ICNTL(3)=-1; id.ICNTL(4)=0;
+  if(1) { // no debug
+    id.ICNTL(1)=-1; id.ICNTL(2)=-1; id.ICNTL(3)=-1; id.ICNTL(4)=0;
+  }
+  else { // debug
+    id.ICNTL(1)=6; // err output stream
+    id.ICNTL(2)=6; // warn/info output stream
+    id.ICNTL(3)=6; // global output stream
+    id.ICNTL(4)=4; // debug level 0:none, 1: err, 2: warn/stats 3:diagnostics, 4:parameters
+  }
   /* Call the MUMPS package. */
-  id.job=6;       dmumps_c(&id);
+  id.job=JOB_ALL; dmumps_c(&id);
   id.job=JOB_END; dmumps_c(&id); /* Terminate instance */
   if (myid == 0) {
     printf("Solution is\n");
@@ -86,8 +112,15 @@ int main(int argc, char ** argv) {
        *	   0.250000
        */
     }
-    printf("FAIL\n");
+    // test result
+    const double const e[5] = {1.0, 0.434211, 0.25, -0.092105, 0.25};
+    if( results_match(e,id.rhs,id.n,0.001) ) {
+      retval = 0; printf("PASS\n");
+    }
+    else {
+      retval = 1; printf("FAIL\n");
+    }
   }
-  ierr = MPI_Finalize();
-  return 10;
+  ierr = MPI_Finalize(); assert(ierr == 0);
+  return retval;
 }
