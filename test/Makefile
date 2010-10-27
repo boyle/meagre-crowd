@@ -4,7 +4,7 @@ MACHINE=$(shell gcc -dumpmachine)
 #EXEC=../$(MACHINE)/bin/mpirun -n 10
 CC=mpicc
 FC=mpif77
-EXEC=mpirun -n 10
+EXEC=mpirun -n 4 
 INCL=../$(MACHINE)/include
 RPATH=../$(MACHINE)/lib
 
@@ -21,6 +21,7 @@ helloworld-mpi: helloworld-mpi.c
 file: file.c
 	@echo "** TEST: $@"
 	${CC} -I${INCL} -L${RPATH} -Wl,-rpath,${RPATH} -Wall $^ -lsparse_matrix_converter -o $@
+	./$@
 
 helloworld-mumps: helloworld-mumps.c
 	@echo "** TEST: $@"
@@ -31,6 +32,7 @@ helloworld-mumps: helloworld-mumps.c
 mumps-file: mumps-file.c
 	@echo "** TEST: $@"
 	${FC} -L${RPATH} -I${INCL} -Wl,-rpath,${RPATH} -Wall $^ -lsparse_matrix_converter -ldmumps -o $@
+	${EXEC} $@
 
 
 ctags:
