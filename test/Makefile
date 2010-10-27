@@ -8,10 +8,10 @@ EXEC=mpirun -n 10
 INCL=../$(MACHINE)/include
 RPATH=../$(MACHINE)/lib
 
-all: helloworld-mpi helloworld-mumps file
+all: helloworld-mpi helloworld-mumps file mumps-file
 
 clean:
-	rm -f helloworld-mpi helloworld-mumps file tags out-test.*
+	rm -f helloworld-mpi helloworld-mumps file mumps-file tags out-test.*
 
 helloworld-mpi: helloworld-mpi.c
 	@echo "** TEST: $@"
@@ -20,13 +20,18 @@ helloworld-mpi: helloworld-mpi.c
 
 file: file.c
 	@echo "** TEST: $@"
-	${CC} -I${INCL} -L${RPATH} -Wl,-rpath,${RPATH} -Wall -lbebop_util -lsparse_matrix_converter $^ -o $@
+	${CC} -I${INCL} -L${RPATH} -Wl,-rpath,${RPATH} -Wall $^ -lsparse_matrix_converter -o $@
 
 helloworld-mumps: helloworld-mumps.c
 	@echo "** TEST: $@"
 	# need fortran compiler to compile C that is linking into fortran
 	${FC} -L${RPATH} -I${INCL} -Wl,-rpath,${RPATH} $^ -ldmumps -o $@
-	${EXEC} $@	
+	${EXEC} $@
+
+mumps-file: mumps-file.c
+	@echo "** TEST: $@"
+	${FC} -L${RPATH} -I${INCL} -Wl,-rpath,${RPATH} -Wall $^ -lsparse_matrix_converter -ldmumps -o $@
+
 
 ctags:
 	ctags --c-kinds=pe --recurse -R file.c ../x86_64-pc-linux-gnu/include/bebop/
