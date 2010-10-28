@@ -1,0 +1,28 @@
+Compiling and Installing
+------------------------
+
+Run the following commands to compile this program
+
+./configure
+make
+make install
+
+Run
+
+./configure --prefix=<dir>
+
+to have the files installed in a different location from the
+default /usr/local (i.e. if you don't have root permission
+and would like to install it in your home directory)
+
+Running the Tests
+-----------------
+To execute the test suite run
+
+make test
+
+
+Running the Program
+-------------------
+
+TODO instructions on how to make the program do stuff
