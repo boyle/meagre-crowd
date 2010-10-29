@@ -1,28 +1,9 @@
+AUTOMAKE_OPTIONS = gnu
 
+bin_PROGRAMS = meagre-crowd
 
+meagre_crowd_SOURCES = src/meagre-crowd.c
 
-
-#
-#
-# autoconf manual bioler-plate: rebuild configure if src changes
-
-$(srcdir)/configure: configure.ac aclocal.m4
-	cd '$(srcdir)' && autoconf
- 
-# autoheader might not change config.h.in, so touch a stamp file.
-$(srcdir)/config.h.in: stamp-h.in
-$(srcdir)/stamp-h.in: configure.ac aclocal.m4
-	cd '$(srcdir)' && autoheader
-	echo timestamp > '$(srcdir)/stamp-h.in'
- 
-config.h: stamp-h
-stamp-h: config.h.in config.status
-	./config.status
-
-Makefile: Makefile.in config.status
-	./config.status
-
-config.status: configure
-	 ./config.status --recheck
+EXTRA_PROGRAMS = file helloworld-mpi helloworld-mumps mumps-file
 
 
