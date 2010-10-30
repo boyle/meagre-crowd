@@ -5,3 +5,4 @@ autom4te.cache
 Makefile
 config.log
 .deps
+*.o

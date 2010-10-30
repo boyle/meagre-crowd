@@ -6,6 +6,8 @@ AC_INIT([meagre-crowd],[0.0.1],[alistair.js.boyle@gmail.com])
 
 AC_COPYRIGHT([Copyright (C) 2010 Alistair Boyle])
 
+AC_CONFIG_AUX_DIR([build-aux])
+
 AC_CONFIG_SRCDIR([src/meagre-crowd.c])
 AC_CONFIG_HEADERS([src/config.h])
 
@@ -30,5 +32,9 @@ AC_HEADER_ASSERT
 
 # Checks for library functions.
 AC_FUNC_MALLOC
+
+# Setup the test suite
+AC_CONFIG_TESTDIR([.],[test])
+AC_CONFIG_FILES([atlocal])
 
 AC_OUTPUT

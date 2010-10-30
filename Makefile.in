@@ -33,13 +33,16 @@ NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
 bin_PROGRAMS = meagre-crowd$(EXEEXT)
-EXTRA_PROGRAMS = file$(EXEEXT) helloworld-mpi$(EXEEXT) \
-	helloworld-mumps$(EXEEXT) mumps-file$(EXEEXT)
+check_PROGRAMS = ${TEST_SRC_DIR}/file$(EXEEXT) \
+	${TEST_SRC_DIR}/helloworld-mpi$(EXEEXT) \
+	${TEST_SRC_DIR}/helloworld-mumps$(EXEEXT) \
+	${TEST_SRC_DIR}/mumps-file$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
-	$(srcdir)/Makefile.in $(top_srcdir)/configure \
-	$(top_srcdir)/src/config.h.in AUTHORS COPYING ChangeLog \
-	INSTALL NEWS depcomp install-sh missing
+	$(srcdir)/Makefile.in $(srcdir)/atlocal.in \
+	$(top_srcdir)/configure $(top_srcdir)/src/config.h.in AUTHORS \
+	COPYING ChangeLog INSTALL NEWS build-aux/depcomp \
+	build-aux/install-sh build-aux/missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -48,37 +51,42 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/src/config.h
-CONFIG_CLEAN_FILES =
+CONFIG_CLEAN_FILES = atlocal
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-file_SOURCES = file.c
-file_OBJECTS = file.$(OBJEXT)
-file_LDADD = $(LDADD)
-helloworld_mpi_SOURCES = helloworld-mpi.c
-helloworld_mpi_OBJECTS = helloworld-mpi.$(OBJEXT)
-helloworld_mpi_LDADD = $(LDADD)
-helloworld_mumps_SOURCES = helloworld-mumps.c
-helloworld_mumps_OBJECTS = helloworld-mumps.$(OBJEXT)
-helloworld_mumps_LDADD = $(LDADD)
+__TEST_SRC_DIR__file_SOURCES = ${TEST_SRC_DIR}/file.c
+__TEST_SRC_DIR__file_OBJECTS = file.$(OBJEXT)
+__TEST_SRC_DIR__file_LDADD = $(LDADD)
+am__dirstamp = $(am__leading_dot)dirstamp
+__TEST_SRC_DIR__helloworld_mpi_SOURCES =  \
+	${TEST_SRC_DIR}/helloworld-mpi.c
+__TEST_SRC_DIR__helloworld_mpi_OBJECTS = helloworld-mpi.$(OBJEXT)
+__TEST_SRC_DIR__helloworld_mpi_LDADD = $(LDADD)
+__TEST_SRC_DIR__helloworld_mumps_SOURCES =  \
+	${TEST_SRC_DIR}/helloworld-mumps.c
+__TEST_SRC_DIR__helloworld_mumps_OBJECTS = helloworld-mumps.$(OBJEXT)
+__TEST_SRC_DIR__helloworld_mumps_LDADD = $(LDADD)
+__TEST_SRC_DIR__mumps_file_SOURCES = ${TEST_SRC_DIR}/mumps-file.c
+__TEST_SRC_DIR__mumps_file_OBJECTS = mumps-file.$(OBJEXT)
+__TEST_SRC_DIR__mumps_file_LDADD = $(LDADD)
 am_meagre_crowd_OBJECTS = meagre-crowd.$(OBJEXT)
 meagre_crowd_OBJECTS = $(am_meagre_crowd_OBJECTS)
 meagre_crowd_LDADD = $(LDADD)
-mumps_file_SOURCES = mumps-file.c
-mumps_file_OBJECTS = mumps-file.$(OBJEXT)
-mumps_file_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/src
-depcomp = $(SHELL) $(top_srcdir)/depcomp
+depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = file.c helloworld-mpi.c helloworld-mumps.c \
-	$(meagre_crowd_SOURCES) mumps-file.c
-DIST_SOURCES = file.c helloworld-mpi.c helloworld-mumps.c \
-	$(meagre_crowd_SOURCES) mumps-file.c
+SOURCES = ${TEST_SRC_DIR}/file.c ${TEST_SRC_DIR}/helloworld-mpi.c \
+	${TEST_SRC_DIR}/helloworld-mumps.c \
+	${TEST_SRC_DIR}/mumps-file.c $(meagre_crowd_SOURCES)
+DIST_SOURCES = ${TEST_SRC_DIR}/file.c ${TEST_SRC_DIR}/helloworld-mpi.c \
+	${TEST_SRC_DIR}/helloworld-mumps.c \
+	${TEST_SRC_DIR}/mumps-file.c $(meagre_crowd_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -178,8 +186,17 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+
+# build to GNU standards
 AUTOMAKE_OPTIONS = gnu
 meagre_crowd_SOURCES = src/meagre-crowd.c
+
+# the tests
+TEST_SRC_DIR = test
+EXTRA_DIST = testsuite.at $(srcdir)/package.m4 $(TESTSUITE) atlocal.in atconfig
+TESTSUITE = $(srcdir)/testsuite
+AUTOM4TE = $(SHELL) $(abs_srcdir)/build-aux/missing --run autom4te
+AUTOTEST = $(AUTOM4TE) --language=autotest
 all: all-am
 
 .SUFFIXES:
@@ -235,6 +252,8 @@ $(top_srcdir)/src/config.h.in:  $(am__configure_deps)
 
 distclean-hdr:
 	-rm -f src/config.h src/stamp-h1
+atlocal: $(top_builddir)/config.status $(srcdir)/atlocal.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)
 	test -z "$(bindir)" || $(MKDIR_P) "$(DESTDIR)$(bindir)"
@@ -272,21 +291,27 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
-file$(EXEEXT): $(file_OBJECTS) $(file_DEPENDENCIES) 
-	@rm -f file$(EXEEXT)
-	$(LINK) $(file_OBJECTS) $(file_LDADD) $(LIBS)
-helloworld-mpi$(EXEEXT): $(helloworld_mpi_OBJECTS) $(helloworld_mpi_DEPENDENCIES) 
-	@rm -f helloworld-mpi$(EXEEXT)
-	$(LINK) $(helloworld_mpi_OBJECTS) $(helloworld_mpi_LDADD) $(LIBS)
-helloworld-mumps$(EXEEXT): $(helloworld_mumps_OBJECTS) $(helloworld_mumps_DEPENDENCIES) 
-	@rm -f helloworld-mumps$(EXEEXT)
-	$(LINK) $(helloworld_mumps_OBJECTS) $(helloworld_mumps_LDADD) $(LIBS)
+
+clean-checkPROGRAMS:
+	-test -z "$(check_PROGRAMS)" || rm -f $(check_PROGRAMS)
+${TEST_SRC_DIR}/$(am__dirstamp):
+	@$(MKDIR_P) ${TEST_SRC_DIR}
+	@: > ${TEST_SRC_DIR}/$(am__dirstamp)
+${TEST_SRC_DIR}/file$(EXEEXT): $(__TEST_SRC_DIR__file_OBJECTS) $(__TEST_SRC_DIR__file_DEPENDENCIES) ${TEST_SRC_DIR}/$(am__dirstamp)
+	@rm -f ${TEST_SRC_DIR}/file$(EXEEXT)
+	$(LINK) $(__TEST_SRC_DIR__file_OBJECTS) $(__TEST_SRC_DIR__file_LDADD) $(LIBS)
+${TEST_SRC_DIR}/helloworld-mpi$(EXEEXT): $(__TEST_SRC_DIR__helloworld_mpi_OBJECTS) $(__TEST_SRC_DIR__helloworld_mpi_DEPENDENCIES) ${TEST_SRC_DIR}/$(am__dirstamp)
+	@rm -f ${TEST_SRC_DIR}/helloworld-mpi$(EXEEXT)
+	$(LINK) $(__TEST_SRC_DIR__helloworld_mpi_OBJECTS) $(__TEST_SRC_DIR__helloworld_mpi_LDADD) $(LIBS)
+${TEST_SRC_DIR}/helloworld-mumps$(EXEEXT): $(__TEST_SRC_DIR__helloworld_mumps_OBJECTS) $(__TEST_SRC_DIR__helloworld_mumps_DEPENDENCIES) ${TEST_SRC_DIR}/$(am__dirstamp)
+	@rm -f ${TEST_SRC_DIR}/helloworld-mumps$(EXEEXT)
+	$(LINK) $(__TEST_SRC_DIR__helloworld_mumps_OBJECTS) $(__TEST_SRC_DIR__helloworld_mumps_LDADD) $(LIBS)
+${TEST_SRC_DIR}/mumps-file$(EXEEXT): $(__TEST_SRC_DIR__mumps_file_OBJECTS) $(__TEST_SRC_DIR__mumps_file_DEPENDENCIES) ${TEST_SRC_DIR}/$(am__dirstamp)
+	@rm -f ${TEST_SRC_DIR}/mumps-file$(EXEEXT)
+	$(LINK) $(__TEST_SRC_DIR__mumps_file_OBJECTS) $(__TEST_SRC_DIR__mumps_file_LDADD) $(LIBS)
 meagre-crowd$(EXEEXT): $(meagre_crowd_OBJECTS) $(meagre_crowd_DEPENDENCIES) 
 	@rm -f meagre-crowd$(EXEEXT)
 	$(LINK) $(meagre_crowd_OBJECTS) $(meagre_crowd_LDADD) $(LIBS)
-mumps-file$(EXEEXT): $(mumps_file_OBJECTS) $(mumps_file_DEPENDENCIES) 
-	@rm -f mumps-file$(EXEEXT)
-	$(LINK) $(mumps_file_OBJECTS) $(mumps_file_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -313,6 +338,62 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
+
+file.o: ${TEST_SRC_DIR}/file.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT file.o -MD -MP -MF $(DEPDIR)/file.Tpo -c -o file.o `test -f '${TEST_SRC_DIR}/file.c' || echo '$(srcdir)/'`${TEST_SRC_DIR}/file.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/file.Tpo $(DEPDIR)/file.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/file.c' object='file.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o file.o `test -f '${TEST_SRC_DIR}/file.c' || echo '$(srcdir)/'`${TEST_SRC_DIR}/file.c
+
+file.obj: ${TEST_SRC_DIR}/file.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT file.obj -MD -MP -MF $(DEPDIR)/file.Tpo -c -o file.obj `if test -f '${TEST_SRC_DIR}/file.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/file.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/file.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/file.Tpo $(DEPDIR)/file.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/file.c' object='file.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o file.obj `if test -f '${TEST_SRC_DIR}/file.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/file.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/file.c'; fi`
+
+helloworld-mpi.o: ${TEST_SRC_DIR}/helloworld-mpi.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT helloworld-mpi.o -MD -MP -MF $(DEPDIR)/helloworld-mpi.Tpo -c -o helloworld-mpi.o `test -f '${TEST_SRC_DIR}/helloworld-mpi.c' || echo '$(srcdir)/'`${TEST_SRC_DIR}/helloworld-mpi.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/helloworld-mpi.Tpo $(DEPDIR)/helloworld-mpi.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/helloworld-mpi.c' object='helloworld-mpi.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o helloworld-mpi.o `test -f '${TEST_SRC_DIR}/helloworld-mpi.c' || echo '$(srcdir)/'`${TEST_SRC_DIR}/helloworld-mpi.c
+
+helloworld-mpi.obj: ${TEST_SRC_DIR}/helloworld-mpi.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT helloworld-mpi.obj -MD -MP -MF $(DEPDIR)/helloworld-mpi.Tpo -c -o helloworld-mpi.obj `if test -f '${TEST_SRC_DIR}/helloworld-mpi.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/helloworld-mpi.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/helloworld-mpi.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/helloworld-mpi.Tpo $(DEPDIR)/helloworld-mpi.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/helloworld-mpi.c' object='helloworld-mpi.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o helloworld-mpi.obj `if test -f '${TEST_SRC_DIR}/helloworld-mpi.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/helloworld-mpi.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/helloworld-mpi.c'; fi`
+
+helloworld-mumps.o: ${TEST_SRC_DIR}/helloworld-mumps.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT helloworld-mumps.o -MD -MP -MF $(DEPDIR)/helloworld-mumps.Tpo -c -o helloworld-mumps.o `test -f '${TEST_SRC_DIR}/helloworld-mumps.c' || echo '$(srcdir)/'`${TEST_SRC_DIR}/helloworld-mumps.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/helloworld-mumps.Tpo $(DEPDIR)/helloworld-mumps.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/helloworld-mumps.c' object='helloworld-mumps.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o helloworld-mumps.o `test -f '${TEST_SRC_DIR}/helloworld-mumps.c' || echo '$(srcdir)/'`${TEST_SRC_DIR}/helloworld-mumps.c
+
+helloworld-mumps.obj: ${TEST_SRC_DIR}/helloworld-mumps.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT helloworld-mumps.obj -MD -MP -MF $(DEPDIR)/helloworld-mumps.Tpo -c -o helloworld-mumps.obj `if test -f '${TEST_SRC_DIR}/helloworld-mumps.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/helloworld-mumps.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/helloworld-mumps.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/helloworld-mumps.Tpo $(DEPDIR)/helloworld-mumps.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/helloworld-mumps.c' object='helloworld-mumps.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o helloworld-mumps.obj `if test -f '${TEST_SRC_DIR}/helloworld-mumps.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/helloworld-mumps.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/helloworld-mumps.c'; fi`
+
+mumps-file.o: ${TEST_SRC_DIR}/mumps-file.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mumps-file.o -MD -MP -MF $(DEPDIR)/mumps-file.Tpo -c -o mumps-file.o `test -f '${TEST_SRC_DIR}/mumps-file.c' || echo '$(srcdir)/'`${TEST_SRC_DIR}/mumps-file.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/mumps-file.Tpo $(DEPDIR)/mumps-file.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/mumps-file.c' object='mumps-file.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mumps-file.o `test -f '${TEST_SRC_DIR}/mumps-file.c' || echo '$(srcdir)/'`${TEST_SRC_DIR}/mumps-file.c
+
+mumps-file.obj: ${TEST_SRC_DIR}/mumps-file.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mumps-file.obj -MD -MP -MF $(DEPDIR)/mumps-file.Tpo -c -o mumps-file.obj `if test -f '${TEST_SRC_DIR}/mumps-file.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/mumps-file.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/mumps-file.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/mumps-file.Tpo $(DEPDIR)/mumps-file.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/mumps-file.c' object='mumps-file.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mumps-file.obj `if test -f '${TEST_SRC_DIR}/mumps-file.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/mumps-file.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/mumps-file.c'; fi`
 
 meagre-crowd.o: src/meagre-crowd.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT meagre-crowd.o -MD -MP -MF $(DEPDIR)/meagre-crowd.Tpo -c -o meagre-crowd.o `test -f 'src/meagre-crowd.c' || echo '$(srcdir)/'`src/meagre-crowd.c
@@ -528,6 +609,8 @@ distcleancheck: distclean
 	       $(distcleancheck_listfiles) ; \
 	       exit 1; } >&2
 check-am: all-am
+	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
+	$(MAKE) $(AM_MAKEFLAGS) check-local
 check: check-am
 all-am: Makefile $(PROGRAMS)
 installdirs:
@@ -555,13 +638,15 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
+	-rm -f ${TEST_SRC_DIR}/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-binPROGRAMS clean-generic mostlyclean-am
+clean-am: clean-binPROGRAMS clean-checkPROGRAMS clean-generic \
+	clean-local mostlyclean-am
 
 distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
@@ -608,7 +693,7 @@ install-ps: install-ps-am
 
 install-ps-am:
 
-installcheck-am:
+installcheck-am: installcheck-local
 
 maintainer-clean: maintainer-clean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
@@ -631,24 +716,63 @@ ps-am:
 
 uninstall-am: uninstall-binPROGRAMS
 
-.MAKE: install-am install-strip
+.MAKE: check-am install-am install-strip
 
-.PHONY: CTAGS GTAGS all all-am am--refresh check check-am clean \
-	clean-binPROGRAMS clean-generic ctags dist dist-all dist-bzip2 \
-	dist-gzip dist-lzma dist-shar dist-tarZ dist-xz dist-zip \
-	distcheck distclean distclean-compile distclean-generic \
-	distclean-hdr distclean-tags distcleancheck distdir \
-	distuninstallcheck dvi dvi-am html html-am info info-am \
-	install install-am install-binPROGRAMS install-data \
-	install-data-am install-dvi install-dvi-am install-exec \
-	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
-	uninstall-am uninstall-binPROGRAMS
+.PHONY: CTAGS GTAGS all all-am am--refresh check check-am check-local \
+	clean clean-binPROGRAMS clean-checkPROGRAMS clean-generic \
+	clean-local ctags dist dist-all dist-bzip2 dist-gzip dist-lzma \
+	dist-shar dist-tarZ dist-xz dist-zip distcheck distclean \
+	distclean-compile distclean-generic distclean-hdr \
+	distclean-tags distcleancheck distdir distuninstallcheck dvi \
+	dvi-am html html-am info info-am install install-am \
+	install-binPROGRAMS install-data install-data-am install-dvi \
+	install-dvi-am install-exec install-exec-am install-html \
+	install-html-am install-info install-info-am install-man \
+	install-pdf install-pdf-am install-ps install-ps-am \
+	install-strip installcheck installcheck-am installcheck-local \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic pdf pdf-am \
+	ps ps-am tags uninstall uninstall-am uninstall-binPROGRAMS
 
+
+clean-local: clean-local-check
+
+######
+
+# The `:;' works around a Bash 3.2 bug when the output is not writeable.
+$(srcdir)/package.m4: $(top_srcdir)/configure.ac
+	:;{ \
+	  echo '# Signature of the current package.' && \
+	  echo 'm4_define([AT_PACKAGE_NAME],' && \
+	  echo '  [$(PACKAGE_NAME)])' && \
+	  echo 'm4_define([AT_PACKAGE_TARNAME],' && \
+	  echo '  [$(PACKAGE_TARNAME)])' && \
+	  echo 'm4_define([AT_PACKAGE_VERSION],' && \
+	  echo '  [$(PACKAGE_VERSION)])' && \
+	  echo 'm4_define([AT_PACKAGE_STRING],' && \
+	  echo '  [$(PACKAGE_STRING)])' && \
+	  echo 'm4_define([AT_PACKAGE_BUGREPORT],' && \
+	  echo '  [$(PACKAGE_BUGREPORT)])'; \
+	  echo 'm4_define([AT_PACKAGE_URL],' && \
+	  echo '  [$(PACKAGE_URL)])'; \
+	} >'$(srcdir)/package.m4'
+
+check-local: atconfig atlocal $(TESTSUITE)
+	$(SHELL) '$(TESTSUITE)' $(TESTSUITEFLAGS)
+
+installcheck-local: atconfig atlocal $(TESTSUITE)
+	$(SHELL) '$(TESTSUITE)' AUTOTEST_PATH='$(bindir)' \
+	  $(TESTSUITEFLAGS) -k '!hello'
+
+clean-local-check:
+	test ! -f '$(TESTSUITE)' || \
+	  $(SHELL) '$(TESTSUITE)' --clean
+	-rm -f $(TESTSUITE)
+	-rm -f $(srcdir)/package.m4
+	-rm -f $(srcdir)/atconfig
+$(TESTSUITE): $(srcdir)/testsuite.at $(srcdir)/package.m4
+	$(AUTOTEST) -I '$(abs_srcdir)' -o $@.tmp $@.at
+	mv $@.tmp $@
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

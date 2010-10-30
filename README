@@ -15,11 +15,27 @@ to have the files installed in a different location from the
 default /usr/local (i.e. if you don't have root permission
 and would like to install it in your home directory)
 
+If you've used the get_dependancies script then you probably
+want to run configure with
+
+./configure LDFLAGS="-L$(pwd)/x86_64-pc-linux-gnu/lib -Wl,-rpath,$(pwd)/x86_64-pc-linux-gnu/lib" CPPFLAGS="-I $(pwd)/x86_64-pc-linux-gnu/include" --prefix=/home/boyle/proj/meagre-crowd/installed
+
+or something similar. The -L and -I directories should be
+current locations for the files, while the -rpath should
+be the final installed location.
+
 Running the Tests
 -----------------
 To execute the test suite run
 
-make test
+make check 
+
+Preparing for Distribution
+--------------------------
+To tar the archive, then expand, compile and run the test suite
+
+make distcheck
+make distcheck DISTCHECK_CONFIGURE_FLAGS='LDFLAGS="-L/home/boyle/proj/meagre-crowd/x86_64-pc-linux-gnu/lib -Wl,-rpath,/home/boyle/proj/meagre-crowd/x86_64-pc-linux-gnu/lib" CPPFLAGS="-I /home/boyle/proj/meagre-crowd/x86_64-pc-linux-gnu/include"'
 
 
 Running the Program

@@ -1,0 +1,25 @@
+AT_INIT()
+AT_COPYRIGHT([Copyright (C) 2010, Alistair Boyle])
+AT_COLOR_TESTS
+
+AT_BANNER([superficial (sup)])
+
+AT_SETUP([superficial-true])
+AT_KEYWORDS([sup])
+AT_CHECK([true])
+AT_CLEANUP
+
+AT_SETUP([superficial-false])
+AT_KEYWORDS([sup])
+AT_CHECK([false],1)
+AT_CLEANUP
+
+
+
+AT_BANNER([hello-world])
+AT_SETUP([mpi default: 1 node])
+AT_KEYWORDS([mpi hello])
+AT_CHECK([helloworld-mpi],0,[Hello world from process 0 of 1
+])
+AT_CLEANUP
+
