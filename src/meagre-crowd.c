@@ -6,8 +6,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "mpi.h"
-#include "dmumps_c.h"
+
+#include <argp.h>
+
+#include <mpi.h>
+#include <dmumps_c.h>
+
+#include "config.h"
 
 #include <bebop/util/init.h>
 #include <bebop/util/enumerations.h>
@@ -15,6 +20,35 @@
 #include <bebop/smc/sparse_matrix_ops.h>
 #include <bebop/smc/coo_matrix.h>
 
+
+// global argp variables
+// TODO somehow hide these?
+const char* argp_program_version = PACKAGE_STRING;
+const char* argp_program_bug_address = PACKAGE_BUGREPORT;
+// command line option
+struct parse_args {
+  char* input;
+  char* output;
+  int test;
+};
+
+error_t parse_opt(int key, char *arg, struct argp_state *state);
+error_t parse_opt(int key, char *arg, struct argp_state *state) {
+  struct parse_args *args = state->input;
+  switch (key) {
+    case 't': args->test = 1; break;
+    case 'h': argp_state_help(state,state->out_stream,ARGP_HELP_STD_HELP); break;
+    case -1: argp_state_help(state,state->out_stream,ARGP_HELP_SHORT_USAGE | ARGP_HELP_EXIT_OK); break;
+
+    default:
+      return ARGP_ERR_UNKNOWN;
+    }
+  return 0;
+}
+
+
+
+// test result of matrix computations
 int results_match(const double * const expected, const double const * result, const int n, const double precision);
 int results_match(const double * const expected, const double const * result, const int n, const double precision) {
   int i;
@@ -39,6 +73,46 @@ int main(int argc, char ** argv) {
   DMUMPS_STRUC_C id;
   int myid, ierr, retval;
 
+  struct parse_args args = {0}; 
+
+  // parse command line
+  {
+    static char doc[] = "\n\
+Solves Ax=b for x, where A is sparse.\n\
+Given an input matrix A and right-hand side b, find x.\n\
+\n\
+This is intended as a generic performance measurement platform\n\
+providing timing and other metrics for distributed matrix solvers.\n\
+This includes legacy single threaded solvers for benchmarking,\n\
+Shared Memory solvers (SMP, generally OpenMP based), and\n\
+heterogeneous solvers (generally using SMP).\n\
+\n\
+Matrices are available through the Harwell-Boeing sparse matrix\n\
+collection and the University of Florida sparse matrix collection.\n\
+\n\
+Limitations: currently only 'Matrix Market' format is supported (*.mm).\n\
+  (The Rutherford/Harwell-Boeing format loader is broken. *.hb, *.rb)\n\
+\n\
+Options:"
+;
+    // TODO describe fields..
+    // "long", 'l', "value", flags, "desc", groupid
+    static const struct argp_option opt[] = {
+      {"help", 'h',0,0,"Give this help list"},
+      {0,      '?',0,OPTION_ALIAS},
+      {"usage",-1, 0,0,"Show usage information",-1},
+      {"input", 'i',0,0,"Input matrix file",10}, // TODO these should just be all the other command line components (no arg required ala gcc)
+      {"input-file",'f',0,0,"Input is a file, one matrix file per line",11},
+      {"output",'o',0,0,"Output file (default: stdout)",20},
+      { 0 } // null termintated list
+    };
+    // argp_option*, argp_parser, extra-usage line options, pre-help, // optional: argp_child, *help_filter, argp_domain
+    const struct argp p = { opt, parse_opt, 0, doc};
+    // error_t argp_parse (argp*, argc, **argv, unsigned flags, int *arg_index, void *input)
+    argp_parse(&p, argc, argv, ARGP_NO_HELP, 0, &args);
+  }
+
+  // initialize MPI
   ierr = MPI_Init(&argc, &argv);               assert(ierr == 0);
   ierr = MPI_Comm_rank(MPI_COMM_WORLD, &myid); assert(ierr == 0);
   
