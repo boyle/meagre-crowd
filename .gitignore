@@ -3,6 +3,8 @@ dl
 x86_64-pc-linux-gnu
 autom4te.cache
 Makefile
+atlocal
+config.status
 config.log
 .deps
 *.o

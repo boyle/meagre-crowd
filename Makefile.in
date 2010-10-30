@@ -193,7 +193,7 @@ meagre_crowd_SOURCES = src/meagre-crowd.c
 
 # the tests
 TEST_SRC_DIR = test
-EXTRA_DIST = testsuite.at $(srcdir)/package.m4 $(TESTSUITE) atlocal.in atconfig
+EXTRA_DIST = testsuite.at $(srcdir)/package.m4 $(TESTSUITE) atlocal.in
 TESTSUITE = $(srcdir)/testsuite
 AUTOM4TE = $(SHELL) $(abs_srcdir)/build-aux/missing --run autom4te
 AUTOTEST = $(AUTOM4TE) --language=autotest
@@ -769,7 +769,10 @@ clean-local-check:
 	  $(SHELL) '$(TESTSUITE)' --clean
 	-rm -f $(TESTSUITE)
 	-rm -f $(srcdir)/package.m4
-	-rm -f $(srcdir)/atconfig
+	-rm -f atconfig
+
+atconfig: $(srcdir)/config.status
+	$(srcdir)/config.status
 $(TESTSUITE): $(srcdir)/testsuite.at $(srcdir)/package.m4
 	$(AUTOTEST) -I '$(abs_srcdir)' -o $@.tmp $@.at
 	mv $@.tmp $@
