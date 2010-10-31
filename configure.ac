@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.65)
-AC_INIT([meagre-crowd (Meagre Crowd)],[0.0.1],[<alistair.js.boyle@gmail.com>])
+AC_INIT([meagre-crowd],[0.0.1],[<alistair.js.boyle@gmail.com>])
 
 AC_COPYRIGHT([Copyright (C) 2010 Alistair Boyle])
 
@@ -34,7 +34,7 @@ AC_HEADER_ASSERT
 AC_FUNC_MALLOC
 
 # Setup the test suite
-AC_CONFIG_TESTDIR([.],[test])
+AC_CONFIG_TESTDIR([.],[.:test])
 AC_CONFIG_FILES([atlocal])
 
 AC_OUTPUT

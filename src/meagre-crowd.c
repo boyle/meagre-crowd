@@ -36,9 +36,10 @@ error_t parse_opt(int key, char *arg, struct argp_state *state);
 error_t parse_opt(int key, char *arg, struct argp_state *state) {
   struct parse_args *args = state->input;
   switch (key) {
-    case 't': args->test = 1; break;
-    case 'h': argp_state_help(state,state->out_stream,ARGP_HELP_STD_HELP); break;
-    case -1: argp_state_help(state,state->out_stream,ARGP_HELP_SHORT_USAGE | ARGP_HELP_EXIT_OK); break;
+    case 't': args->test = 1; break; // test TODO rm
+    case 'h': case'?': argp_state_help(state,state->out_stream,ARGP_HELP_STD_HELP); break; // help
+    case -1: argp_state_help(state,state->out_stream,ARGP_HELP_SHORT_USAGE | ARGP_HELP_EXIT_OK); break; // usage
+    case 'V': printf("%s\n",PACKAGE_STRING); exit(0); break; // version
 
     default:
       return ARGP_ERR_UNKNOWN;
@@ -101,6 +102,7 @@ Options:"
       {"help", 'h',0,0,"Give this help list"},
       {0,      '?',0,OPTION_ALIAS},
       {"usage",-1, 0,0,"Show usage information",-1},
+      {"version",'V', 0,0,"Show version information",-1},
       {"input", 'i',0,0,"Input matrix file",10}, // TODO these should just be all the other command line components (no arg required ala gcc)
       {"input-file",'f',0,0,"Input is a file, one matrix file per line",11},
       {"output",'o',0,0,"Output file (default: stdout)",20},

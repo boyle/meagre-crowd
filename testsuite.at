@@ -2,17 +2,6 @@ AT_INIT()
 AT_COPYRIGHT([Copyright (C) 2010, Alistair Boyle])
 AT_COLOR_TESTS
 
-AT_BANNER([superficial (sup)])
-
-AT_SETUP([superficial-true])
-AT_KEYWORDS([sup])
-AT_CHECK([true])
-AT_CLEANUP
-
-AT_SETUP([superficial-false])
-AT_KEYWORDS([sup])
-AT_CHECK([false],1)
-AT_CLEANUP
 
 
 
@@ -117,6 +106,34 @@ AT_DATA([test.mm],[%%MatrixMarket matrix coordinate real general
 2  5  10.0
 5  5  11.0
 ])
-AT_CHECK([mpirun -n 3 mumps-file],0,ignore)
+AT_CHECK(mpirun -n 4 mumps-file,0,ignore)
 AT_CLEANUP
 
+AT_BANNER([help])
+
+AT_SETUP([-h])
+AT_KEYWORDS([help])
+AT_CHECK([meagre-crowd -h],,ignore)
+AT_CLEANUP
+
+AT_SETUP([-question-mark])
+AT_KEYWORDS([help])
+AT_CHECK([meagre-crowd -?],,ignore)
+AT_CLEANUP
+
+AT_SETUP([--help])
+AT_KEYWORDS([help])
+AT_CHECK([meagre-crowd --help],,ignore)
+AT_CLEANUP
+
+AT_SETUP([-V])
+AT_KEYWORDS([help])
+AT_CHECK([meagre-crowd -V],,[meagre-crowd 0.0.1
+])
+AT_CLEANUP
+
+AT_SETUP([--version])
+AT_KEYWORDS([help])
+AT_CHECK([meagre-crowd --version],,[meagre-crowd 0.0.1
+])
+AT_CLEANUP
