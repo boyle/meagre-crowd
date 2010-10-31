@@ -1,0 +1,38 @@
+Things that should get done at some point.
+
+If you have free time and are interested in looking at any of these,
+have a look at the relevant code and drop an email to me
+<alistair.js.boyle@gmail.com>. I'd be more than pleased to look
+at any patches or discuss potential solutions.
+
+These are somewhat arranged in order of priority. Highest at the top.
+
+ - Run valgrind. Find bad allocations and uninitialized variables.
+ - Refactor, refactor, refactor.
+ - Get arbitrary (single) file loading working. (command line args)
+   - recognize file type from extension
+   - fail gracefully when no input is provided (show help, error)
+   - fail gracefully when a file is MIA (error)
+ - Add ability to increase verbosity (-v, -vv, -vvv) for debugging.
+ - Add timing infrastructure (-t)
+   - at minimum verbosity, output nothing but timing info if enabled, on a single line per matrix
+     (i.e. if -t, verbosity--, for each -v, verbosity++)
+     - cpus, smps/cpu, load-time, ordering-time, solve-time
+   - build so we can dump it into a spreadsheet.csv
+ - Add ability to save to an output file (-o)
+ - Change default to outputing on stdout, rather than default-filename.mm
+ - Get this system compiling on sharcnet systems. (TBD which systems to try this on.)
+ - Add other solvers - single system, SMP
+   ?? which ones
+ - Add ability to load multiple files and loop through them?
+   - command line list
+   - list as input file (-f)
+   ?? what to do about output in this case
+ - Add ability to download from matrix libraries given input list
+   - University of Florida sparse matrix collection
+   - Harwell-Boeing sparse matrix collection
+ ?? are there any other stats we'd like to collect?
+ - Add type tests: condition number, singularity, symmetric, hermitian
+   ?? others
+ - Make some default lists of common matrices used in papers.
+ - Look at KCachegrind, Callgrind for profiling.
