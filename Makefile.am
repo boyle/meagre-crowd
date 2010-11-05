@@ -8,9 +8,11 @@ meagre_crowd_SOURCES = src/meagre-crowd.c
 
 # the tests
 TEST_SRC_DIR=test
-check_PROGRAMS = ${TEST_SRC_DIR}/file ${TEST_SRC_DIR}/helloworld-mpi ${TEST_SRC_DIR}/helloworld-mumps ${TEST_SRC_DIR}/mumps-file
+check_PROGRAMS = ${TEST_SRC_DIR}/file ${TEST_SRC_DIR}/helloworld-mpi ${TEST_SRC_DIR}/helloworld-mumps ${TEST_SRC_DIR}/mumps-file ${TEST_SRC_DIR}/unit_perftimer
 
-
+__TEST_SRC_DIR__unit_perftimer_SOURCES = ${TEST_SRC_DIR}/unit_perftimer.c src/perftimer.c
+__TEST_SRC_DIR__unit_perftimer_CFLAGS = ${CFLAGS} -Werror
+#__TEST_SRC_DIR__unit_perftimer_CFLAGS = ${CFLAGS} -Wextra -Werror
 
 clean-local: clean-local-check
 
@@ -61,3 +63,18 @@ AUTOTEST = $(AUTOM4TE) --language=autotest
 $(TESTSUITE): $(srcdir)/testsuite.at $(srcdir)/package.m4
 	$(AUTOTEST) -I '$(abs_srcdir)' -o $@.tmp $@.at
 	mv $@.tmp $@
+
+
+# valgrind configuration
+MPI_PREFIX=/usr
+MPIWRAP_DEBUG_ARGS=debug
+MPI_PLATFORM=amd64-linux
+VALGRIND_BIN=valgrind
+VALGRIND_ENV=MPIWRAP_DEBUG=${MPIWRAP_DEBUG_ARGS} LD_PRELOAD=${MPI_PREFIX}/lib/valgrind/libmpiwrap-${MPI_PLATFORM}.so
+VALGRIND_ARGS=--trace-children=yes --track-origins=yes
+#--db-attach=yes 
+MPI_BIN=mpirun
+MPI_ARGS=-n 4 
+VALGRIND=${VALGRIND_ENV} ${VALGRIND_BIN} ${VALGRIND_ARGS} ${MPI_BIN} ${MPI_ARGS}
+valgrind: test/mumps-file
+	cd test && ${VALGRIND} mumps-file

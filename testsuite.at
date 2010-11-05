@@ -137,3 +137,12 @@ AT_KEYWORDS([help])
 AT_CHECK([meagre-crowd --version],,[meagre-crowd 0.0.1
 ])
 AT_CLEANUP
+
+
+
+
+AT_BANNER([unit tests])
+AT_SETUP([perftimer])
+AT_KEYWORDS([unit])
+AT_CHECK([unit_perftimer],,ignore)
+AT_CLEANUP()

@@ -36,13 +36,14 @@ bin_PROGRAMS = meagre-crowd$(EXEEXT)
 check_PROGRAMS = ${TEST_SRC_DIR}/file$(EXEEXT) \
 	${TEST_SRC_DIR}/helloworld-mpi$(EXEEXT) \
 	${TEST_SRC_DIR}/helloworld-mumps$(EXEEXT) \
-	${TEST_SRC_DIR}/mumps-file$(EXEEXT)
+	${TEST_SRC_DIR}/mumps-file$(EXEEXT) \
+	${TEST_SRC_DIR}/unit_perftimer$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/atlocal.in \
 	$(top_srcdir)/configure $(top_srcdir)/src/config.h.in AUTHORS \
-	COPYING ChangeLog INSTALL NEWS build-aux/depcomp \
-	build-aux/install-sh build-aux/missing
+	COPYING ChangeLog INSTALL NEWS TODO build-aux/compile \
+	build-aux/depcomp build-aux/install-sh build-aux/missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -70,6 +71,15 @@ __TEST_SRC_DIR__helloworld_mumps_LDADD = $(LDADD)
 __TEST_SRC_DIR__mumps_file_SOURCES = ${TEST_SRC_DIR}/mumps-file.c
 __TEST_SRC_DIR__mumps_file_OBJECTS = mumps-file.$(OBJEXT)
 __TEST_SRC_DIR__mumps_file_LDADD = $(LDADD)
+am___TEST_SRC_DIR__unit_perftimer_OBJECTS =  \
+	__TEST_SRC_DIR__unit_perftimer-unit_perftimer.$(OBJEXT) \
+	__TEST_SRC_DIR__unit_perftimer-perftimer.$(OBJEXT)
+__TEST_SRC_DIR__unit_perftimer_OBJECTS =  \
+	$(am___TEST_SRC_DIR__unit_perftimer_OBJECTS)
+__TEST_SRC_DIR__unit_perftimer_LDADD = $(LDADD)
+__TEST_SRC_DIR__unit_perftimer_LINK = $(CCLD) \
+	$(__TEST_SRC_DIR__unit_perftimer_CFLAGS) $(CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_meagre_crowd_OBJECTS = meagre-crowd.$(OBJEXT)
 meagre_crowd_OBJECTS = $(am_meagre_crowd_OBJECTS)
 meagre_crowd_LDADD = $(LDADD)
@@ -83,10 +93,14 @@ CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 SOURCES = ${TEST_SRC_DIR}/file.c ${TEST_SRC_DIR}/helloworld-mpi.c \
 	${TEST_SRC_DIR}/helloworld-mumps.c \
-	${TEST_SRC_DIR}/mumps-file.c $(meagre_crowd_SOURCES)
+	${TEST_SRC_DIR}/mumps-file.c \
+	$(__TEST_SRC_DIR__unit_perftimer_SOURCES) \
+	$(meagre_crowd_SOURCES)
 DIST_SOURCES = ${TEST_SRC_DIR}/file.c ${TEST_SRC_DIR}/helloworld-mpi.c \
 	${TEST_SRC_DIR}/helloworld-mumps.c \
-	${TEST_SRC_DIR}/mumps-file.c $(meagre_crowd_SOURCES)
+	${TEST_SRC_DIR}/mumps-file.c \
+	$(__TEST_SRC_DIR__unit_perftimer_SOURCES) \
+	$(meagre_crowd_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -111,7 +125,9 @@ CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
+CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
+DEBUG = @DEBUG@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
 ECHO_C = @ECHO_C@
@@ -193,10 +209,24 @@ meagre_crowd_SOURCES = src/meagre-crowd.c
 
 # the tests
 TEST_SRC_DIR = test
+__TEST_SRC_DIR__unit_perftimer_SOURCES = ${TEST_SRC_DIR}/unit_perftimer.c src/perftimer.c
+__TEST_SRC_DIR__unit_perftimer_CFLAGS = ${CFLAGS} -Werror
 EXTRA_DIST = testsuite.at $(srcdir)/package.m4 $(TESTSUITE) atlocal.in
 TESTSUITE = $(srcdir)/testsuite
 AUTOM4TE = $(SHELL) $(abs_srcdir)/build-aux/missing --run autom4te
 AUTOTEST = $(AUTOM4TE) --language=autotest
+
+# valgrind configuration
+MPI_PREFIX = /usr
+MPIWRAP_DEBUG_ARGS = debug
+MPI_PLATFORM = amd64-linux
+VALGRIND_BIN = valgrind
+VALGRIND_ENV = MPIWRAP_DEBUG=${MPIWRAP_DEBUG_ARGS} LD_PRELOAD=${MPI_PREFIX}/lib/valgrind/libmpiwrap-${MPI_PLATFORM}.so
+VALGRIND_ARGS = --trace-children=yes --track-origins=yes
+#--db-attach=yes 
+MPI_BIN = mpirun
+MPI_ARGS = -n 4 
+VALGRIND = ${VALGRIND_ENV} ${VALGRIND_BIN} ${VALGRIND_ARGS} ${MPI_BIN} ${MPI_ARGS}
 all: all-am
 
 .SUFFIXES:
@@ -309,6 +339,9 @@ ${TEST_SRC_DIR}/helloworld-mumps$(EXEEXT): $(__TEST_SRC_DIR__helloworld_mumps_OB
 ${TEST_SRC_DIR}/mumps-file$(EXEEXT): $(__TEST_SRC_DIR__mumps_file_OBJECTS) $(__TEST_SRC_DIR__mumps_file_DEPENDENCIES) ${TEST_SRC_DIR}/$(am__dirstamp)
 	@rm -f ${TEST_SRC_DIR}/mumps-file$(EXEEXT)
 	$(LINK) $(__TEST_SRC_DIR__mumps_file_OBJECTS) $(__TEST_SRC_DIR__mumps_file_LDADD) $(LIBS)
+${TEST_SRC_DIR}/unit_perftimer$(EXEEXT): $(__TEST_SRC_DIR__unit_perftimer_OBJECTS) $(__TEST_SRC_DIR__unit_perftimer_DEPENDENCIES) ${TEST_SRC_DIR}/$(am__dirstamp)
+	@rm -f ${TEST_SRC_DIR}/unit_perftimer$(EXEEXT)
+	$(__TEST_SRC_DIR__unit_perftimer_LINK) $(__TEST_SRC_DIR__unit_perftimer_OBJECTS) $(__TEST_SRC_DIR__unit_perftimer_LDADD) $(LIBS)
 meagre-crowd$(EXEEXT): $(meagre_crowd_OBJECTS) $(meagre_crowd_DEPENDENCIES) 
 	@rm -f meagre-crowd$(EXEEXT)
 	$(LINK) $(meagre_crowd_OBJECTS) $(meagre_crowd_LDADD) $(LIBS)
@@ -319,6 +352,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/__TEST_SRC_DIR__unit_perftimer-perftimer.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/__TEST_SRC_DIR__unit_perftimer-unit_perftimer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/helloworld-mpi.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/helloworld-mumps.Po@am__quote@
@@ -394,6 +429,34 @@ mumps-file.obj: ${TEST_SRC_DIR}/mumps-file.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/mumps-file.c' object='mumps-file.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mumps-file.obj `if test -f '${TEST_SRC_DIR}/mumps-file.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/mumps-file.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/mumps-file.c'; fi`
+
+__TEST_SRC_DIR__unit_perftimer-unit_perftimer.o: ${TEST_SRC_DIR}/unit_perftimer.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(__TEST_SRC_DIR__unit_perftimer_CFLAGS) $(CFLAGS) -MT __TEST_SRC_DIR__unit_perftimer-unit_perftimer.o -MD -MP -MF $(DEPDIR)/__TEST_SRC_DIR__unit_perftimer-unit_perftimer.Tpo -c -o __TEST_SRC_DIR__unit_perftimer-unit_perftimer.o `test -f '${TEST_SRC_DIR}/unit_perftimer.c' || echo '$(srcdir)/'`${TEST_SRC_DIR}/unit_perftimer.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/__TEST_SRC_DIR__unit_perftimer-unit_perftimer.Tpo $(DEPDIR)/__TEST_SRC_DIR__unit_perftimer-unit_perftimer.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/unit_perftimer.c' object='__TEST_SRC_DIR__unit_perftimer-unit_perftimer.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(__TEST_SRC_DIR__unit_perftimer_CFLAGS) $(CFLAGS) -c -o __TEST_SRC_DIR__unit_perftimer-unit_perftimer.o `test -f '${TEST_SRC_DIR}/unit_perftimer.c' || echo '$(srcdir)/'`${TEST_SRC_DIR}/unit_perftimer.c
+
+__TEST_SRC_DIR__unit_perftimer-unit_perftimer.obj: ${TEST_SRC_DIR}/unit_perftimer.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(__TEST_SRC_DIR__unit_perftimer_CFLAGS) $(CFLAGS) -MT __TEST_SRC_DIR__unit_perftimer-unit_perftimer.obj -MD -MP -MF $(DEPDIR)/__TEST_SRC_DIR__unit_perftimer-unit_perftimer.Tpo -c -o __TEST_SRC_DIR__unit_perftimer-unit_perftimer.obj `if test -f '${TEST_SRC_DIR}/unit_perftimer.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/unit_perftimer.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/unit_perftimer.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/__TEST_SRC_DIR__unit_perftimer-unit_perftimer.Tpo $(DEPDIR)/__TEST_SRC_DIR__unit_perftimer-unit_perftimer.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/unit_perftimer.c' object='__TEST_SRC_DIR__unit_perftimer-unit_perftimer.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(__TEST_SRC_DIR__unit_perftimer_CFLAGS) $(CFLAGS) -c -o __TEST_SRC_DIR__unit_perftimer-unit_perftimer.obj `if test -f '${TEST_SRC_DIR}/unit_perftimer.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/unit_perftimer.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/unit_perftimer.c'; fi`
+
+__TEST_SRC_DIR__unit_perftimer-perftimer.o: src/perftimer.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(__TEST_SRC_DIR__unit_perftimer_CFLAGS) $(CFLAGS) -MT __TEST_SRC_DIR__unit_perftimer-perftimer.o -MD -MP -MF $(DEPDIR)/__TEST_SRC_DIR__unit_perftimer-perftimer.Tpo -c -o __TEST_SRC_DIR__unit_perftimer-perftimer.o `test -f 'src/perftimer.c' || echo '$(srcdir)/'`src/perftimer.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/__TEST_SRC_DIR__unit_perftimer-perftimer.Tpo $(DEPDIR)/__TEST_SRC_DIR__unit_perftimer-perftimer.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='src/perftimer.c' object='__TEST_SRC_DIR__unit_perftimer-perftimer.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(__TEST_SRC_DIR__unit_perftimer_CFLAGS) $(CFLAGS) -c -o __TEST_SRC_DIR__unit_perftimer-perftimer.o `test -f 'src/perftimer.c' || echo '$(srcdir)/'`src/perftimer.c
+
+__TEST_SRC_DIR__unit_perftimer-perftimer.obj: src/perftimer.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(__TEST_SRC_DIR__unit_perftimer_CFLAGS) $(CFLAGS) -MT __TEST_SRC_DIR__unit_perftimer-perftimer.obj -MD -MP -MF $(DEPDIR)/__TEST_SRC_DIR__unit_perftimer-perftimer.Tpo -c -o __TEST_SRC_DIR__unit_perftimer-perftimer.obj `if test -f 'src/perftimer.c'; then $(CYGPATH_W) 'src/perftimer.c'; else $(CYGPATH_W) '$(srcdir)/src/perftimer.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/__TEST_SRC_DIR__unit_perftimer-perftimer.Tpo $(DEPDIR)/__TEST_SRC_DIR__unit_perftimer-perftimer.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='src/perftimer.c' object='__TEST_SRC_DIR__unit_perftimer-perftimer.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(__TEST_SRC_DIR__unit_perftimer_CFLAGS) $(CFLAGS) -c -o __TEST_SRC_DIR__unit_perftimer-perftimer.obj `if test -f 'src/perftimer.c'; then $(CYGPATH_W) 'src/perftimer.c'; else $(CYGPATH_W) '$(srcdir)/src/perftimer.c'; fi`
 
 meagre-crowd.o: src/meagre-crowd.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT meagre-crowd.o -MD -MP -MF $(DEPDIR)/meagre-crowd.Tpo -c -o meagre-crowd.o `test -f 'src/meagre-crowd.c' || echo '$(srcdir)/'`src/meagre-crowd.c
@@ -734,6 +797,7 @@ uninstall-am: uninstall-binPROGRAMS
 	mostlyclean mostlyclean-compile mostlyclean-generic pdf pdf-am \
 	ps ps-am tags uninstall uninstall-am uninstall-binPROGRAMS
 
+#__TEST_SRC_DIR__unit_perftimer_CFLAGS = ${CFLAGS} -Wextra -Werror
 
 clean-local: clean-local-check
 
@@ -776,6 +840,8 @@ atconfig: $(srcdir)/config.status
 $(TESTSUITE): $(srcdir)/testsuite.at $(srcdir)/package.m4
 	$(AUTOTEST) -I '$(abs_srcdir)' -o $@.tmp $@.at
 	mv $@.tmp $@
+valgrind: test/mumps-file
+	cd test && ${VALGRIND} mumps-file
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

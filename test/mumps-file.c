@@ -37,10 +37,11 @@ int results_match(const double * const expected, const double const * result, co
 #define USE_COMM_WORLD -987654
 int main(int argc, char ** argv) {
   DMUMPS_STRUC_C id;
-  int myid, ierr;
+  int myid = 0;
+  int ierr = 0;
   int retval = 0;
 
-  ierr = MPI_Init(&argc, &argv);               assert(ierr == 0);
+  ierr = MPI_Init(NULL, NULL);                 assert(ierr == 0);
   ierr = MPI_Comm_rank(MPI_COMM_WORLD, &myid); assert(ierr == 0);
 
   /* Initialize a MUMPS instance. Use MPI_COMM_WORLD. */
