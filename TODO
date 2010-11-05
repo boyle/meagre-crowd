@@ -14,7 +14,7 @@ These are somewhat arranged in order of priority. Highest at the top.
    - fail gracefully when no input is provided (show help, error)
    - fail gracefully when a file is MIA (error)
  - Add ability to increase verbosity (-v, -vv, -vvv) for debugging.
- - Add timing infrastructure (-t)
+ O Add timing infrastructure (-t) -- partially completed, needs finer timing results
    - at minimum verbosity, output nothing but timing info if enabled, on a single line per matrix
      (i.e. if -t, verbosity--, for each -v, verbosity++)
      - cpus, smps/cpu, load-time, ordering-time, solve-time

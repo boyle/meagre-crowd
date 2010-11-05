@@ -11,8 +11,8 @@ TEST_SRC_DIR=test
 check_PROGRAMS = ${TEST_SRC_DIR}/file ${TEST_SRC_DIR}/helloworld-mpi ${TEST_SRC_DIR}/helloworld-mumps ${TEST_SRC_DIR}/mumps-file ${TEST_SRC_DIR}/unit_perftimer
 
 __TEST_SRC_DIR__unit_perftimer_SOURCES = ${TEST_SRC_DIR}/unit_perftimer.c src/perftimer.c
-__TEST_SRC_DIR__unit_perftimer_CFLAGS = ${CFLAGS} -Werror
-#__TEST_SRC_DIR__unit_perftimer_CFLAGS = ${CFLAGS} -Wextra -Werror
+
+AM_CFLAGS = -Werror #-Wextra
 
 clean-local: clean-local-check
 

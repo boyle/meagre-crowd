@@ -11,8 +11,12 @@ AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_SRCDIR([src/meagre-crowd.c])
 AC_CONFIG_HEADERS([src/config.h])
 
+AC_USE_SYSTEM_EXTENSIONS
+
+
 
 # debugging
+
 AC_MSG_CHECKING(whether to enable debugging)
 default="no"
 DEBUG=
@@ -54,23 +58,29 @@ AC_CONFIG_FILES([Makefile])
 AC_PROG_CC
 AM_PROG_CC_C_O
 #AC_OPENMP
-#AC_C_INLINE
 
 # Checks for libraries.
 AC_SEARCH_LIBS([dmumps_c], [dmumps],,AC_MSG_ERROR([could not find required double precision MUMPS library]))
 AC_SEARCH_LIBS([load_sparse_matrix], [sparse_matrix_converter],,AC_MSG_ERROR([could not find required BeBOP sparse matrix I/O library]))
 
 # Checks for header files.
-AC_CHECK_HEADERS([stdlib.h])
+AC_CHECK_HEADERS([stdlib.h string.h])
 AC_HEADER_ASSERT
 
 # Checks for typedefs, structures, and compiler characteristics.
+AC_C_INLINE
+AC_TYPE_SIZE_T
 
 # Checks for library functions.
+AC_FUNC_ERROR_AT_LINE
 AC_FUNC_MALLOC
+AC_FUNC_STRNLEN
 
 # Setup the test suite
 AC_CONFIG_TESTDIR([.],[.:test])
 AC_CONFIG_FILES([atlocal])
+
+AC_MSG_CHECKING(for beer in the fridge)
+  AC_MSG_RESULT(all systems go)
 
 AC_OUTPUT
