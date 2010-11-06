@@ -12,11 +12,11 @@ noinst_HEADERS = src/perftimer.h
 
 
 # the tests
-BUILT_TESTS = test/file test/helloworld-mpi test/helloworld-mumps test/mumps-file test/unit_perftimer
+BUILT_TESTS = tests/file tests/helloworld-mpi tests/helloworld-mumps tests/mumps-file tests/unit_perftimer
 #TESTS = $(BUILT_TESTS)
 check_PROGRAMS = $(BUILT_TESTS) 
-test_unit_perftimer_SOURCES = test/unit_perftimer.c src/perftimer.c
-test_unit_perftimer_CPPFLAGS = -I$(srcdir)/src
+tests_unit_perftimer_SOURCES = tests/unit_perftimer.c src/perftimer.c
+tests_unit_perftimer_CPPFLAGS = -I$(srcdir)/src
 
 AM_CFLAGS = -Werror #-Wextra
 
@@ -83,5 +83,5 @@ VALGRIND_ARGS=--trace-children=yes --track-origins=yes
 MPI_BIN=mpirun
 MPI_ARGS=-n 4 
 VALGRIND=${VALGRIND_ENV} ${VALGRIND_BIN} ${VALGRIND_ARGS} ${MPI_BIN} ${MPI_ARGS}
-valgrind: test/mumps-file
+valgrind: tests/mumps-file
 	cd test && ${VALGRIND} mumps-file

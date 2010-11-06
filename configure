@@ -6651,7 +6651,7 @@ abs_top_builddir='$ac_abs_top_builddir'
 # Backward compatibility with Autotest <= 2.59b:
 at_top_builddir=\$at_top_build_prefix
 
-AUTOTEST_PATH='.:test'
+AUTOTEST_PATH='.:tests'
 
 SHELL=\${CONFIG_SHELL-'$SHELL'}
 ATEOF

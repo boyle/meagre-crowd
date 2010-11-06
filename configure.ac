@@ -79,7 +79,7 @@ AC_FUNC_STRNLEN
 AC_CHECK_FUNCS([gettimeofday])
 
 # Setup the test suite
-AC_CONFIG_TESTDIR([.],[.:test])
+AC_CONFIG_TESTDIR([.],[.:tests])
 AC_CONFIG_FILES([atlocal])
 
 AC_MSG_CHECKING(for beer in the fridge)
