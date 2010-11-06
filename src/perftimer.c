@@ -4,6 +4,23 @@
 #include <string.h> // strnlen, strncpy, etc
 #include "perftimer.h" 
 
+// local function
+// allocate head block
+// ph: ptr to ptr, a head block
+// out: 0 - success, -1 allocation failed
+static inline   int _perftimer_malloc_head(perftimer_t** ph);
+static inline   int _perftimer_malloc_head(perftimer_t** ph) {
+  if((*ph = malloc(sizeof(perftimer_t))) == NULL) {
+    warn("perftimer_malloc(head)"); // shows errno string
+    return -1; // allocation failure
+  }
+  (*ph)->head = NULL;
+  (*ph)->tail = NULL;
+  (*ph)->old  = NULL;
+  (*ph)->current_depth = 0;
+  return 0;
+}
+
 
 
 // perftimer_malloc()
@@ -12,13 +29,7 @@
 //  (memory exhaustion will be indicated when you try to perftimer_inc)
 inline perftimer_t* perftimer_malloc() {
   perftimer_t* ptr;
-  if((ptr = malloc(sizeof(perftimer_t))) == NULL) {
-    warn("perftimer_malloc()"); // shows errno string
-    return NULL;
-  }
-  ptr->head = NULL;
-  ptr->tail = NULL;
-  ptr->current_depth = 0;
+  _perftimer_malloc_head(&ptr); // ignores result code (don't care)
   return ptr;
 }
 
@@ -39,7 +50,10 @@ void perftimer_free(perftimer_t* h) {
   }
 
   // finally, release the head of the structure
+  perftimer_t* old = h->old;
   free(h);
+  // and follow the 'old' link to release any repititions
+  perftimer_free(old); // recursive!
 }
 
 // perftimer_inc
@@ -92,8 +106,8 @@ int perftimer_inc(perftimer_t* h, char const*const s, const size_t n) {
 
 // utility function: calculate difference between times, returns in seconds
 // t2 is assumed to be later than t1
-static inline   double   calc_perftimer_diff(perftimer_tic_t const* const t1, perftimer_tic_t const* const t2);
-static inline   double   calc_perftimer_diff(perftimer_tic_t const* const t1, perftimer_tic_t const* const t2) {
+static inline   double   _calc_perftimer_diff(perftimer_tic_t const* const t1, perftimer_tic_t const* const t2);
+static inline   double   _calc_perftimer_diff(perftimer_tic_t const* const t1, perftimer_tic_t const* const t2) {
   if((t1 == NULL) || (t2 == NULL)) 
     return 0.0;
 
@@ -123,13 +137,38 @@ size_t perftimer_printlen(perftimer_t const * const h, const unsigned int d) {
     if(ptr->desc != NULL)
       // we know that all ptr->desc are zero terminated: we copied them
       // need to leave lots of room for calculated time
-      c += strlen(ptr->desc) +30;
+      c += strlen(ptr->desc) +40;
     // TODO test for overflow on 'c += ...'
     ptr = ptr->next;
   }
 
-  return c+30-1; // TODO extra padding?
+  return c+40-1; // TODO extra padding?
 }
+
+
+// find the longest set of links in the structure
+static unsigned int _max_links(perftimer_t const * h);
+static unsigned int _max_links(perftimer_t const * h) {
+  unsigned int m = 0;
+  while(h != NULL) {
+    unsigned int c = 0;
+
+    // find count of tic blocks -1
+    perftimer_tic_t* p = h->head;
+    while(p != NULL) {
+      p = p->next;
+      if(p != NULL)
+        c++;
+    }
+
+    if(c > m) // update max if larger
+      m = c;
+
+    h = h->old; // try the next list
+  }
+  return m;
+}
+
 
 // perftimer_snprintf()
 // create a string describing the events so far,
@@ -138,25 +177,57 @@ size_t perftimer_printlen(perftimer_t const * const h, const unsigned int d) {
 // s: the output string (must be preallocated)
 // n: the string length limit
 // d: max depth, 0:unlimited
-// out: a count of bytes 
+// out: a count of bytes
+//
+// this code does NOT assume that the different rounds are the same length
+// and it only averages across entries that match
 int perftimer_snprintf(perftimer_t const * const h, char* s, const size_t n, const unsigned int d) {
   s[0] = '\0'; // string starts empty
   if((h==NULL) || (h->head == NULL)) // nothing to show
     return 0;
 
-  // start at the top, having already established that there is a first entry
+  unsigned int m_max = _max_links(h); // longest number of links
+  // create list of times
+  double* t = calloc(m_max,sizeof(double));
+  unsigned int * r = calloc(m_max,sizeof(unsigned int)); // how many went into this count
+  perftimer_t const * hs = h;
   perftimer_tic_t const * ptr = h->head;
+  while(hs != NULL) {
+    ptr = hs->head;
+    unsigned int i; // current link
+    for(i=0;i<m_max && (ptr != NULL) && (ptr->next != NULL);i++) {
+      t[i] +=  _calc_perftimer_diff(ptr, ptr->next);
+      r[i]++;
+      ptr = ptr->next;
+    }
+    
+    hs = hs->old;
+  }
+  // Note: this could be done without 'r'
+  // i.e. t[i] = t[i]*(r-1)/r + new_val/r
+  // but this wouldn't be as precise - not sure if it matters
+  // but we are dealing with small numbers
+
+  // now add the descriptions, if required
 
   // count desc
   // TODO handle breadth (d)
-  static const int nw = 30;
+  static const int nw = 60;
   char tmp [nw];
-  double delta;
+  // start at the top, having already established that there is a first entry
+  ptr = h->head;
+  int i = 0;
   while(ptr->next != NULL) {
     if(ptr->desc != NULL) {
       strncat(s, ptr->desc, n-1);
-      if((delta = calc_perftimer_diff(ptr,ptr->next)) > 0.0) {
-        snprintf(tmp,nw,": %0.3es\n",delta);
+      if(t[i] > 0.0) {
+        if(r[i] > 1)
+          snprintf(tmp,nw,":\t%0.3fms (av. %0.3fms in %d rounds)\n",
+	    t[i]*1e3,
+	    t[i]/((double)r[i])*1e3,
+	    r[i]);
+	else
+          snprintf(tmp,nw,":\t%0.3fms\n",t[i]*1e3);
       }
       else {
         snprintf(tmp,nw,"\n");
@@ -164,11 +235,20 @@ int perftimer_snprintf(perftimer_t const * const h, char* s, const size_t n, con
       strncat(s, tmp, n-1);
     }
     ptr = ptr->next;
+    i++;
   }
-  snprintf(tmp,nw,"total: %0.3es",perftimer_wall(h));
+  snprintf(tmp,nw,"total:\t%0.3fms",perftimer_wall(h)*1e3);
   strncat(s,tmp,n-1);
+  unsigned int rnds = perftimer_rounds(h); // rounds
+  if(rnds > 1) {
+    snprintf(tmp,nw," (av. %0.3fms in %d rounds)",perftimer_wall_av(h)*1e3,rnds);
+    strncat(s,tmp,n-1);
+  }
   // make the string safe: zero terminate it
   s[n-1] = '\0'; // Note: man claims strncat appends \0 always, but it doesn't
+
+  free(t); // release time list
+  free(r);
 
   // this should come out to the same size as perftimer_printlen()
   // TODO add assertion?
@@ -193,14 +273,24 @@ void perftimer_printf(perftimer_t const * const h, const unsigned int d) {
 // total time accounted for in the perftimer structure
 // h: a perftimer structure ptr
 // out: total time
-inline double perftimer_wall(perftimer_t const * const h) {
-  return calc_perftimer_diff(h->head,h->tail);
+double perftimer_wall(perftimer_t const * const h) {
+  perftimer_t const * hh = h;
+  while((hh != NULL) && (hh->old != NULL))
+    hh = hh->old;
+  return _calc_perftimer_diff(hh->head,h->tail);
 }
-inline double perftimer_wall_av(perftimer_t const * const h) {
-  return perftimer_wall(h); // TODO
+// average over all runs
+double perftimer_wall_av(perftimer_t const * h) {
+  double sum = 0;
+  double runs = ((double) perftimer_rounds(h)); // cast to double
+  while(h != NULL) {
+    sum += _calc_perftimer_diff(h->head,h->tail);
+    h = h->old;
+  }
+  return sum / runs;
 }
 
-// perftimer_diff()
+// perftimer_delta()
 // the most recent time delta
 // h: a perftimer structure ptr
 // d: the depth, 0:min
@@ -215,7 +305,7 @@ double perftimer_delta(perftimer_t const * const h){
   while(ptr->next->next != NULL)
     ptr = ptr->next;
 
-  return calc_perftimer_diff(ptr, h->tail);
+  return _calc_perftimer_diff(ptr, h->tail);
 }
 
 // perftimer_rounds()
@@ -223,18 +313,26 @@ double perftimer_delta(perftimer_t const * const h){
 // out: number of timing iterations that have been done
 //      effectively perftimer_restart()s +1 unless the next
 //      timing round hasn't started yet
-unsigned int perftimer_rounds(perftimer_t const* const h) {
-  if(h == NULL)
-    return 0;
-  else
-    return 1; // TODO or more...
+unsigned int perftimer_rounds(perftimer_t const* h) {
+  unsigned int c = 0;
+  while(h != NULL) {
+    // if there are at least two tics recorded, count this round toward
+    // the total
+    if((h->head != NULL) && (h->head != h->tail))
+      c++;
+    h = h->old;
+  }
+  return c;
 }
 
 // perftimer_restart()
 // start timing again from the beginning
 // &h: perftimer structure ptr-to-ptr
 void perftimer_restart(perftimer_t ** ph) {
-  perftimer_free(*ph); // TODO make a new list instead of destroying the old one
-  *ph = perftimer_malloc();
+  perftimer_t* old = *ph;
+  if(_perftimer_malloc_head(ph) != 0)
+    perftimer_free(old); // release the old head if we failed to allocate
+  else
+    (*ph)->old = old;
 }
 

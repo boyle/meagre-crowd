@@ -15,14 +15,18 @@ void do_nothing(int i) {
 void test_basic();
 void test_basic() {
   unsigned int i;
-  perftimer_t* T = perftimer_malloc();
-
+  
   // check we exit properly when given a NULL ptr-to-ptr
   assert(perftimer_inc(NULL,"",10) == -1);
   assert(perftimer_rounds(NULL) == 0);
+  
+  
+  perftimer_t* T = perftimer_malloc();
+  assert(perftimer_rounds(T) == 0);
 
   // check that the perftimer advances cleanly
   assert(perftimer_inc(T,"start",10) == 0);
+  assert(perftimer_rounds(T) == 0);
 // TODO  char* s[100];
   perftimer_printf(T,0);
 // TODO  assert(perftimer_printlen(T,0) == strlen()));
@@ -34,6 +38,7 @@ void test_basic() {
   do_nothing(10000);
 
   assert(perftimer_inc(T,"s1",10) == 0);
+  assert(perftimer_rounds(T) == 1);
   assert(perftimer_printlen(T,0) > 5);
   assert(perftimer_wall(T) >= 0.0);
   assert(perftimer_delta(T) >= 0.0);
@@ -50,6 +55,24 @@ void test_basic() {
   assert(perftimer_inc(T,"ss6",10) == 0);
   for(i=0;i<10;i++)
     perftimer_printf(T,i);
+
+  // try a restart
+  assert(perftimer_rounds(T) == 1);
+  perftimer_restart(&T);
+  assert(perftimer_rounds(T) == 1);
+  assert(perftimer_inc(T,"ss1",10) == 0);
+  assert(perftimer_rounds(T) == 1);
+  assert(perftimer_inc(T,"ss2",10) == 0);
+  assert(perftimer_rounds(T) == 2);
+  assert(perftimer_inc(T,"ss3",10) == 0);
+  perftimer_printf(T,0);
+
+  // try wall_av(): average wall time
+  assert(perftimer_rounds(T) == 2);
+  printf("wall_av() = %fs in %d reps\n",perftimer_wall_av(T),perftimer_rounds(T));
+  assert(perftimer_wall_av(T) != 0.0);
+  assert(perftimer_wall_av(T) < perftimer_wall(T));
+  assert(perftimer_wall_av(T) < 1.0e6); // not infinity
 
   perftimer_free(T);
 }

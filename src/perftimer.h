@@ -9,6 +9,7 @@
 typedef struct perftimer_t {
   struct perftimer_tic_t *head;
   struct perftimer_tic_t *tail;
+  struct perftimer_t* old;
   unsigned int current_depth;
 } perftimer_t;
 
@@ -67,7 +68,7 @@ void perftimer_printf(perftimer_t const * const pT, const unsigned int d);
 // T: a perftimer structure ptr
 // out: total time
 double perftimer_wall(perftimer_t const * const pT);
-double perftimer_wall_av(perftimer_t const * const pT);
+double perftimer_wall_av(perftimer_t const * pT);
 
 // perftimer_diff()
 // the most recent time delta
@@ -79,7 +80,7 @@ double perftimer_delta(perftimer_t const * const pT);
 // out: number of timing iterations that have been done
 //      effectively perftimer_restart()s +1 unless the next
 //      timing round hasn't started yet
-unsigned int perftimer_rounds(perftimer_t const* const pT);
+unsigned int perftimer_rounds(perftimer_t const* pT);
 
 
 // perftimer_restart()
