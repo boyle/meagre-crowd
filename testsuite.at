@@ -111,32 +111,28 @@ AT_CLEANUP
 
 AT_BANNER([help])
 
-AT_SETUP([-h])
+m4_define([MC_CHECK_HELP_NOCRASH],[
+AT_SETUP([$1])
 AT_KEYWORDS([help])
-AT_CHECK([meagre-crowd -h],,ignore)
+AT_CHECK(AT_PACKAGE_NAME[ $1],,ignore)
 AT_CLEANUP
+])
 
-AT_SETUP([-question-mark])
+m4_define([MC_CHECK_HELP_VER],[
+AT_SETUP([$1])
 AT_KEYWORDS([help])
-AT_CHECK([meagre-crowd -?],,ignore)
-AT_CLEANUP
-
-AT_SETUP([--help])
-AT_KEYWORDS([help])
-AT_CHECK([meagre-crowd --help],,ignore)
-AT_CLEANUP
-
-AT_SETUP([-V])
-AT_KEYWORDS([help])
-AT_CHECK([meagre-crowd -V],,[meagre-crowd 0.0.1
+AT_CHECK(AT_PACKAGE_NAME[ $1],,AT_PACKAGE_NAME[ ]AT_PACKAGE_VERSION[
 ])
 AT_CLEANUP
-
-AT_SETUP([--version])
-AT_KEYWORDS([help])
-AT_CHECK([meagre-crowd --version],,[meagre-crowd 0.0.1
 ])
-AT_CLEANUP
+
+
+MC_CHECK_HELP_NOCRASH([--help])
+MC_CHECK_HELP_NOCRASH([-h])
+MC_CHECK_HELP_NOCRASH([-?])
+MC_CHECK_HELP_VER([-V])
+MC_CHECK_HELP_VER([--version])
+
 
 
 

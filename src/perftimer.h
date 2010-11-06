@@ -7,11 +7,17 @@
 // doubly linked structure
 // TODO switch this to a forward declaration (internal structure is private)
 typedef struct perftimer_t {
-  time_t now;
-  struct perftimer_t* prev;
-  struct perftimer_t* next;
-  char* desc;
+  struct perftimer_tic_t *head;
+  struct perftimer_tic_t *tail;
+  unsigned int current_depth;
 } perftimer_t;
+
+typedef struct perftimer_tic_t {
+  time_t now;
+  unsigned int depth;
+  struct perftimer_tic_t* next;
+  char* desc;
+} perftimer_tic_t;
 
 // perftimer_malloc()
 // allocate a perftimer structure
@@ -30,7 +36,7 @@ void perftimer_free(perftimer_t * pT);
 // n: max length of string
 // d: depth level, 0:min
 // out: result - 0: success, -2:failure (memory exhaustion), -1:null ppT
-int perftimer_inc(perftimer_t** ppT, char const*const s, const size_t n, const unsigned int d);
+int perftimer_inc(perftimer_t* pT, char const*const s, const size_t n);
 
 // perftimer_snprintf()
 // create a string describing the events so far,
@@ -64,11 +70,9 @@ double perftimer_wall(perftimer_t const * const pT);
 double perftimer_wall_av(perftimer_t const * const pT);
 
 // perftimer_diff()
-// the most recent time delta at this depth
+// the most recent time delta
 // T: a perftimer structure ptr
-// d: the depth, 0:min
-double perftimer_diff(perftimer_t const * const pT, const unsigned int d);
-double perftimer_diff_av(perftimer_t const * const pT, const unsigned int d);
+double perftimer_delta(perftimer_t const * const pT);
 
 // perftimer_rounds()
 // T: a perftimer structure ptr
