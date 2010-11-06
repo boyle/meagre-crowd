@@ -12,10 +12,10 @@ noinst_HEADERS = src/perftimer.h
 
 
 # the tests
-BUILT_TESTS = tests/file tests/helloworld-mpi tests/helloworld-mumps tests/mumps-file tests/unit_perftimer
+BUILT_TESTS = tests/file tests/helloworld-mpi tests/helloworld-mumps tests/mumps-file tests/unit-perftimer
 #TESTS = $(BUILT_TESTS)
 check_PROGRAMS = $(BUILT_TESTS) 
-tests_unit_perftimer_SOURCES = tests/unit_perftimer.c src/perftimer.c
+tests_unit_perftimer_SOURCES = tests/unit-perftimer.c src/perftimer.c
 tests_unit_perftimer_CPPFLAGS = -I$(srcdir)/src
 
 AM_CFLAGS = -Werror #-Wextra

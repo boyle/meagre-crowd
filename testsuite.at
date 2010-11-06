@@ -135,10 +135,13 @@ MC_CHECK_HELP_VER([--version])
 
 
 
+m4_define([MC_UNIT_TEST],[
+AT_SETUP([$1])
+AT_KEYWORDS([unit])
+AT_CHECK([unit-$1],,ignore)
+AT_CLEANUP
+])
 
 
 AT_BANNER([unit tests])
-AT_SETUP([perftimer])
-AT_KEYWORDS([unit])
-AT_CHECK([unit_perftimer],,ignore)
-AT_CLEANUP()
+MC_UNIT_TEST([perftimer])
