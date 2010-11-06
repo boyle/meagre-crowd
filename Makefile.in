@@ -15,6 +15,7 @@
 
 @SET_MAKE@
 
+
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
@@ -33,17 +34,14 @@ NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
 bin_PROGRAMS = meagre-crowd$(EXEEXT)
-check_PROGRAMS = ${TEST_SRC_DIR}/file$(EXEEXT) \
-	${TEST_SRC_DIR}/helloworld-mpi$(EXEEXT) \
-	${TEST_SRC_DIR}/helloworld-mumps$(EXEEXT) \
-	${TEST_SRC_DIR}/mumps-file$(EXEEXT) \
-	${TEST_SRC_DIR}/unit_perftimer$(EXEEXT)
+check_PROGRAMS = $(am__EXEEXT_1)
 subdir = .
-DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
-	$(srcdir)/Makefile.in $(srcdir)/atlocal.in \
-	$(top_srcdir)/configure $(top_srcdir)/src/config.h.in AUTHORS \
-	COPYING ChangeLog INSTALL NEWS TODO build-aux/compile \
-	build-aux/depcomp build-aux/install-sh build-aux/missing
+DIST_COMMON = README $(am__configure_deps) $(noinst_HEADERS) \
+	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
+	$(srcdir)/atlocal.in $(top_srcdir)/configure \
+	$(top_srcdir)/src/config.h.in AUTHORS COPYING ChangeLog \
+	INSTALL NEWS TODO build-aux/compile build-aux/depcomp \
+	build-aux/install-sh build-aux/missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -55,30 +53,31 @@ CONFIG_HEADER = $(top_builddir)/src/config.h
 CONFIG_CLEAN_FILES = atlocal
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
+am__EXEEXT_1 = test/file$(EXEEXT) test/helloworld-mpi$(EXEEXT) \
+	test/helloworld-mumps$(EXEEXT) test/mumps-file$(EXEEXT) \
+	test/unit_perftimer$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS)
-__TEST_SRC_DIR__file_SOURCES = ${TEST_SRC_DIR}/file.c
-__TEST_SRC_DIR__file_OBJECTS = file.$(OBJEXT)
-__TEST_SRC_DIR__file_LDADD = $(LDADD)
 am__dirstamp = $(am__leading_dot)dirstamp
-__TEST_SRC_DIR__helloworld_mpi_SOURCES =  \
-	${TEST_SRC_DIR}/helloworld-mpi.c
-__TEST_SRC_DIR__helloworld_mpi_OBJECTS = helloworld-mpi.$(OBJEXT)
-__TEST_SRC_DIR__helloworld_mpi_LDADD = $(LDADD)
-__TEST_SRC_DIR__helloworld_mumps_SOURCES =  \
-	${TEST_SRC_DIR}/helloworld-mumps.c
-__TEST_SRC_DIR__helloworld_mumps_OBJECTS = helloworld-mumps.$(OBJEXT)
-__TEST_SRC_DIR__helloworld_mumps_LDADD = $(LDADD)
-__TEST_SRC_DIR__mumps_file_SOURCES = ${TEST_SRC_DIR}/mumps-file.c
-__TEST_SRC_DIR__mumps_file_OBJECTS = mumps-file.$(OBJEXT)
-__TEST_SRC_DIR__mumps_file_LDADD = $(LDADD)
-am___TEST_SRC_DIR__unit_perftimer_OBJECTS = unit_perftimer.$(OBJEXT) \
-	perftimer.$(OBJEXT)
-__TEST_SRC_DIR__unit_perftimer_OBJECTS =  \
-	$(am___TEST_SRC_DIR__unit_perftimer_OBJECTS)
-__TEST_SRC_DIR__unit_perftimer_LDADD = $(LDADD)
-am_meagre_crowd_OBJECTS = meagre-crowd.$(OBJEXT)
+am_meagre_crowd_OBJECTS = src/meagre-crowd.$(OBJEXT)
 meagre_crowd_OBJECTS = $(am_meagre_crowd_OBJECTS)
 meagre_crowd_LDADD = $(LDADD)
+test_file_SOURCES = test/file.c
+test_file_OBJECTS = test/file.$(OBJEXT)
+test_file_LDADD = $(LDADD)
+test_helloworld_mpi_SOURCES = test/helloworld-mpi.c
+test_helloworld_mpi_OBJECTS = test/helloworld-mpi.$(OBJEXT)
+test_helloworld_mpi_LDADD = $(LDADD)
+test_helloworld_mumps_SOURCES = test/helloworld-mumps.c
+test_helloworld_mumps_OBJECTS = test/helloworld-mumps.$(OBJEXT)
+test_helloworld_mumps_LDADD = $(LDADD)
+test_mumps_file_SOURCES = test/mumps-file.c
+test_mumps_file_OBJECTS = test/mumps-file.$(OBJEXT)
+test_mumps_file_LDADD = $(LDADD)
+am_test_unit_perftimer_OBJECTS =  \
+	test/test_unit_perftimer-unit_perftimer.$(OBJEXT) \
+	src/test_unit_perftimer-perftimer.$(OBJEXT)
+test_unit_perftimer_OBJECTS = $(am_test_unit_perftimer_OBJECTS)
+test_unit_perftimer_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/src
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -87,16 +86,13 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = ${TEST_SRC_DIR}/file.c ${TEST_SRC_DIR}/helloworld-mpi.c \
-	${TEST_SRC_DIR}/helloworld-mumps.c \
-	${TEST_SRC_DIR}/mumps-file.c \
-	$(__TEST_SRC_DIR__unit_perftimer_SOURCES) \
-	$(meagre_crowd_SOURCES)
-DIST_SOURCES = ${TEST_SRC_DIR}/file.c ${TEST_SRC_DIR}/helloworld-mpi.c \
-	${TEST_SRC_DIR}/helloworld-mumps.c \
-	${TEST_SRC_DIR}/mumps-file.c \
-	$(__TEST_SRC_DIR__unit_perftimer_SOURCES) \
-	$(meagre_crowd_SOURCES)
+SOURCES = $(meagre_crowd_SOURCES) test/file.c test/helloworld-mpi.c \
+	test/helloworld-mumps.c test/mumps-file.c \
+	$(test_unit_perftimer_SOURCES)
+DIST_SOURCES = $(meagre_crowd_SOURCES) test/file.c \
+	test/helloworld-mpi.c test/helloworld-mumps.c \
+	test/mumps-file.c $(test_unit_perftimer_SOURCES)
+HEADERS = $(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -203,9 +199,13 @@ top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = gnu
 meagre_crowd_SOURCES = src/meagre-crowd.c
 
+# header files that need to be distributed but not installed
+noinst_HEADERS = src/perftimer.h
+
 # the tests
-TEST_SRC_DIR = test
-__TEST_SRC_DIR__unit_perftimer_SOURCES = ${TEST_SRC_DIR}/unit_perftimer.c src/perftimer.c
+BUILT_TESTS = test/file test/helloworld-mpi test/helloworld-mumps test/mumps-file test/unit_perftimer
+test_unit_perftimer_SOURCES = test/unit_perftimer.c src/perftimer.c
+test_unit_perftimer_CPPFLAGS = -I$(srcdir)/src
 AM_CFLAGS = -Werror #-Wextra
 EXTRA_DIST = testsuite.at $(srcdir)/package.m4 $(TESTSUITE) atlocal.in
 TESTSUITE = $(srcdir)/testsuite
@@ -320,153 +320,115 @@ clean-binPROGRAMS:
 
 clean-checkPROGRAMS:
 	-test -z "$(check_PROGRAMS)" || rm -f $(check_PROGRAMS)
-${TEST_SRC_DIR}/$(am__dirstamp):
-	@$(MKDIR_P) ${TEST_SRC_DIR}
-	@: > ${TEST_SRC_DIR}/$(am__dirstamp)
-${TEST_SRC_DIR}/file$(EXEEXT): $(__TEST_SRC_DIR__file_OBJECTS) $(__TEST_SRC_DIR__file_DEPENDENCIES) ${TEST_SRC_DIR}/$(am__dirstamp)
-	@rm -f ${TEST_SRC_DIR}/file$(EXEEXT)
-	$(LINK) $(__TEST_SRC_DIR__file_OBJECTS) $(__TEST_SRC_DIR__file_LDADD) $(LIBS)
-${TEST_SRC_DIR}/helloworld-mpi$(EXEEXT): $(__TEST_SRC_DIR__helloworld_mpi_OBJECTS) $(__TEST_SRC_DIR__helloworld_mpi_DEPENDENCIES) ${TEST_SRC_DIR}/$(am__dirstamp)
-	@rm -f ${TEST_SRC_DIR}/helloworld-mpi$(EXEEXT)
-	$(LINK) $(__TEST_SRC_DIR__helloworld_mpi_OBJECTS) $(__TEST_SRC_DIR__helloworld_mpi_LDADD) $(LIBS)
-${TEST_SRC_DIR}/helloworld-mumps$(EXEEXT): $(__TEST_SRC_DIR__helloworld_mumps_OBJECTS) $(__TEST_SRC_DIR__helloworld_mumps_DEPENDENCIES) ${TEST_SRC_DIR}/$(am__dirstamp)
-	@rm -f ${TEST_SRC_DIR}/helloworld-mumps$(EXEEXT)
-	$(LINK) $(__TEST_SRC_DIR__helloworld_mumps_OBJECTS) $(__TEST_SRC_DIR__helloworld_mumps_LDADD) $(LIBS)
-${TEST_SRC_DIR}/mumps-file$(EXEEXT): $(__TEST_SRC_DIR__mumps_file_OBJECTS) $(__TEST_SRC_DIR__mumps_file_DEPENDENCIES) ${TEST_SRC_DIR}/$(am__dirstamp)
-	@rm -f ${TEST_SRC_DIR}/mumps-file$(EXEEXT)
-	$(LINK) $(__TEST_SRC_DIR__mumps_file_OBJECTS) $(__TEST_SRC_DIR__mumps_file_LDADD) $(LIBS)
-${TEST_SRC_DIR}/unit_perftimer$(EXEEXT): $(__TEST_SRC_DIR__unit_perftimer_OBJECTS) $(__TEST_SRC_DIR__unit_perftimer_DEPENDENCIES) ${TEST_SRC_DIR}/$(am__dirstamp)
-	@rm -f ${TEST_SRC_DIR}/unit_perftimer$(EXEEXT)
-	$(LINK) $(__TEST_SRC_DIR__unit_perftimer_OBJECTS) $(__TEST_SRC_DIR__unit_perftimer_LDADD) $(LIBS)
+src/$(am__dirstamp):
+	@$(MKDIR_P) src
+	@: > src/$(am__dirstamp)
+src/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) src/$(DEPDIR)
+	@: > src/$(DEPDIR)/$(am__dirstamp)
+src/meagre-crowd.$(OBJEXT): src/$(am__dirstamp) \
+	src/$(DEPDIR)/$(am__dirstamp)
 meagre-crowd$(EXEEXT): $(meagre_crowd_OBJECTS) $(meagre_crowd_DEPENDENCIES) 
 	@rm -f meagre-crowd$(EXEEXT)
 	$(LINK) $(meagre_crowd_OBJECTS) $(meagre_crowd_LDADD) $(LIBS)
+test/$(am__dirstamp):
+	@$(MKDIR_P) test
+	@: > test/$(am__dirstamp)
+test/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) test/$(DEPDIR)
+	@: > test/$(DEPDIR)/$(am__dirstamp)
+test/file.$(OBJEXT): test/$(am__dirstamp) \
+	test/$(DEPDIR)/$(am__dirstamp)
+test/file$(EXEEXT): $(test_file_OBJECTS) $(test_file_DEPENDENCIES) test/$(am__dirstamp)
+	@rm -f test/file$(EXEEXT)
+	$(LINK) $(test_file_OBJECTS) $(test_file_LDADD) $(LIBS)
+test/helloworld-mpi.$(OBJEXT): test/$(am__dirstamp) \
+	test/$(DEPDIR)/$(am__dirstamp)
+test/helloworld-mpi$(EXEEXT): $(test_helloworld_mpi_OBJECTS) $(test_helloworld_mpi_DEPENDENCIES) test/$(am__dirstamp)
+	@rm -f test/helloworld-mpi$(EXEEXT)
+	$(LINK) $(test_helloworld_mpi_OBJECTS) $(test_helloworld_mpi_LDADD) $(LIBS)
+test/helloworld-mumps.$(OBJEXT): test/$(am__dirstamp) \
+	test/$(DEPDIR)/$(am__dirstamp)
+test/helloworld-mumps$(EXEEXT): $(test_helloworld_mumps_OBJECTS) $(test_helloworld_mumps_DEPENDENCIES) test/$(am__dirstamp)
+	@rm -f test/helloworld-mumps$(EXEEXT)
+	$(LINK) $(test_helloworld_mumps_OBJECTS) $(test_helloworld_mumps_LDADD) $(LIBS)
+test/mumps-file.$(OBJEXT): test/$(am__dirstamp) \
+	test/$(DEPDIR)/$(am__dirstamp)
+test/mumps-file$(EXEEXT): $(test_mumps_file_OBJECTS) $(test_mumps_file_DEPENDENCIES) test/$(am__dirstamp)
+	@rm -f test/mumps-file$(EXEEXT)
+	$(LINK) $(test_mumps_file_OBJECTS) $(test_mumps_file_LDADD) $(LIBS)
+test/test_unit_perftimer-unit_perftimer.$(OBJEXT):  \
+	test/$(am__dirstamp) test/$(DEPDIR)/$(am__dirstamp)
+src/test_unit_perftimer-perftimer.$(OBJEXT): src/$(am__dirstamp) \
+	src/$(DEPDIR)/$(am__dirstamp)
+test/unit_perftimer$(EXEEXT): $(test_unit_perftimer_OBJECTS) $(test_unit_perftimer_DEPENDENCIES) test/$(am__dirstamp)
+	@rm -f test/unit_perftimer$(EXEEXT)
+	$(LINK) $(test_unit_perftimer_OBJECTS) $(test_unit_perftimer_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
+	-rm -f src/meagre-crowd.$(OBJEXT)
+	-rm -f src/test_unit_perftimer-perftimer.$(OBJEXT)
+	-rm -f test/file.$(OBJEXT)
+	-rm -f test/helloworld-mpi.$(OBJEXT)
+	-rm -f test/helloworld-mumps.$(OBJEXT)
+	-rm -f test/mumps-file.$(OBJEXT)
+	-rm -f test/test_unit_perftimer-unit_perftimer.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/helloworld-mpi.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/helloworld-mumps.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/meagre-crowd.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mumps-file.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/perftimer.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/unit_perftimer.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/meagre-crowd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/test_unit_perftimer-perftimer.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@test/$(DEPDIR)/file.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@test/$(DEPDIR)/helloworld-mpi.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@test/$(DEPDIR)/helloworld-mumps.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@test/$(DEPDIR)/mumps-file.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@test/$(DEPDIR)/test_unit_perftimer-unit_perftimer.Po@am__quote@
 
 .c.o:
-@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(COMPILE) -c $<
+@am__fastdepCC_FALSE@	$(COMPILE) -c -o $@ $<
 
 .c.obj:
-@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.obj$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ `$(CYGPATH_W) '$<'` &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
+@am__fastdepCC_FALSE@	$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
-file.o: ${TEST_SRC_DIR}/file.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT file.o -MD -MP -MF $(DEPDIR)/file.Tpo -c -o file.o `test -f '${TEST_SRC_DIR}/file.c' || echo '$(srcdir)/'`${TEST_SRC_DIR}/file.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/file.Tpo $(DEPDIR)/file.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/file.c' object='file.o' libtool=no @AMDEPBACKSLASH@
+test/test_unit_perftimer-unit_perftimer.o: test/unit_perftimer.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_unit_perftimer_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test/test_unit_perftimer-unit_perftimer.o -MD -MP -MF test/$(DEPDIR)/test_unit_perftimer-unit_perftimer.Tpo -c -o test/test_unit_perftimer-unit_perftimer.o `test -f 'test/unit_perftimer.c' || echo '$(srcdir)/'`test/unit_perftimer.c
+@am__fastdepCC_TRUE@	$(am__mv) test/$(DEPDIR)/test_unit_perftimer-unit_perftimer.Tpo test/$(DEPDIR)/test_unit_perftimer-unit_perftimer.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test/unit_perftimer.c' object='test/test_unit_perftimer-unit_perftimer.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o file.o `test -f '${TEST_SRC_DIR}/file.c' || echo '$(srcdir)/'`${TEST_SRC_DIR}/file.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_unit_perftimer_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test/test_unit_perftimer-unit_perftimer.o `test -f 'test/unit_perftimer.c' || echo '$(srcdir)/'`test/unit_perftimer.c
 
-file.obj: ${TEST_SRC_DIR}/file.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT file.obj -MD -MP -MF $(DEPDIR)/file.Tpo -c -o file.obj `if test -f '${TEST_SRC_DIR}/file.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/file.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/file.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/file.Tpo $(DEPDIR)/file.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/file.c' object='file.obj' libtool=no @AMDEPBACKSLASH@
+test/test_unit_perftimer-unit_perftimer.obj: test/unit_perftimer.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_unit_perftimer_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test/test_unit_perftimer-unit_perftimer.obj -MD -MP -MF test/$(DEPDIR)/test_unit_perftimer-unit_perftimer.Tpo -c -o test/test_unit_perftimer-unit_perftimer.obj `if test -f 'test/unit_perftimer.c'; then $(CYGPATH_W) 'test/unit_perftimer.c'; else $(CYGPATH_W) '$(srcdir)/test/unit_perftimer.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) test/$(DEPDIR)/test_unit_perftimer-unit_perftimer.Tpo test/$(DEPDIR)/test_unit_perftimer-unit_perftimer.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test/unit_perftimer.c' object='test/test_unit_perftimer-unit_perftimer.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o file.obj `if test -f '${TEST_SRC_DIR}/file.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/file.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/file.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_unit_perftimer_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test/test_unit_perftimer-unit_perftimer.obj `if test -f 'test/unit_perftimer.c'; then $(CYGPATH_W) 'test/unit_perftimer.c'; else $(CYGPATH_W) '$(srcdir)/test/unit_perftimer.c'; fi`
 
-helloworld-mpi.o: ${TEST_SRC_DIR}/helloworld-mpi.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT helloworld-mpi.o -MD -MP -MF $(DEPDIR)/helloworld-mpi.Tpo -c -o helloworld-mpi.o `test -f '${TEST_SRC_DIR}/helloworld-mpi.c' || echo '$(srcdir)/'`${TEST_SRC_DIR}/helloworld-mpi.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/helloworld-mpi.Tpo $(DEPDIR)/helloworld-mpi.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/helloworld-mpi.c' object='helloworld-mpi.o' libtool=no @AMDEPBACKSLASH@
+src/test_unit_perftimer-perftimer.o: src/perftimer.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_unit_perftimer_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT src/test_unit_perftimer-perftimer.o -MD -MP -MF src/$(DEPDIR)/test_unit_perftimer-perftimer.Tpo -c -o src/test_unit_perftimer-perftimer.o `test -f 'src/perftimer.c' || echo '$(srcdir)/'`src/perftimer.c
+@am__fastdepCC_TRUE@	$(am__mv) src/$(DEPDIR)/test_unit_perftimer-perftimer.Tpo src/$(DEPDIR)/test_unit_perftimer-perftimer.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='src/perftimer.c' object='src/test_unit_perftimer-perftimer.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o helloworld-mpi.o `test -f '${TEST_SRC_DIR}/helloworld-mpi.c' || echo '$(srcdir)/'`${TEST_SRC_DIR}/helloworld-mpi.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_unit_perftimer_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o src/test_unit_perftimer-perftimer.o `test -f 'src/perftimer.c' || echo '$(srcdir)/'`src/perftimer.c
 
-helloworld-mpi.obj: ${TEST_SRC_DIR}/helloworld-mpi.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT helloworld-mpi.obj -MD -MP -MF $(DEPDIR)/helloworld-mpi.Tpo -c -o helloworld-mpi.obj `if test -f '${TEST_SRC_DIR}/helloworld-mpi.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/helloworld-mpi.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/helloworld-mpi.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/helloworld-mpi.Tpo $(DEPDIR)/helloworld-mpi.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/helloworld-mpi.c' object='helloworld-mpi.obj' libtool=no @AMDEPBACKSLASH@
+src/test_unit_perftimer-perftimer.obj: src/perftimer.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_unit_perftimer_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT src/test_unit_perftimer-perftimer.obj -MD -MP -MF src/$(DEPDIR)/test_unit_perftimer-perftimer.Tpo -c -o src/test_unit_perftimer-perftimer.obj `if test -f 'src/perftimer.c'; then $(CYGPATH_W) 'src/perftimer.c'; else $(CYGPATH_W) '$(srcdir)/src/perftimer.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) src/$(DEPDIR)/test_unit_perftimer-perftimer.Tpo src/$(DEPDIR)/test_unit_perftimer-perftimer.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='src/perftimer.c' object='src/test_unit_perftimer-perftimer.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o helloworld-mpi.obj `if test -f '${TEST_SRC_DIR}/helloworld-mpi.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/helloworld-mpi.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/helloworld-mpi.c'; fi`
-
-helloworld-mumps.o: ${TEST_SRC_DIR}/helloworld-mumps.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT helloworld-mumps.o -MD -MP -MF $(DEPDIR)/helloworld-mumps.Tpo -c -o helloworld-mumps.o `test -f '${TEST_SRC_DIR}/helloworld-mumps.c' || echo '$(srcdir)/'`${TEST_SRC_DIR}/helloworld-mumps.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/helloworld-mumps.Tpo $(DEPDIR)/helloworld-mumps.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/helloworld-mumps.c' object='helloworld-mumps.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o helloworld-mumps.o `test -f '${TEST_SRC_DIR}/helloworld-mumps.c' || echo '$(srcdir)/'`${TEST_SRC_DIR}/helloworld-mumps.c
-
-helloworld-mumps.obj: ${TEST_SRC_DIR}/helloworld-mumps.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT helloworld-mumps.obj -MD -MP -MF $(DEPDIR)/helloworld-mumps.Tpo -c -o helloworld-mumps.obj `if test -f '${TEST_SRC_DIR}/helloworld-mumps.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/helloworld-mumps.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/helloworld-mumps.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/helloworld-mumps.Tpo $(DEPDIR)/helloworld-mumps.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/helloworld-mumps.c' object='helloworld-mumps.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o helloworld-mumps.obj `if test -f '${TEST_SRC_DIR}/helloworld-mumps.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/helloworld-mumps.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/helloworld-mumps.c'; fi`
-
-mumps-file.o: ${TEST_SRC_DIR}/mumps-file.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mumps-file.o -MD -MP -MF $(DEPDIR)/mumps-file.Tpo -c -o mumps-file.o `test -f '${TEST_SRC_DIR}/mumps-file.c' || echo '$(srcdir)/'`${TEST_SRC_DIR}/mumps-file.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/mumps-file.Tpo $(DEPDIR)/mumps-file.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/mumps-file.c' object='mumps-file.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mumps-file.o `test -f '${TEST_SRC_DIR}/mumps-file.c' || echo '$(srcdir)/'`${TEST_SRC_DIR}/mumps-file.c
-
-mumps-file.obj: ${TEST_SRC_DIR}/mumps-file.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mumps-file.obj -MD -MP -MF $(DEPDIR)/mumps-file.Tpo -c -o mumps-file.obj `if test -f '${TEST_SRC_DIR}/mumps-file.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/mumps-file.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/mumps-file.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/mumps-file.Tpo $(DEPDIR)/mumps-file.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/mumps-file.c' object='mumps-file.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mumps-file.obj `if test -f '${TEST_SRC_DIR}/mumps-file.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/mumps-file.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/mumps-file.c'; fi`
-
-unit_perftimer.o: ${TEST_SRC_DIR}/unit_perftimer.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT unit_perftimer.o -MD -MP -MF $(DEPDIR)/unit_perftimer.Tpo -c -o unit_perftimer.o `test -f '${TEST_SRC_DIR}/unit_perftimer.c' || echo '$(srcdir)/'`${TEST_SRC_DIR}/unit_perftimer.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/unit_perftimer.Tpo $(DEPDIR)/unit_perftimer.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/unit_perftimer.c' object='unit_perftimer.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o unit_perftimer.o `test -f '${TEST_SRC_DIR}/unit_perftimer.c' || echo '$(srcdir)/'`${TEST_SRC_DIR}/unit_perftimer.c
-
-unit_perftimer.obj: ${TEST_SRC_DIR}/unit_perftimer.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT unit_perftimer.obj -MD -MP -MF $(DEPDIR)/unit_perftimer.Tpo -c -o unit_perftimer.obj `if test -f '${TEST_SRC_DIR}/unit_perftimer.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/unit_perftimer.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/unit_perftimer.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/unit_perftimer.Tpo $(DEPDIR)/unit_perftimer.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='${TEST_SRC_DIR}/unit_perftimer.c' object='unit_perftimer.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o unit_perftimer.obj `if test -f '${TEST_SRC_DIR}/unit_perftimer.c'; then $(CYGPATH_W) '${TEST_SRC_DIR}/unit_perftimer.c'; else $(CYGPATH_W) '$(srcdir)/${TEST_SRC_DIR}/unit_perftimer.c'; fi`
-
-perftimer.o: src/perftimer.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT perftimer.o -MD -MP -MF $(DEPDIR)/perftimer.Tpo -c -o perftimer.o `test -f 'src/perftimer.c' || echo '$(srcdir)/'`src/perftimer.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/perftimer.Tpo $(DEPDIR)/perftimer.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='src/perftimer.c' object='perftimer.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o perftimer.o `test -f 'src/perftimer.c' || echo '$(srcdir)/'`src/perftimer.c
-
-perftimer.obj: src/perftimer.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT perftimer.obj -MD -MP -MF $(DEPDIR)/perftimer.Tpo -c -o perftimer.obj `if test -f 'src/perftimer.c'; then $(CYGPATH_W) 'src/perftimer.c'; else $(CYGPATH_W) '$(srcdir)/src/perftimer.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/perftimer.Tpo $(DEPDIR)/perftimer.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='src/perftimer.c' object='perftimer.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o perftimer.obj `if test -f 'src/perftimer.c'; then $(CYGPATH_W) 'src/perftimer.c'; else $(CYGPATH_W) '$(srcdir)/src/perftimer.c'; fi`
-
-meagre-crowd.o: src/meagre-crowd.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT meagre-crowd.o -MD -MP -MF $(DEPDIR)/meagre-crowd.Tpo -c -o meagre-crowd.o `test -f 'src/meagre-crowd.c' || echo '$(srcdir)/'`src/meagre-crowd.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/meagre-crowd.Tpo $(DEPDIR)/meagre-crowd.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='src/meagre-crowd.c' object='meagre-crowd.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o meagre-crowd.o `test -f 'src/meagre-crowd.c' || echo '$(srcdir)/'`src/meagre-crowd.c
-
-meagre-crowd.obj: src/meagre-crowd.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT meagre-crowd.obj -MD -MP -MF $(DEPDIR)/meagre-crowd.Tpo -c -o meagre-crowd.obj `if test -f 'src/meagre-crowd.c'; then $(CYGPATH_W) 'src/meagre-crowd.c'; else $(CYGPATH_W) '$(srcdir)/src/meagre-crowd.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/meagre-crowd.Tpo $(DEPDIR)/meagre-crowd.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='src/meagre-crowd.c' object='meagre-crowd.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o meagre-crowd.obj `if test -f 'src/meagre-crowd.c'; then $(CYGPATH_W) 'src/meagre-crowd.c'; else $(CYGPATH_W) '$(srcdir)/src/meagre-crowd.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_unit_perftimer_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o src/test_unit_perftimer-perftimer.obj `if test -f 'src/perftimer.c'; then $(CYGPATH_W) 'src/perftimer.c'; else $(CYGPATH_W) '$(srcdir)/src/perftimer.c'; fi`
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
@@ -671,7 +633,7 @@ check-am: all-am
 	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
 	$(MAKE) $(AM_MAKEFLAGS) check-local
 check: check-am
-all-am: Makefile $(PROGRAMS)
+all-am: Makefile $(PROGRAMS) $(HEADERS)
 installdirs:
 	for dir in "$(DESTDIR)$(bindir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
@@ -697,7 +659,10 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
-	-rm -f ${TEST_SRC_DIR}/$(am__dirstamp)
+	-rm -f src/$(DEPDIR)/$(am__dirstamp)
+	-rm -f src/$(am__dirstamp)
+	-rm -f test/$(DEPDIR)/$(am__dirstamp)
+	-rm -f test/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
@@ -709,7 +674,7 @@ clean-am: clean-binPROGRAMS clean-checkPROGRAMS clean-generic \
 
 distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
-	-rm -rf ./$(DEPDIR)
+	-rm -rf src/$(DEPDIR) test/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-hdr distclean-tags
@@ -757,7 +722,7 @@ installcheck-am: installcheck-local
 maintainer-clean: maintainer-clean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
-	-rm -rf ./$(DEPDIR)
+	-rm -rf src/$(DEPDIR) test/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -821,7 +786,8 @@ check-local: atconfig atlocal $(TESTSUITE)
 
 installcheck-local: atconfig atlocal $(TESTSUITE)
 	$(SHELL) '$(TESTSUITE)' AUTOTEST_PATH='$(bindir)' \
-	  $(TESTSUITEFLAGS) -k '!hello'
+	  $(TESTSUITEFLAGS) -k '!hello,!unit'
+# don't run dependancy and unit tests
 
 clean-local-check:
 	test ! -f '$(TESTSUITE)' || \

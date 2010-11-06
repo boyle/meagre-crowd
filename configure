@@ -4174,7 +4174,8 @@ else
 fi
 
 
-
+ # need at least v1.11 of automake for SILENT_RULES
+#AM_SILENT_RULES([yes]) # enable kernel like cleaner build
 ac_config_files="$ac_config_files Makefile"
 
 

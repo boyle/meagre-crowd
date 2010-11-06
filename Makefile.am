@@ -6,18 +6,24 @@ AUTOMAKE_OPTIONS = gnu
 bin_PROGRAMS = meagre-crowd
 meagre_crowd_SOURCES = src/meagre-crowd.c
 
-# the tests
-TEST_SRC_DIR=test
-check_PROGRAMS = ${TEST_SRC_DIR}/file ${TEST_SRC_DIR}/helloworld-mpi ${TEST_SRC_DIR}/helloworld-mumps ${TEST_SRC_DIR}/mumps-file ${TEST_SRC_DIR}/unit_perftimer
+# header files that need to be distributed but not installed
+noinst_HEADERS = src/perftimer.h
 
-__TEST_SRC_DIR__unit_perftimer_SOURCES = ${TEST_SRC_DIR}/unit_perftimer.c src/perftimer.c
+
+
+# the tests
+BUILT_TESTS = test/file test/helloworld-mpi test/helloworld-mumps test/mumps-file test/unit_perftimer
+#TESTS = $(BUILT_TESTS)
+check_PROGRAMS = $(BUILT_TESTS) 
+test_unit_perftimer_SOURCES = test/unit_perftimer.c src/perftimer.c
+test_unit_perftimer_CPPFLAGS = -I$(srcdir)/src
 
 AM_CFLAGS = -Werror #-Wextra
 
 clean-local: clean-local-check
 
 ######
-## vodoo incantations to get the test suite automation to build
+## vodoo incantations to get the test suite automation to build (autotest)
 
 # The `:;' works around a Bash 3.2 bug when the output is not writeable.
 $(srcdir)/package.m4: $(top_srcdir)/configure.ac
@@ -46,8 +52,9 @@ check-local: atconfig atlocal $(TESTSUITE)
  
 installcheck-local: atconfig atlocal $(TESTSUITE)
 	$(SHELL) '$(TESTSUITE)' AUTOTEST_PATH='$(bindir)' \
-	  $(TESTSUITEFLAGS) -k '!hello'
- 
+	  $(TESTSUITEFLAGS) -k '!hello,!unit'
+# don't run dependancy and unit tests
+
 clean-local-check:
 	test ! -f '$(TESTSUITE)' || \
 	  $(SHELL) '$(TESTSUITE)' --clean

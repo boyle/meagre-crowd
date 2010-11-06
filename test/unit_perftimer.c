@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#include "../src/perftimer.h"
+#include "perftimer.h"
 
 // do something to kill time
 void do_nothing(int i);

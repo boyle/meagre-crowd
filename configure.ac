@@ -51,7 +51,8 @@ AC_SUBST(DEBUG)
 
 
 # makefile
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([1.11 subdir-objects]) # need at least v1.11 of automake for SILENT_RULES
+#AM_SILENT_RULES([yes]) # enable kernel like cleaner build
 AC_CONFIG_FILES([Makefile])
 
 # Checks for programs.
