@@ -1,7 +1,7 @@
 #ifndef _PERFTIMER_H_
 #define _PERFTIMER_H_
 
-#include <time.h>
+#include <sys/time.h>
 #include <stdio.h>
 
 // doubly linked structure
@@ -13,7 +13,7 @@ typedef struct perftimer_t {
 } perftimer_t;
 
 typedef struct perftimer_tic_t {
-  time_t now;
+  struct timeval now;
   unsigned int depth;
   struct perftimer_tic_t* next;
   char* desc;

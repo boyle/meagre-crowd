@@ -64,7 +64,7 @@ AC_SEARCH_LIBS([dmumps_c], [dmumps],,AC_MSG_ERROR([could not find required doubl
 AC_SEARCH_LIBS([load_sparse_matrix], [sparse_matrix_converter],,AC_MSG_ERROR([could not find required BeBOP sparse matrix I/O library]))
 
 # Checks for header files.
-AC_CHECK_HEADERS([stdlib.h string.h])
+AC_CHECK_HEADERS([stdlib.h string.h sys/time.h])
 AC_HEADER_ASSERT
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -75,6 +75,7 @@ AC_TYPE_SIZE_T
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_MALLOC
 AC_FUNC_STRNLEN
+AC_CHECK_FUNCS([gettimeofday])
 
 # Setup the test suite
 AC_CONFIG_TESTDIR([.],[.:test])

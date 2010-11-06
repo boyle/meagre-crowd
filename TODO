@@ -7,6 +7,7 @@ at any patches or discuss potential solutions.
 
 These are somewhat arranged in order of priority. Highest at the top.
 
+ O Add timing infrastructure (-t) -- partially completed
  - Run valgrind. Find bad allocations and uninitialized variables.
  - Refactor, refactor, refactor.
  - Get arbitrary (single) file loading working. (command line args)
@@ -14,14 +15,13 @@ These are somewhat arranged in order of priority. Highest at the top.
    - fail gracefully when no input is provided (show help, error)
    - fail gracefully when a file is MIA (error)
  - Add ability to increase verbosity (-v, -vv, -vvv) for debugging.
- O Add timing infrastructure (-t) -- partially completed, needs finer timing results
    - at minimum verbosity, output nothing but timing info if enabled, on a single line per matrix
      (i.e. if -t, verbosity--, for each -v, verbosity++)
      - cpus, smps/cpu, load-time, ordering-time, solve-time
    - build so we can dump it into a spreadsheet.csv
  - Add ability to save to an output file (-o)
  - Change default to outputing on stdout, rather than default-filename.mm
- - Get this system compiling on sharcnet systems. (TBD which systems to try this on.)
+ - Get this system compiling on sharcnet systems. (mako, hound, guppy)
  - Add other solvers - single system, SMP
    ?? which ones
  - Add ability to load multiple files and loop through them?

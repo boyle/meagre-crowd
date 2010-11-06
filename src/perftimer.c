@@ -69,7 +69,8 @@ int perftimer_inc(perftimer_t* h, char const*const s, const size_t n) {
   }
 
   // fill in the structure
-  ptr->now  = time(NULL); // TODO higher resolution
+  if(gettimeofday(&(ptr->now),NULL) != 0)
+    warn("failed to store time"); // shouldn't be any reason to fail?
   ptr->depth = h->current_depth;
   ptr->next = NULL;
   { // safe string copy
@@ -95,7 +96,12 @@ static inline   double   calc_perftimer_diff(perftimer_tic_t const* const t1, pe
 static inline   double   calc_perftimer_diff(perftimer_tic_t const* const t1, perftimer_tic_t const* const t2) {
   if((t1 == NULL) || (t2 == NULL)) 
     return 0.0;
-  return ((double)(t2->now - t1->now)) / CLOCKS_PER_SEC;
+
+  struct timeval t;
+  timersub(&(t2->now), &(t1->now), &t);
+
+  // convert to double
+  return ((double) t.tv_sec) + ((double) t.tv_usec) * 1.0e-6;
 }
 
 // perftimer_printlen()
@@ -190,7 +196,7 @@ void perftimer_printf(perftimer_t const * const h, const unsigned int d) {
 inline double perftimer_wall(perftimer_t const * const h) {
   return calc_perftimer_diff(h->head,h->tail);
 }
-double perftimer_wall_av(perftimer_t const * const h) {
+inline double perftimer_wall_av(perftimer_t const * const h) {
   return perftimer_wall(h); // TODO
 }
 

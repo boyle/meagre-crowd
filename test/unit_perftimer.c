@@ -31,7 +31,7 @@ void test_basic() {
   
   perftimer_printf(T,0);
 
-  do_nothing(1);
+  do_nothing(10000);
 
   assert(perftimer_inc(T,"s1",10) == 0);
   assert(perftimer_printlen(T,0) > 5);
