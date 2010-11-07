@@ -58,7 +58,8 @@ am__EXEEXT_1 = tests/file$(EXEEXT) tests/helloworld-mpi$(EXEEXT) \
 	tests/unit-perftimer$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS)
 am__dirstamp = $(am__leading_dot)dirstamp
-am_meagre_crowd_OBJECTS = src/meagre-crowd.$(OBJEXT)
+am_meagre_crowd_OBJECTS = src/meagre-crowd.$(OBJEXT) \
+	src/perftimer.$(OBJEXT)
 meagre_crowd_OBJECTS = $(am_meagre_crowd_OBJECTS)
 meagre_crowd_LDADD = $(LDADD)
 tests_file_SOURCES = tests/file.c
@@ -213,7 +214,7 @@ top_srcdir = @top_srcdir@
 
 # build to GNU standards
 AUTOMAKE_OPTIONS = gnu
-meagre_crowd_SOURCES = src/meagre-crowd.c
+meagre_crowd_SOURCES = src/meagre-crowd.c src/perftimer.c
 
 # header files that need to be distributed but not installed
 noinst_HEADERS = src/perftimer.h
@@ -344,6 +345,8 @@ src/$(DEPDIR)/$(am__dirstamp):
 	@: > src/$(DEPDIR)/$(am__dirstamp)
 src/meagre-crowd.$(OBJEXT): src/$(am__dirstamp) \
 	src/$(DEPDIR)/$(am__dirstamp)
+src/perftimer.$(OBJEXT): src/$(am__dirstamp) \
+	src/$(DEPDIR)/$(am__dirstamp)
 meagre-crowd$(EXEEXT): $(meagre_crowd_OBJECTS) $(meagre_crowd_DEPENDENCIES) 
 	@rm -f meagre-crowd$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(meagre_crowd_OBJECTS) $(meagre_crowd_LDADD) $(LIBS)
@@ -384,6 +387,7 @@ tests/unit-perftimer$(EXEEXT): $(tests_unit_perftimer_OBJECTS) $(tests_unit_perf
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 	-rm -f src/meagre-crowd.$(OBJEXT)
+	-rm -f src/perftimer.$(OBJEXT)
 	-rm -f src/tests_unit_perftimer-perftimer.$(OBJEXT)
 	-rm -f tests/file.$(OBJEXT)
 	-rm -f tests/helloworld-mpi.$(OBJEXT)
@@ -395,6 +399,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/meagre-crowd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/perftimer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/tests_unit_perftimer-perftimer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/file.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/helloworld-mpi.Po@am__quote@

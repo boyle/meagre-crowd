@@ -4,7 +4,7 @@ AUTOMAKE_OPTIONS = gnu
 
 # the actual program to be installed at the end
 bin_PROGRAMS = meagre-crowd
-meagre_crowd_SOURCES = src/meagre-crowd.c
+meagre_crowd_SOURCES = src/meagre-crowd.c src/perftimer.c
 
 # header files that need to be distributed but not installed
 noinst_HEADERS = src/perftimer.h

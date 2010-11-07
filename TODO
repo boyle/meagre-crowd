@@ -7,7 +7,6 @@ at any patches or discuss potential solutions.
 
 These are somewhat arranged in order of priority. Highest at the top.
 
- O Add timing infrastructure (-t) -- partially completed
  - Run valgrind. Find bad allocations and uninitialized variables.
  - Refactor, refactor, refactor.
  - Get arbitrary (single) file loading working. (command line args)
