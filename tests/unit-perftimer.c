@@ -16,20 +16,29 @@ void test_basic();
 void test_basic() {
   unsigned int i;
   
-  // check we exit properly when given a NULL ptr-to-ptr
+  // check we exit properly when given a NULL ptr
   assert(perftimer_inc(NULL,"",10) == -1);
+  perftimer_free(NULL);
+  char s [10];
+  assert(perftimer_snprintf(NULL,s,10,-1) == 0);
+  assert(perftimer_printlen(NULL,-1) == 0);
+  perftimer_printf(NULL,-1);
+  assert(perftimer_wall(NULL) == 0.0);
+  assert(perftimer_wall_av(NULL) == 0.0);
+  assert(perftimer_delta(NULL) == 0.0);
   assert(perftimer_rounds(NULL) == 0);
-  
-  
+  perftimer_restart(NULL);
+  perftimer_t* t = NULL;
+  perftimer_restart(&t);
+
+
   perftimer_t* T = perftimer_malloc();
   assert(perftimer_rounds(T) == 0);
 
   // check that the perftimer advances cleanly
   assert(perftimer_inc(T,"start",10) == 0);
   assert(perftimer_rounds(T) == 0);
-// TODO  char* s[100];
   perftimer_printf(T,0);
-// TODO  assert(perftimer_printlen(T,0) == strlen()));
   assert(perftimer_wall(T) == 0.0);
   assert(perftimer_delta(T) == 0.0);
   
