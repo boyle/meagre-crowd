@@ -88,4 +88,11 @@ unsigned int perftimer_rounds(perftimer_t const* pT);
 // T: perftimer structure ptr-to-ptr
 void perftimer_restart(perftimer_t ** ppT);
 
+// adjust_depth()
+// set the current
+// h: perftimer structure ptr
+// d: the change in depth (int: +- n)
+void perftimer_adjust_depth(perftimer_t * const h, int d);
+
+
 #endif //_PERFTIMER_H_

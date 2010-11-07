@@ -30,7 +30,9 @@ void test_basic() {
   perftimer_restart(NULL);
   perftimer_t* t = NULL;
   perftimer_restart(&t);
-
+  perftimer_adjust_depth(NULL,+10);
+  perftimer_adjust_depth(NULL,-10);
+  perftimer_adjust_depth(NULL,0);
 
   perftimer_t* T = perftimer_malloc();
   assert(perftimer_rounds(T) == 0);
@@ -56,14 +58,20 @@ void test_basic() {
   
   do_nothing(200000);
   
+  perftimer_adjust_depth(T,+1);
   assert(perftimer_inc(T,"ss1",10) == 0);
+  perftimer_adjust_depth(T,+1);
   assert(perftimer_inc(T,"ss2",10) == 0);
+  perftimer_adjust_depth(T,-2);
   assert(perftimer_inc(T,"s3",10) == 0);
   assert(perftimer_inc(T,"sss4",10) == 0);
+  perftimer_adjust_depth(T,+6);
   assert(perftimer_inc(T,"sss5",10) == 0);
   assert(perftimer_inc(T,"ss6",10) == 0);
-  for(i=0;i<10;i++)
+  for(i=0;i<10;i++) {
+    printf("depth %d\n",i);
     perftimer_printf(T,i);
+  }
 
   // try a restart
   assert(perftimer_rounds(T) == 1);

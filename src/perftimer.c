@@ -132,17 +132,16 @@ size_t perftimer_printlen(perftimer_t const * const h, const unsigned int d) {
   perftimer_tic_t const * ptr = h->head;
 
   // count desc
-  // TODO handle breadth (d)
   while(ptr != NULL) {
     if((ptr->desc != NULL) && (ptr->depth <= d))
       // we know that all ptr->desc are zero terminated: we copied them
       // need to leave lots of room for calculated time
-      c += strlen(ptr->desc) +40;
+      c += strlen(ptr->desc) +60;
     // TODO test for overflow on 'c += ...'
     ptr = ptr->next;
   }
 
-  return c+40-1; // TODO extra padding?
+  return c+60-1; // extra padding for total
 }
 
 
@@ -196,7 +195,11 @@ int perftimer_snprintf(perftimer_t const * const h, char* s, const size_t n, con
     ptr = hs->head;
     unsigned int i; // current link
     for(i=0;i<m_max && (ptr != NULL) && (ptr->next != NULL);i++) {
-      t[i] +=  _calc_perftimer_diff(ptr, ptr->next);
+      perftimer_tic_t const * stop = ptr->next;
+      while((stop->next != NULL) && (stop->depth > ptr->depth)) {
+        stop = stop->next;
+      } // summarize lower depths
+      t[i] +=  _calc_perftimer_diff(ptr, stop);
       r[i]++;
       ptr = ptr->next;
     }
@@ -211,7 +214,6 @@ int perftimer_snprintf(perftimer_t const * const h, char* s, const size_t n, con
   // now add the descriptions, if required
 
   // count desc
-  // TODO handle breadth (d)
   static const int nw = 60;
   char tmp [nw];
   // start at the top, having already established that there is a first entry
@@ -219,6 +221,11 @@ int perftimer_snprintf(perftimer_t const * const h, char* s, const size_t n, con
   int i = 0;
   while(ptr->next != NULL) {
     if((ptr->desc != NULL) && (ptr->depth <= d)) {
+      { // indent as appropriate for this depth
+        int j;
+        for(j=0;j<ptr->depth;j++)
+          strcat(s, "  ");
+      }
       strncat(s, ptr->desc, n-1);
       if(t[i] > 0.0) {
         if(r[i] > 1)
@@ -251,7 +258,6 @@ int perftimer_snprintf(perftimer_t const * const h, char* s, const size_t n, con
   free(r);
 
   // this should come out to the same size as perftimer_printlen()
-  // TODO add assertion?
   return strnlen(s,n); // total bytes produced
 }
 
@@ -344,3 +350,15 @@ void perftimer_restart(perftimer_t ** ph) {
     (*ph)->old = old;
 }
 
+// adjust_depth()
+// set the current
+// h: perftimer structure ptr
+// d: the change in depth (int: +- n)
+void perftimer_adjust_depth(perftimer_t * const h, int d) {
+  if(h == NULL)
+    return;
+  else if((d < 0) && (-d > h->current_depth))
+    h->current_depth = 0;
+  else
+    h->current_depth += d;
+}
