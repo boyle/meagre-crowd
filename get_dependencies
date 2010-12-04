@@ -2,8 +2,8 @@
 
 # select implimentations
 MPI="local" # mpich2 or mpich1 or openmpi or local or skip
-BLAS="local" # netlib or atlas or local
-LAPACK="local" # netlib or local
+BLAS="skip" # netlib or atlas or local
+LAPACK="skip" # netlib or local
 METIS="parmetis" # parmetis or metis
 
 PARALLEL_MAKE_DISABLED="yes" # force make to use a single core for compiling
@@ -14,6 +14,7 @@ MPICH2_MPI_VER="1.2.1p1"
 MPICH1_MPI_VER="1.2.7p1"
 OPENMPI_MPI_VER="1.4.3"
 ATLAS_BLAS_VER=3.8.3 #latest stable
+LAPACK_VER=3.3.0
 # orderings
 AMD_VER=2.2.1
 PARMETIS_VER=3.1.1
@@ -21,7 +22,7 @@ METIS_VER=4.0
 SCOTCH_VER="5.1.10b"
 # solvers
 MUMPS_VER=4.9.2
-# Note: no versionable downloads for netlib BLAS, ScaLAPACK, LAPACK
+# Note: no versionable downloads for netlib BLAS, ScaLAPACK
 
 # necessary functions
 function err() {
@@ -175,7 +176,7 @@ case ${MPI} in
     info "  Using local version of MPI: ${O}"
     # need this for BLACS openmpi fix
     [[ ${O} =~ "Open MPI" ]] && MPI="openmpi" && info "    setting MPI variable to match: ${MPI}"
-    MPI_PATH=/usr
+    MPI_PATH=$(dirname $(dirname $(which mpirun)))
   ;;
   "skip" )
     info -n "Skipped MPI install: "
@@ -188,10 +189,13 @@ case ${MPI} in
     err ${MPI} "build/install not yet implemented"
   ;;
 esac
-MPI_LIB=${MPI_PATH}/lib/libmpi.a
-MPI_DLIB="-L${MPI_PATH}/lib -lmpi"
-MPI_INC=${MPI_PATH}/include
-MPICC=${MPI_PATH}/bin/mpicc
+if [[ -z "${MPI_DLIB}" ]]; then
+  MPI_LIB=${MPI_PATH}/lib/libmpi.a
+  MPI_DLIB="-L${MPI_PATH}/lib -lmpi"
+  MPI_INC=${MPI_PATH}/include
+  MPICC=${MPI_PATH}/bin/mpicc
+  MPIF77=${MPI_PATH}/bin/mpif77
+fi
 
 # matrix tools:
 # get blas (atlas, netlib, goto, mkl, acml, parblas)
@@ -237,23 +241,29 @@ case ${BLAS} in
   ;;
   "local" )
     info "Assuming local version of BLAS"
-    BLAS_LIB=/usr/lib/libblas.a
+    BLAS_LIB=BLAS_LOCATION_TODO
+  ;;
+  "skip" )
+    info "Skipping BLAS, assumed installed at ${INSTALL_LIB_DIR}"
+    BLAS_LIB=${INSTALL_LIB_DIR}/libblas.a
   ;;
   *) err ${BLAS} "bad blas choice";;
 esac
 for i in ${BLAS_LIB}; do
   [ ! -f ${i} ] && err blas "missing lib ${BLAS_LIB}"
 done
-BLAS_DIR=$(dirname ${BLAS_LIB})
-BLAS_DLIB="-L${BLAS_DIR} -lblas"
+if [[ -z "${BLAS_DLIB}" ]]; then
+  BLAS_DIR=$(dirname ${BLAS_LIB})
+  BLAS_DLIB="-L${BLAS_DIR} -lblas"
+fi
 
 info "LAPACK"
 cd ${S}
 case ${LAPACK} in
   "netlib" )
-    get_and_unpack lapack http://www.netlib.org/lapack/lapack.tgz
+    get_and_unpack lapack http://www.netlib.org/lapack/lapack-${LAPACK_VER}.tgz
     # compile blas
-    cd ${S}/lapack/lapack-3.2.2 || err lapack "unexpected version"
+    cd ${S}/lapack/lapack-${LAPACK_VER} || err lapack "unexpected version"
     cp INSTALL/make.inc.gfortran make.inc
     sed -i s/_LINUX/-${MACHINE}/ make.inc
     sed -i "s/\(^OPTS.*=\).*/\1 -O2 -fPIC/" make.inc
@@ -268,6 +278,10 @@ case ${LAPACK} in
   "local" )
     info "Assuming local version of LAPACK"
     LAPACK_LIB=/usr/lib/liblapack.a
+  ;;
+  "skip" )
+    info "Skipping LAPACK, assumed installed at ${INSTALL_LIB_DIR}"
+    LAPACK_LIB=${INSTALL_LIB_DIR}/liblapack.a
   ;;
   *) err ${LAPACK} "bad lapack choice";;
 esac
@@ -288,8 +302,8 @@ cd ${S}/blacs/BLACS
 cp BMAKES/Bmake.MPI-LINUX Bmake.inc
 # fix up makefile
 # Note: have to escape paths to make sed happy
-sed -i "s/g77/${MPI_PATH//\//\\/}\/bin\/mpif77/" Bmake.inc
-sed -i "s/gcc/${MPI_PATH//\//\\/}\/bin\/mpicc/" Bmake.inc
+sed -i "s/\(F77  *=\) .*/\1 ${MPIF77//\//\\/}/" Bmake.inc
+sed -i "s/\(CC  *=\) .*/\1 ${MPICC//\//\\/}/" Bmake.inc
 sed -i "s/\(BTOPdir =\) .*/\1 ${PWD//\//\\/}/" Bmake.inc
 sed -i "s/\(PLAT =\) .*/\1 ${MACHINE}/" Bmake.inc
 sed -i "s/\(MPIdir =\) .*/\1 ${MPI_PATH//\//\\/}/" Bmake.inc
@@ -438,7 +452,7 @@ get_and_unpack scotch https://gforge.inria.fr/frs/download.php/27584/scotch_${SC
 cd ${S}/scotch/scotch_${SCOTCH_VER}_esmumps || err scotch "bad dir"
 cd src
 cp Make.inc/Makefile.inc.x86-64_pc_linux2 Makefile.inc
-sed -i "s/\(^CFLAGS.*= *-O3\)/\1 -fPIC/" Makefile.inc
+sed -i "s/\(^CFLAGS.*= *-O3\)/\1 -fPIC -I${MPI_INC//\//\\/}/" Makefile.inc
 sed -i "s/\(^CCP.*=\).*/\1 ${MPICC//\//\\/}/" Makefile.inc
 info "  build"
 ${MAKE} scotch &> /dev/null || err scotch "scotch build failed"
@@ -472,9 +486,9 @@ get_and_unpack mumps http://mumps.enseeiht.fr/MUMPS_${MUMPS_VER}.tar.gz
 cd ${S}/mumps/MUMPS_${MUMPS_VER}
 cp Make.inc/Makefile.INTEL.PAR ./Makefile.inc
 sed -i "s/\(^PLAT *=\) .*/\1 ${MACHINE}/" Makefile.inc
-sed -i "s/\(^CC *=\) .*/\1 mpicc/"  Makefile.inc
-sed -i "s/\(^FC *=\) .*/\1 mpif77/" Makefile.inc
-sed -i "s/\(^FL *=\) .*/\1 mpif77/" Makefile.inc
+sed -i "s/\(^CC *=\) .*/\1 ${MPICC//\//\\/}/"  Makefile.inc
+sed -i "s/\(^FC *=\) .*/\1 ${MPIF77//\//\\/}/" Makefile.inc
+sed -i "s/\(^FL *=\) .*/\1 ${MPIF77//\//\\/}/" Makefile.inc
 sed -i "s/\(^RANLIB *=\) .*/\1 ranlib/" Makefile.inc
 # libscalapack.a blacs_MPI-LINUX-0.a blacsF77init_MPI-LINUX-0.a
 sed -i "s/\(^SCALAP *=\) .*/\1 ${SCALAPACK_DLIB//\//\\/} ${BLACSF_DLIB//\//\\/}/" Makefile.inc
