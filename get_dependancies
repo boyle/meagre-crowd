@@ -2,9 +2,11 @@
 
 # select implimentations
 MPI="local" # mpich2 or mpich1 or openmpi or local or skip
-BLAS="netlib" # netlib or atlas or local
-LAPACK="netlib" # netlib or local
+BLAS="local" # netlib or atlas or local
+LAPACK="local" # netlib or local
 METIS="parmetis" # parmetis or metis
+
+PARALLEL_MAKE_DISABLED="yes" # force make to use a single core for compiling
 
 # select versions
 # toolkits
@@ -91,10 +93,15 @@ INSTALL_BIN_DIR=${INSTALL_BASE_DIR}/bin
 
 
 # determine parallel make capacity
-NCPU=$(grep "cpu cores" /proc/cpuinfo  |head -1 | cut -d ' ' -f 3)
-info "Detected ${NCPU} cores for compile."
-let NCPU_P1=${NCPU}+1
-MAKE="make -j${NCPU_P1}"
+if [[ -n ${PARALLEL_MAKE_DISABLED} ]]; then
+  info "Parallel make disabled"
+  MAKE="make"
+else
+  NCPU=$(grep "cpu cores" /proc/cpuinfo  |head -1 | cut -d ' ' -f 3)
+  info "Detected ${NCPU} cores for compile."
+  let NCPU_P1=${NCPU}+1
+  MAKE="make -j${NCPU_P1}"
+fi
 
 
 # TODO ?? does whatever version of gcc support openmp
