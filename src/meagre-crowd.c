@@ -250,6 +250,12 @@ Options:"
       id.rhs[i] = i;
 
     // verbose output
+    if(args.verbosity >= 2) { // an additional line showing MPI/OpenMP info
+      int c_mpi, c_omp;
+      ierr = MPI_Comm_size(MPI_COMM_WORLD,&c_mpi); assert(ierr == 0);
+      c_omp = 0; // omp_get_num_threads();
+      printf("MPI cores=%d, openMP threads=%d\n",c_mpi,c_omp);
+    }
     if(args.verbosity >= 1) {
       printf("Ax=b: A is %dx%d, nz=%d, b is %dx%d, nz=%d\n",
              Acoo->m, Acoo->n, Acoo->nnz,
@@ -439,7 +445,7 @@ Options:"
   // show timing info, if requested, to depth N
   perftimer_adjust_depth(timer,-1);
   perftimer_inc(timer,"finished",-1);
-  if(args.timing_enabled != 0)
+  if((args.timing_enabled != 0) && (myid == 0))
     perftimer_printf(timer,args.timing_enabled-1);
   perftimer_free(timer);
   return retval;

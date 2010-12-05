@@ -10,7 +10,6 @@ These are somewhat arranged in order of priority. Highest at the top.
  - Run valgrind. Find bad allocations and uninitialized variables.
  - Refactor, refactor, refactor.
  - Add ability to increase verbosity (-v, -vv, -vvv) for debugging.
-     - cpus, smps/cpu, load-time, ordering-time, solve-time
    - build so we can dump it into a spreadsheet.csv
  - Add ability to save to an output file (-o)
  - Change default to outputing on stdout, rather than default-filename.mm
