@@ -50,4 +50,3 @@ Fix memory leaks:
       ==6786==    by 0x401D4B: perftimer_restart (in /home/boyle/phd/SYSC5906/meagre-crowd/tests/a.out)
       ==6786==    by 0x400AF9: test_basic (in /home/boyle/phd/SYSC5906/meagre-crowd/tests/a.out)
       ==6786==    by 0x4011A1: main (in /home/boyle/phd/SYSC5906/meagre-crowd/tests/a.out)
-
