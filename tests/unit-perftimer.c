@@ -30,6 +30,7 @@ void test_basic() {
   perftimer_restart(NULL);
   perftimer_t* t = NULL;
   perftimer_restart(&t);
+  perftimer_free(t); // we now have a valid timer after restart, need to free it
   perftimer_adjust_depth(NULL,+10);
   perftimer_adjust_depth(NULL,-10);
   perftimer_adjust_depth(NULL,0);

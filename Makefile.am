@@ -78,7 +78,7 @@ MPIWRAP_DEBUG_ARGS=debug
 MPI_PLATFORM=amd64-linux
 VALGRIND_BIN=valgrind
 VALGRIND_ENV=MPIWRAP_DEBUG=${MPIWRAP_DEBUG_ARGS} LD_PRELOAD=${MPI_PREFIX}/lib/valgrind/libmpiwrap-${MPI_PLATFORM}.so
-VALGRIND_ARGS=--trace-children=yes --track-origins=yes
+VALGRIND_ARGS=--trace-children=yes --track-origins=yes --leak-check=full
 #--db-attach=yes 
 MPI_BIN=mpirun
 MPI_ARGS=-n 4 

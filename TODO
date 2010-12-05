@@ -16,7 +16,6 @@ These are somewhat arranged in order of priority. Highest at the top.
    - build so we can dump it into a spreadsheet.csv
  - Add ability to save to an output file (-o)
  - Change default to outputing on stdout, rather than default-filename.mm
- - Get this system compiling on sharcnet systems. (mako, hound, guppy)
  - Add other solvers - single system, SMP
    ?? which ones
  - Add ability to download from matrix libraries given input list [seperate script]
@@ -33,14 +32,3 @@ Fix memory leaks:
  - there is a leak in one of the shared libraries atexit() - probably
    the BeBop sparse matrix loader library, maybe rewrite/extract the bits
    I need and clean it up, it seems to be only partially functional from my tests
-
-# because of the broken shared libraries that are linked in by the makefile:
-> gcc unit-perftimer.c ../src/perftimer.c -I ../src/
-> valgrind --trace-children=yes --track-origins=yes --leak-check=full ./a.out
- - A leak in perftimer_restart()
-      ==6786== 32 bytes in 1 blocks are definitely lost in loss record 1 of 1
-      ==6786==    at 0x4C2602E: malloc (in /usr/lib64/valgrind/vgpreload_memcheck-amd64-linux.so)
-      ==6786==    by 0x4011C1: _perftimer_malloc_head (in /home/boyle/phd/SYSC5906/meagre-crowd/tests/a.out)
-      ==6786==    by 0x401D4B: perftimer_restart (in /home/boyle/phd/SYSC5906/meagre-crowd/tests/a.out)
-      ==6786==    by 0x400AF9: test_basic (in /home/boyle/phd/SYSC5906/meagre-crowd/tests/a.out)
-      ==6786==    by 0x4011A1: main (in /home/boyle/phd/SYSC5906/meagre-crowd/tests/a.out)
