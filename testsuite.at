@@ -110,7 +110,8 @@ AT_BANNER([functional tests])
 # test the file input
 AT_SETUP([-i <none>])
 AT_KEYWORDS([func])
-AT_CHECK(AT_PACKAGE_NAME -p,1,,[input error: No input specified (-i)
+AT_CHECK(AT_PACKAGE_NAME -i,64,,[meagre-crowd: option requires an argument -- 'i'
+Try `meagre-crowd --help' or `meagre-crowd --usage' for more information.
 ])
 AT_CLEANUP
 AT_SETUP([-i bad])
@@ -129,11 +130,19 @@ AT_CHECK(AT_PACKAGE_NAME -i broken.mm,1,,[*** read_matrix_market_sparse: Could n
 input error: Failed to load matrix
 ])
 AT_CLEANUP
+
 AT_SETUP([-i test.mm])
 AT_KEYWORDS([func])
 MC_DATA_FILE_TEST_MM
 AT_CHECK(AT_PACKAGE_NAME -i test.mm,0,ignore)
 AT_CLEANUP
+
+AT_SETUP([--input=test.mm])
+AT_KEYWORDS([func])
+MC_DATA_FILE_TEST_MM
+AT_CHECK(AT_PACKAGE_NAME --input=test.mm,0,ignore)
+AT_CLEANUP
+
 
 AT_SETUP([-i test.rb])
 AT_KEYWORDS([func])
@@ -155,3 +164,26 @@ MC_DATA_FILE_TEST_MAT
 AT_CHECK(AT_PACKAGE_NAME -i test.mat,1,,[input error: Sorry Matlab reader is broken
 ])
 AT_CLEANUP
+
+
+m4_define([MC_ARGS_STAGE2],[
+AT_SETUP([$1])
+AT_KEYWORDS([func])
+MC_DATA_FILE_TEST_MM
+AT_CHECK(AT_PACKAGE_NAME[ --input=test.mm $1],,ignore)
+AT_CLEANUP
+])
+
+MC_ARGS_STAGE2([--verbose])
+MC_ARGS_STAGE2([-v])
+MC_ARGS_STAGE2([-v -v])
+MC_ARGS_STAGE2([-vv])
+MC_ARGS_STAGE2([-vvv])
+MC_ARGS_STAGE2([-vvvv])
+
+MC_ARGS_STAGE2([--timing])
+MC_ARGS_STAGE2([-t])
+MC_ARGS_STAGE2([-t -t])
+MC_ARGS_STAGE2([-tt])
+MC_ARGS_STAGE2([-ttt])
+MC_ARGS_STAGE2([-tttt])

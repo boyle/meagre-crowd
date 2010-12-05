@@ -37,6 +37,7 @@ struct parse_args {
   char* input;
   char* output;
   unsigned int timing_enabled;
+  unsigned int verbosity;
 };
 
 error_t parse_opt(int key, char *arg, struct argp_state *state);
@@ -44,10 +45,12 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   struct parse_args *args = state->input;
   switch (key) {
     // help, etc
-    case 'p': args->timing_enabled++; break;
     case 'h': case'?': argp_state_help(state,state->out_stream,ARGP_HELP_STD_HELP); break; // help
     case -1: argp_state_help(state,state->out_stream,ARGP_HELP_SHORT_USAGE | ARGP_HELP_EXIT_OK); break; // usage
     case 'V': printf("%s\n",PACKAGE_STRING); exit(EXIT_SUCCESS); break; // version
+    // output controls
+    case 't': args->timing_enabled++; break;
+    case 'v': args->verbosity++; break;
 
     // file I/O
     case 'i':
@@ -123,9 +126,13 @@ Options:"
       {"version",'V', 0,0,"Show version information",-1},
       {"input", 'i',"FILE",0,"Input matrix FILE",10},
       // TODO these should just be all the other command line components (no arg required ala gcc)
-      {"perf",'p',0,0,"Show performance/timing information",11},
-      // TODO add note to man page: -p, -pp, -ppp, etc for more detail
-      // TODO option to change output format "--perf-csv"
+      {"verbose",'v',0,0,"Increase verbosity",11},
+      // TODO add note to man page: -v, -vv, -vvv, etc for more detail
+      // none: no output, -v: matrix info & any available stats (i.e. cond. number),
+      // -vv: more detail(?), -vvv: max debug
+      {"timing",'t',0,0,"Show/increase timing information",12},
+      // TODO add note to man page: -t, -tt, -ttt for more detail
+      // none: no output, -t: single-line (csv), -tt: chart, -ttt: greater detail
       {"output",'o',0,0,"Output file (default: stdout)",20},
       { 0 } // null termintated list
     };
@@ -235,20 +242,28 @@ Options:"
     id.irn = Acoo->II; // row    indices
     id.jcn = Acoo->JJ; // column indices
     id.a   = Acoo->val;
-    // show what we got
-    printf("Input A is\n");
-    int i;
-    for(i=0;i<id.nz;i++) {
-      printf("  (%i,%i)=%.2f\n",id.irn[i],id.jcn[i],id.a[i]);
-    }
     perftimer_inc(timer,"rhs",-1);
     // allocate an all-zeros right-hand side of A.m rows
     id.rhs = malloc(id.n * sizeof(double)); assert(id.rhs != NULL);
-    printf("Right-hand side is\n");
-    for(i=0;i<id.n;i++) {
+    int i;
+    for(i=0;i<id.n;i++)
       id.rhs[i] = i;
-      printf("  %.2f\n", id.rhs[i]);
+
+    // verbose output
+    if(args.verbosity >= 1) {
+      printf("Ax=b: A is %dx%d, nz=%d, b is %dx%d, nz=%d\n",
+             Acoo->m, Acoo->n, Acoo->nnz,
+	     Acoo->m, 1, Acoo->m);
     }
+    if(args.verbosity >= 2) {
+      for(i=0;i<id.nz;i++) {
+        printf("  A(%i,%i)=%.2f\n", id.irn[i], id.jcn[i], id.a[i]);
+      }
+      for(i=0;i<id.n;i++) {
+        printf("  b(%i,1)=%.2f\n", i, id.rhs[i]);
+      }
+    }
+
     perftimer_adjust_depth(timer,-1);
     //destroy_sparse_matrix (A); // TODO can't release it unless we're copying it...
   }
@@ -258,7 +273,7 @@ Options:"
   perftimer_inc(timer,"MUMPS config",-1);
   #define ICNTL(I) icntl[(I)-1] // macro s.t. indices match documentation
   // No outputs
-  if(1) { // no debug
+  if(args.verbosity < 3) { // no debug
     id.ICNTL(1)=-1; id.ICNTL(2)=-1; id.ICNTL(3)=-1; id.ICNTL(4)=0;
   }
   else { // debug
@@ -387,7 +402,8 @@ Options:"
   perftimer_adjust_depth(timer,-1);
   perftimer_inc(timer,"output",-1);
   if (myid == 0) {
-    printf("Solution is\n");
+// TODO this code needs reworking to make it flexible: compare answers with-in some percentage?
+/*    printf("Solution is\n");
     int i;
     for(i=0;i<id.n;i++) {
       printf("  %.2f\n", id.rhs[i]);
@@ -410,7 +426,7 @@ Options:"
     else {
       retval = 1; printf("FAIL\n");
     }
-
+*/
     // clean up
     free(id.rhs);
   }
