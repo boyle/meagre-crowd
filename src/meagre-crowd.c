@@ -43,10 +43,22 @@ error_t parse_opt(int key, char *arg, struct argp_state *state);
 error_t parse_opt(int key, char *arg, struct argp_state *state) {
   struct parse_args *args = state->input;
   switch (key) {
+    // help, etc
     case 'p': args->timing_enabled++; break;
     case 'h': case'?': argp_state_help(state,state->out_stream,ARGP_HELP_STD_HELP); break; // help
     case -1: argp_state_help(state,state->out_stream,ARGP_HELP_SHORT_USAGE | ARGP_HELP_EXIT_OK); break; // usage
-    case 'V': printf("%s\n",PACKAGE_STRING); exit(0); break; // version
+    case 'V': printf("%s\n",PACKAGE_STRING); exit(EXIT_SUCCESS); break; // version
+
+    // file I/O
+    case 'i':
+      args->input = arg;
+      FILE* f = fopen(args->input, "r");
+      if(f == NULL) {
+	perror("input error");
+	exit(EXIT_FAILURE);
+      }
+      fclose(f);
+      break;
 
     default:
       return ARGP_ERR_UNKNOWN;
@@ -109,7 +121,7 @@ Options:"
       {0,      '?',0,OPTION_ALIAS},
       {"usage",-1, 0,0,"Show usage information",-1},
       {"version",'V', 0,0,"Show version information",-1},
-      {"input", 'i',0,0,"Input matrix file",10},
+      {"input", 'i',"FILE",0,"Input matrix FILE",10},
       // TODO these should just be all the other command line components (no arg required ala gcc)
       {"perf",'p',0,0,"Show performance/timing information",11},
       // TODO add note to man page: -p, -pp, -ppp, etc for more detail
@@ -151,6 +163,11 @@ Options:"
 
   // Define the problem on the host
   if (myid == 0) {
+    if(args.input == NULL) {
+      fprintf(stderr,"input error: No input specified (-i)\n");
+      perftimer_free(timer);
+      exit(EXIT_FAILURE);
+    }
     perftimer_inc(timer,"sparse file handling",-1);
     bebop_default_initialize (argc, argv, &ierr); assert (ierr == 0);
 
@@ -160,7 +177,12 @@ Options:"
 
     struct sparse_matrix_t* A;
     perftimer_inc(timer,"load",-1);
-    A = load_sparse_matrix (MATRIX_MARKET, "test.mm"); assert (A != NULL);
+    A = load_sparse_matrix (MATRIX_MARKET, args.input);
+    if(A == NULL) {
+      fprintf(stderr,"input error: Failed to load matrix\n");
+      perftimer_free(timer);
+      exit(EXIT_FAILURE);
+    }
     ierr = sparse_matrix_convert(A, COO); assert(ierr == 0);
 
     // check somethings are as expected

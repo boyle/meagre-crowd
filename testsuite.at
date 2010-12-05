@@ -99,3 +99,34 @@ AT_CLEANUP
 
 AT_BANNER([unit tests])
 MC_UNIT_TEST([perftimer])
+
+
+
+AT_BANNER([functional tests])
+# test the file input
+AT_SETUP([-i <none>])
+AT_KEYWORDS([func])
+AT_CHECK(AT_PACKAGE_NAME -p,1,,[input error: No input specified (-i)
+])
+AT_CLEANUP
+AT_SETUP([-i bad])
+AT_KEYWORDS([func])
+AT_CHECK(AT_PACKAGE_NAME -i bad,1,,[input error: No such file or directory
+])
+AT_CLEANUP
+AT_SETUP([-i broken.mm])
+AT_DATA([broken.mm],[ Jibberish file
+not even the right format
+])
+AT_KEYWORDS([func])
+# TODO clean up the garbage left by read_matrix_market_sparse when it fails (turn it off somehow?)
+AT_CHECK(AT_PACKAGE_NAME -i broken.mm,1,,[*** read_matrix_market_sparse: Could not process MatrixMarket banner ***
+*** load_sparse_matrix: Failed to read MatrixMarket format sparse matrix from file "broken.mm", error code 14 ***
+input error: Failed to load matrix
+])
+AT_CLEANUP
+AT_SETUP([-i test.mm])
+AT_KEYWORDS([func])
+AT_DATA([test.mm],m4_include(tests/test.mm))
+AT_CHECK(AT_PACKAGE_NAME -i test.mm,0,ignore)
+AT_CLEANUP

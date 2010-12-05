@@ -11,7 +11,6 @@ These are somewhat arranged in order of priority. Highest at the top.
  - Refactor, refactor, refactor.
  - Get arbitrary (single) file loading working. (command line args)
    - recognize file type from extension
-   - fail gracefully when a file is MIA (error)
  - Add ability to increase verbosity (-v, -vv, -vvv) for debugging.
    - at minimum verbosity, output nothing but timing info if enabled, on a single line per matrix
      (i.e. if -t, verbosity--, for each -v, verbosity++)
@@ -22,11 +21,7 @@ These are somewhat arranged in order of priority. Highest at the top.
  - Get this system compiling on sharcnet systems. (mako, hound, guppy)
  - Add other solvers - single system, SMP
    ?? which ones
- - Add ability to load multiple files and loop through them?
-   - command line list
-   - list as input file (-f)
-   ?? what to do about output in this case
- - Add ability to download from matrix libraries given input list
+ - Add ability to download from matrix libraries given input list [seperate script]
    - University of Florida sparse matrix collection
    - Harwell-Boeing sparse matrix collection
  ?? are there any other stats we'd like to collect?
