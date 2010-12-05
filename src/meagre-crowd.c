@@ -177,7 +177,40 @@ Options:"
 
     struct sparse_matrix_t* A;
     perftimer_inc(timer,"load",-1);
-    A = load_sparse_matrix (MATRIX_MARKET, args.input);
+
+    // identify the file format from the extension
+    enum sparse_matrix_file_format_t ext;
+    {
+      size_t s = strnlen(args.input,100);
+      if(s > 2) {
+        char *e = args.input + s - 3;
+        // strcmp returned match
+	if(strcmp(e,".mm") == 0) {
+	  ext = MATRIX_MARKET;
+	}
+	else if(strcmp(e,".hb") == 0) {
+	  ext = HARWELL_BOEING;
+	  fprintf(stderr,"input error: Sorry Harwell-Boeing reader is broken\n");
+	  exit(EXIT_FAILURE);
+	}
+	else if(strcmp(e,".rb") == 0) {
+	  ext = HARWELL_BOEING;
+	  fprintf(stderr,"input error: Sorry Rutherford-Boeing reader is broken\n");
+	  exit(EXIT_FAILURE);
+	}
+	else if(strcmp(e-1,".mat") == 0) {
+	  ext = MATLAB;
+	  fprintf(stderr,"input error: Sorry Matlab reader is broken\n");
+	  exit(EXIT_FAILURE);
+	} // TODO test if the matlab reader is actually busted
+	else{
+	  fprintf(stderr,"input error: Unrecognized file extension\n");
+	  perftimer_free(timer);
+	  exit(EXIT_FAILURE);
+	}
+      }
+    }
+    A = load_sparse_matrix (ext, args.input);
     if(A == NULL) {
       fprintf(stderr,"input error: Failed to load matrix\n");
       perftimer_free(timer);

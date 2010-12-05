@@ -4,6 +4,10 @@ AT_COLOR_TESTS
 
 AT_TESTED(AT_PACKAGE_NAME)
 
+m4_define(MC_DATA_FILE_TEST_MM,[AT_DATA([test.mm],]m4_include(tests/test.mm)[)])
+m4_define(MC_DATA_FILE_TEST_RB,[AT_DATA([test.rb],]m4_include(tests/test.rb)[)])
+m4_define(MC_DATA_FILE_TEST_HB,[AT_DATA([test.hb],]m4_include(tests/test.hb)[)])
+m4_define(MC_DATA_FILE_TEST_MAT,[AT_DATA([test.mat],]m4_include(tests/test.mat)[)])
 
 AT_BANNER([hello-world])
 AT_SETUP([mpi default: 1 node])
@@ -43,9 +47,9 @@ AT_CLEANUP
 
 AT_SETUP([matrix-market files])
 AT_KEYWORDS([file hello])
-AT_DATA([test.rb],m4_include(tests/test.rb))
-AT_DATA([test.hb],m4_include(tests/test.hb))
-AT_DATA([test.mm],m4_include(tests/test.mm))
+MC_DATA_FILE_TEST_RB
+MC_DATA_FILE_TEST_HB
+MC_DATA_FILE_TEST_MM
 AT_CHECK([file],0,[harwell-boeing
 rutherford-boeing
 matrix market
@@ -55,7 +59,7 @@ AT_CLEANUP
 
 AT_SETUP([file-based mumps])
 AT_KEYWORDS([mumps-file hello])
-AT_DATA([test.mm],m4_include(tests/test.mm))
+MC_DATA_FILE_TEST_MM
 AT_CHECK(mpirun -n 4 mumps-file,0,ignore)
 AT_CLEANUP
 
@@ -127,6 +131,27 @@ input error: Failed to load matrix
 AT_CLEANUP
 AT_SETUP([-i test.mm])
 AT_KEYWORDS([func])
-AT_DATA([test.mm],m4_include(tests/test.mm))
+MC_DATA_FILE_TEST_MM
 AT_CHECK(AT_PACKAGE_NAME -i test.mm,0,ignore)
+AT_CLEANUP
+
+AT_SETUP([-i test.rb])
+AT_KEYWORDS([func])
+MC_DATA_FILE_TEST_RB
+AT_CHECK(AT_PACKAGE_NAME -i test.rb,1,,[input error: Sorry Rutherford-Boeing reader is broken
+])
+AT_CLEANUP
+
+AT_SETUP([-i test.hb])
+AT_KEYWORDS([func])
+MC_DATA_FILE_TEST_HB
+AT_CHECK(AT_PACKAGE_NAME -i test.hb,1,,[input error: Sorry Harwell-Boeing reader is broken
+])
+AT_CLEANUP
+
+AT_SETUP([-i test.mat])
+AT_KEYWORDS([func])
+MC_DATA_FILE_TEST_MAT
+AT_CHECK(AT_PACKAGE_NAME -i test.mat,1,,[input error: Sorry Matlab reader is broken
+])
 AT_CLEANUP

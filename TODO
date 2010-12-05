@@ -9,8 +9,6 @@ These are somewhat arranged in order of priority. Highest at the top.
 
  - Run valgrind. Find bad allocations and uninitialized variables.
  - Refactor, refactor, refactor.
- - Get arbitrary (single) file loading working. (command line args)
-   - recognize file type from extension
  - Add ability to increase verbosity (-v, -vv, -vvv) for debugging.
    - at minimum verbosity, output nothing but timing info if enabled, on a single line per matrix
      (i.e. if -t, verbosity--, for each -v, verbosity++)
@@ -29,6 +27,7 @@ These are somewhat arranged in order of priority. Highest at the top.
    ?? others
  - Make some default lists of common matrices used in papers.
  - Look at KCachegrind, Callgrind for profiling.
+ - Generate a (random?) (sparse?) right-hand-side if one is not provided.
 
 Fix memory leaks:
  - there is a leak in one of the shared libraries atexit() - probably
