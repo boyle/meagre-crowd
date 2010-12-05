@@ -76,7 +76,7 @@ AC_TYPE_SIZE_T
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_MALLOC
 AC_FUNC_STRNLEN
-AC_CHECK_FUNCS([gettimeofday])
+AC_CHECK_FUNCS([gettimeofday strndup])
 
 # Setup the test suite
 AC_CONFIG_TESTDIR([.],[.:tests])

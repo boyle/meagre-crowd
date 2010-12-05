@@ -8,6 +8,8 @@
 #include <assert.h>
 
 #include <argp.h>
+#include <libgen.h>
+#include <string.h>
 
 #include <mpi.h>
 #include <dmumps_c.h>
@@ -117,6 +119,13 @@ Options:"
     };
     // argp_option*, argp_parser, extra-usage line options, pre-help, // optional: argp_child, *help_filter, argp_domain
     const struct argp p = { opt, parse_opt, 0, doc};
+    if(argc == 1) { // there's no arguments, exit!
+      char *prog = strndup(argv[0],100);
+      argp_help(&p, stderr, ARGP_HELP_SHORT_USAGE, basename(prog));
+      free(prog);
+      perftimer_free(timer);
+      return EXIT_FAILURE; // so, exit for reals
+    }
     // error_t argp_parse (argp*, argc, **argv, unsigned flags, int *arg_index, void *input)
     argp_parse(&p, argc, argv, ARGP_NO_HELP, 0, &args);
   }
@@ -127,7 +136,7 @@ Options:"
   perftimer_inc(timer,"MPI comms",-1);
   ierr = MPI_Comm_rank(MPI_COMM_WORLD, &myid); assert(ierr == 0);
 
-  /* Initialize a MUMPS instance. Use MPI_COMM_WORLD. */
+  // Initialize a MUMPS instance. Use MPI_COMM_WORLD.
   perftimer_inc(timer,"MUMPS",-1);
   DMUMPS_STRUC_C id;
   id.job=JOB_INIT;
@@ -136,11 +145,11 @@ Options:"
   // Note: if set to symmetric and matrix ISN'T, the redundant entries will be *summed*
   // TODO could convert the C communicator instead of using the fortran one (see MUMPS doc)
   id.comm_fortran=USE_COMM_WORLD;
-  #define INFOG(I) infog[(I)-1] /* macro s.t. indices match documentation */
+  #define INFOG(I) infog[(I)-1] // macro s.t. indices match documentation
   dmumps_c(&id);  assert(id.INFOG(1) == 0); // check it worked
   // clears the rest of the unused values
 
-  /* Define the problem on the host */
+  // Define the problem on the host
   if (myid == 0) {
     perftimer_inc(timer,"sparse file handling",-1);
     bebop_default_initialize (argc, argv, &ierr); assert (ierr == 0);
@@ -192,8 +201,8 @@ Options:"
   perftimer_inc(timer,"solve",-1);
   perftimer_adjust_depth(timer,+1);
   perftimer_inc(timer,"MUMPS config",-1);
-  #define ICNTL(I) icntl[(I)-1] /* macro s.t. indices match documentation */
-  /* No outputs */
+  #define ICNTL(I) icntl[(I)-1] // macro s.t. indices match documentation
+  // No outputs
   if(1) { // no debug
     id.ICNTL(1)=-1; id.ICNTL(2)=-1; id.ICNTL(3)=-1; id.ICNTL(4)=0;
   }
@@ -203,7 +212,7 @@ Options:"
     id.ICNTL(3)=6; // global output stream
     id.ICNTL(4)=4; // debug level 0:none, 1: err, 2: warn/stats 3:diagnostics, 4:parameters
   }
-  /* Call the MUMPS package. */
+  // Call the MUMPS package.
   perftimer_inc(timer,"MUMPS analyze",-1);
   // ICNTL(22) != 0: out-of-core
   //   requires OOC_TMPDIR, OOC_PREFIX -> tmp location/prefix
@@ -316,7 +325,7 @@ Options:"
   assert(id.INFOG(1) == 0); // check it worked
 
   perftimer_inc(timer,"MUMPS clean up",-1);
-  id.job=JOB_END; dmumps_c(&id); /* Terminate instance */
+  id.job=JOB_END; dmumps_c(&id); // Terminate instance
   assert(id.INFOG(1) == 0); // check it worked
 
 
@@ -327,14 +336,14 @@ Options:"
     int i;
     for(i=0;i<id.n;i++) {
       printf("  %.2f\n", id.rhs[i]);
-      /* Octave says the answer should be
-       * ans =
-       *	   1.000000
-       *	   0.434211
-       *	   0.250000
-       *	  -0.092105
-       *	   0.250000
-       */
+      // Octave says the answer should be
+      // ans =
+      //	   1.000000
+      //	   0.434211
+      //	   0.250000
+      //	  -0.092105
+      //	   0.250000
+      //
     }
     // test result
     // TODO make this a command-line option with file to compare
@@ -361,5 +370,6 @@ Options:"
   perftimer_inc(timer,"finished",-1);
   if(args.timing_enabled != 0)
     perftimer_printf(timer,args.timing_enabled-1);
+  perftimer_free(timer);
   return retval;
 }

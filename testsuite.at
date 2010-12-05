@@ -2,7 +2,7 @@ AT_INIT()
 AT_COPYRIGHT([Copyright (C) 2010, Alistair Boyle])
 AT_COLOR_TESTS
 
-
+AT_TESTED(AT_PACKAGE_NAME)
 
 
 AT_BANNER([hello-world])
@@ -127,6 +127,10 @@ AT_CLEANUP
 ])
 
 
+AT_SETUP([empty command-line])
+AT_KEYWORDS([help])
+AT_CHECK(AT_PACKAGE_NAME,1,,ignore)
+AT_CLEANUP
 MC_CHECK_HELP_NOCRASH([--help])
 MC_CHECK_HELP_NOCRASH([-h])
 MC_CHECK_HELP_NOCRASH([-?])
