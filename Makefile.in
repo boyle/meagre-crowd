@@ -219,12 +219,15 @@ meagre_crowd_SOURCES = src/meagre-crowd.c src/perftimer.c
 # header files that need to be distributed but not installed
 noinst_HEADERS = src/perftimer.h
 
+# some random files we want to distribute with the package tar
+EXTRA_DIST = LICENSE get_dependencies testsuite.at \
+	$(srcdir)/package.m4 $(TESTSUITE) atlocal.in
+
 # the tests
 BUILT_TESTS = tests/file tests/helloworld-mpi tests/helloworld-mumps tests/mumps-file tests/unit-perftimer
 tests_unit_perftimer_SOURCES = tests/unit-perftimer.c src/perftimer.c
 tests_unit_perftimer_CPPFLAGS = -I$(srcdir)/src
 AM_CFLAGS = -Werror #-Wextra
-EXTRA_DIST = testsuite.at $(srcdir)/package.m4 $(TESTSUITE) atlocal.in
 TESTSUITE = $(srcdir)/testsuite
 AUTOM4TE = $(SHELL) $(abs_srcdir)/build-aux/missing --run autom4te
 AUTOTEST = $(AUTOM4TE) --language=autotest
