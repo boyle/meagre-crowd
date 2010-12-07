@@ -445,8 +445,16 @@ Options:"
   // show timing info, if requested, to depth N
   perftimer_adjust_depth(timer,-1);
   perftimer_inc(timer,"finished",-1);
-  if((args.timing_enabled != 0) && (myid == 0))
-    perftimer_printf(timer,args.timing_enabled-1);
+  if(myid == 0) {
+    if(args.timing_enabled == 1) {
+      printf("#"); // prepend # to csv header so its easy to grep away
+      perftimer_printf_csv_header(timer,2);
+      perftimer_printf_csv_body(timer,2);
+    }
+    else if(args.timing_enabled != 0) {
+      perftimer_printf(timer,args.timing_enabled-2);
+    }
+  }
   perftimer_free(timer);
   return retval;
 }

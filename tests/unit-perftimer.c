@@ -21,8 +21,12 @@ void test_basic() {
   perftimer_free(NULL);
   char s [10];
   assert(perftimer_snprintf(NULL,s,10,-1) == 0);
+  assert(perftimer_snprintf_csv_header(NULL,s,10,-1) == 0);
+  assert(perftimer_snprintf_csv_body(NULL,s,10,-1) == 0);
   assert(perftimer_printlen(NULL,-1) == 0);
   perftimer_printf(NULL,-1);
+  perftimer_printf_csv_header(NULL,-1);
+  perftimer_printf_csv_body(NULL,-1);
   assert(perftimer_wall(NULL) == 0.0);
   assert(perftimer_wall_av(NULL) == 0.0);
   assert(perftimer_delta(NULL) == 0.0);
@@ -42,10 +46,15 @@ void test_basic() {
   assert(perftimer_inc(T,"start",10) == 0);
   assert(perftimer_rounds(T) == 0);
   perftimer_printf(T,0);
+  printf("csv:\n");
+  perftimer_printf_csv_header(T,0);
+  perftimer_printf_csv_body(T,0);
   assert(perftimer_wall(T) == 0.0);
   assert(perftimer_delta(T) == 0.0);
   
   perftimer_printf(T,0);
+  perftimer_printf_csv_header(T,0);
+  perftimer_printf_csv_body(T,0);
 
   do_nothing(10000);
 
@@ -56,6 +65,8 @@ void test_basic() {
   assert(perftimer_delta(T) >= 0.0);
 
   perftimer_printf(T,0);
+  perftimer_printf_csv_header(T,0);
+  perftimer_printf_csv_body(T,0);
   
   do_nothing(200000);
   
@@ -72,6 +83,8 @@ void test_basic() {
   for(i=0;i<10;i++) {
     printf("depth %d\n",i);
     perftimer_printf(T,i);
+    perftimer_printf_csv_header(T,i);
+    perftimer_printf_csv_body(T,i);
   }
 
   // try a restart
@@ -84,6 +97,8 @@ void test_basic() {
   assert(perftimer_rounds(T) == 2);
   assert(perftimer_inc(T,"ss3",10) == 0);
   perftimer_printf(T,0);
+  perftimer_printf_csv_header(T,0);
+  perftimer_printf_csv_body(T,0);
 
   // try wall_av(): average wall time
   assert(perftimer_rounds(T) == 2);

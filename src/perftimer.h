@@ -46,8 +46,10 @@ int perftimer_inc(perftimer_t* pT, char const*const s, const size_t n);
 // s: the output string (must be preallocated)
 // n: the string length limit
 // d: max depth, 0:unlimited
-// out: the output string length, <0 means error (TODO what sorts of errors?)
+// out: the output string length
 int perftimer_snprintf(perftimer_t const * const pT, char* s, const size_t n, const unsigned int d);
+int perftimer_snprintf_csv_header(perftimer_t const * const pT, char* s, const size_t n, const unsigned int d);
+int perftimer_snprintf_csv_body(perftimer_t const * const pT, char* s, const size_t n, const unsigned int d);
 
 // perftimer_printlen()
 // determine the length of the string that would be generated without 
@@ -62,6 +64,8 @@ size_t perftimer_printlen(perftimer_t const * const pT, const unsigned int d);
 // d: max depth, 0:unlimited
 // out: printed to stdout (printf)
 void perftimer_printf(perftimer_t const * const pT, const unsigned int d);
+void perftimer_printf_csv_header(perftimer_t const * const pT, const unsigned int d);
+void perftimer_printf_csv_body(perftimer_t const * const pT, const unsigned int d);
 
 // perftimer_wall()
 // total time accounted for in the perftimer structure
