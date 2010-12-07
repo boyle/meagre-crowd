@@ -21,7 +21,7 @@ MC=./meagre-crowd
 MC_ARGS="-tvr 1" # one iteration
 
 SUB=sqsub
-SUB_ARGS="-n $N -r 15m -q mpi"
+SUB_ARGS="-n $N -r 15m --memperproc=1G -q mpi"
 
 INPUT_DIR=matrices
 MATRICES="Bai/dwa512 Bai/dw4096 Bai/dw8192" # ATandT/onetone2 Freescale/transient Freescale/memchip Freescale/Freescale1 Freescale/circuit5M"
