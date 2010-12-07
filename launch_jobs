@@ -1,7 +1,7 @@
 #! /bin/sh
 
 function usage() {
-  echo "Usage: $0 <#-cores> [base-dir]"
+  echo "Usage: $0 <#-cores> [run-dir]"
   exit 10
 }
 
@@ -17,11 +17,11 @@ BASE=$2
 [[ "$N" -lt 1 ]] && echo "error: #-cores must be >= 1" && usage
 [[ ! -d $BASE ]] && echo "error: base-dir '$BASE' does not exist" && usage
 
-MC=./meagre-crowd
+MC=meagre-crowd
 MC_ARGS="-tvr 1" # one iteration
 
 SUB=sqsub
-SUB_ARGS="-n $N -r 15m --memperproc=1G -q mpi"
+SUB_ARGS="-n $N -r 15m --mpp=1G -q mpi"
 
 INPUT_DIR=matrices
 MATRICES="Bai/dwa512 Bai/dw4096 Bai/dw8192" # ATandT/onetone2 Freescale/transient Freescale/memchip Freescale/Freescale1 Freescale/circuit5M"
@@ -38,8 +38,8 @@ for i in ${MATRICES}; do
   D=$(dirname $i)
   echo "  ${INPUT_DIR}/$i.mm"
   if [[ ! -f $i.mm ]]; then
-    wget http://www.cise.ufl.edu/research/sparse/MM/$i.tar.gz
-    tar zxvf $M.tar.gz
+    wget http://www.cise.ufl.edu/research/sparse/MM/$i.tar.gz > /dev/null
+    tar zxvf $M.tar.gz > /dev/null
     [[ ! -d "$D" ]] && mkdir $D
     mv $M/$M.mtx $D/$M.mm # Note: we like .mm, Univ. Florida Sparse Matrix collection says .mtx
     rm -rf $M.tar.gz $M
@@ -54,10 +54,14 @@ for i in ${MATRICES}; do
   D=$(dirname $i)
   mkdir -p ${OUTPUT_DIR}/$D
   echo "  ${INPUT_DIR}/$i.mm"
-  ${SUB} \
-    ${SUB_ARGS} \
-    -o ${OUTPUT_DIR}/${i/.mm/.log} \
-    -e ${OUTPUT_DIR}/${i/.mm/.err} \
+  ${SUB} ${SUB_ARGS} \
+    -o ${OUTPUT_DIR}/$i.log \
+    -e ${OUTPUT_DIR}/$i.err \
     -j "MC($N,$i)" \
-    ${MC} -i $i ${MC_ARGS}
+    ${MC} -i ${BASE}/${INPUT_DIR}/$i.mm ${MC_ARGS} \
+      > /dev/null
 done
+
+echo "Saving list"
+echo "${MATRICES}" > ${OUTPUT_DIR}/matrices
+echo "$N" > ${OUTPUT_DIR}/ncpus
