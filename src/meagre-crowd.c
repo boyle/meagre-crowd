@@ -441,6 +441,7 @@ void run_mumps(DMUMPS_STRUC_C id, perftimer_t* timer, struct parse_args args) {
   #define JOB_ANALYSE 1
   id.job=JOB_ANALYSE;
   dmumps_c(&id);
+  if(id.INFOG(1) == 0) printf("analysis failed");
   assert(id.INFOG(1) == 0); // check it worked
 
   // available info:
@@ -491,6 +492,7 @@ void run_mumps(DMUMPS_STRUC_C id, perftimer_t* timer, struct parse_args args) {
   id.job=JOB_SOLVE;
   dmumps_c(&id);
   assert(id.INFOG(1) == 0); // check it worked
+  perftimer_inc(timer,"done",-1);
 }
 
 
