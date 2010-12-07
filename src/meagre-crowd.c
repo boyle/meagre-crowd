@@ -3,6 +3,8 @@
 * We solve the system A x = RHS with
 * A = diag(1 2) and RHS = [1 4]ˆT
 * Solution is [1 2]ˆT */
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -13,8 +15,6 @@
 
 #include <mpi.h>
 #include <dmumps_c.h>
-
-#include "config.h"
 
 #include <bebop/util/init.h>
 #include <bebop/util/enumerations.h>
