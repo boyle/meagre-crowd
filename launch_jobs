@@ -1,0 +1,63 @@
+#! /bin/sh
+
+function usage() {
+  echo "Usage: $0 <#-cores> [base-dir]"
+  exit 10
+}
+
+( [[ $# -lt 1 ]] || [[ $# -gt 2 ]] ) && usage
+
+# number of cores
+N=$1
+# base working directory
+BASE=$2
+[[ $# -lt 2 ]] && BASE=${PWD}
+
+# arg checks
+[[ "$N" -lt 1 ]] && echo "error: #-cores must be >= 1" && usage
+[[ ! -d $BASE ]] && echo "error: base-dir '$BASE' does not exist" && usage
+
+MC=./meagre-crowd
+MC_ARGS="-tvr 1" # one iteration
+
+SUB=sqsub
+SUB_ARGS="-n $N -r 15m -q mpi"
+
+INPUT_DIR=matrices
+MATRICES="Bai/dwa512 Bai/dw4096 Bai/dw8192" # ATandT/onetone2 Freescale/transient Freescale/memchip Freescale/Freescale1 Freescale/circuit5M"
+
+$SUB -h &> /dev/null
+[[ $? -eq 127 ]] && echo "Missing $SUB!" && exit 1
+
+echo "Checking all matrices are present:"
+cd ${BASE}
+mkdir -p ${INPUT_DIR}
+cd ${INPUT_DIR}
+for i in ${MATRICES}; do
+  M=$(basename $i)
+  D=$(dirname $i)
+  echo "  ${INPUT_DIR}/$i.mm"
+  if [[ ! -f $i.mm ]]; then
+    wget http://www.cise.ufl.edu/research/sparse/MM/$i.tar.gz
+    tar zxvf $M.tar.gz
+    [[ ! -d "$D" ]] && mkdir $D
+    mv $M/$M.mtx $D/$M.mm # Note: we like .mm, Univ. Florida Sparse Matrix collection says .mtx
+    rm -rf $M.tar.gz $M
+  fi
+done
+cd - 
+
+echo "Launching jobs with $N cores per job:"
+OUTPUT_DIR=$(mktemp -d ${BASE}/results.XXXX)
+for i in ${MATRICES}; do
+  M=$(basename $i)
+  D=$(dirname $i)
+  mkdir -p ${OUTPUT_DIR}/$D
+  echo "  ${INPUT_DIR}/$i.mm"
+  ${SUB} \
+    ${SUB_ARGS} \
+    -o ${OUTPUT_DIR}/${i/.mm/.log} \
+    -e ${OUTPUT_DIR}/${i/.mm/.err} \
+    -j "MC($N,$i)" \
+    ${MC} -i $i ${MC_ARGS}
+done
