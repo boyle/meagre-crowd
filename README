@@ -28,7 +28,7 @@ Running the Tests
 -----------------
 To execute the test suite run
 
-make check 
+make check
 
 Preparing for Distribution
 --------------------------
@@ -40,5 +40,22 @@ make distcheck DISTCHECK_CONFIGURE_FLAGS='LDFLAGS="-L/home/boyle/proj/meagre-cro
 
 Running the Program
 -------------------
+
+You can get test matrices from the University of Florida Sparse
+Matrix collection. The first 292 matrices of the Univesity of
+Florida collection are the Harwell-Boeing Sparse Matrix
+collection, so you don't need to download both.
+
+  http://www.cise.ufl.edu/research/sparse/matrices
+
+  wget http://www.cise.ufl.edu/research/sparse/mat/ChangeLog
+
+
+To load a matrix to solve, show some info on the matrix and time the solving of it:
+
+  mpirun -n N ./meagre-crowd -i dir/abc.mm -v -t
+
+  where N is the number of processors available.
+
 
 TODO instructions on how to make the program do stuff

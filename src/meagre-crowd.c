@@ -38,6 +38,7 @@ struct parse_args {
   char* output;
   unsigned int timing_enabled;
   unsigned int verbosity;
+  unsigned int rep;
 };
 
 error_t parse_opt(int key, char *arg, struct argp_state *state);
@@ -52,20 +53,26 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     case 't': args->timing_enabled++; break;
     case 'v': args->verbosity++; break;
 
+    case 'r': {
+        int i = atoi(arg);
+        i = (i < 0)?0:i; // > 0
+        args->rep = i;
+      }
+      break;
     // file I/O
     case 'i':
       args->input = arg;
       FILE* f = fopen(args->input, "r");
       if(f == NULL) {
-	perror("input error");
-	exit(EXIT_FAILURE);
+        perror("input error");
+        exit(EXIT_FAILURE);
       }
       fclose(f);
       break;
 
     default:
       return ARGP_ERR_UNKNOWN;
-    }
+  }
   return 0;
 }
 
@@ -84,17 +91,12 @@ int results_match(const double * const expected, const double const * result, co
   return 1;
 }
 
+void run_mumps(DMUMPS_STRUC_C id, perftimer_t* timer, struct parse_args args);
 
 #define USE_COMM_WORLD -987654
 int main(int argc, char ** argv) {
   int myid, ierr;
   int retval = 0;
-
-  perftimer_t* timer = perftimer_malloc();
-  perftimer_inc(timer,"initialization",-1);
-  perftimer_adjust_depth(timer,+1);
-
-  perftimer_inc(timer,"command-line parsing",-1);
   struct parse_args args = {0};
 
   // parse command line
@@ -131,9 +133,10 @@ Options:"
       // none: no output, -v: matrix info & any available stats (i.e. cond. number),
       // -vv: more detail(?), -vvv: max debug
       {"timing",'t',0,0,"Show/increase timing information",12},
+      {"repeat",'r',"N",0,"Repeat calculations N times",15},
       // TODO add note to man page: -t, -tt, -ttt for more detail
       // none: no output, -t: single-line (csv), -tt: chart, -ttt: greater detail
-      {"output",'o',0,0,"Output file (default: stdout)",20},
+      //{"output",'o',0,0,"Output file (default: stdout)",20},
       { 0 } // null termintated list
     };
     // argp_option*, argp_parser, extra-usage line options, pre-help, // optional: argp_child, *help_filter, argp_domain
@@ -142,7 +145,6 @@ Options:"
       char *prog = strndup(argv[0],100);
       argp_help(&p, stderr, ARGP_HELP_SHORT_USAGE, basename(prog));
       free(prog);
-      perftimer_free(timer);
       return EXIT_FAILURE; // so, exit for reals
     }
     // error_t argp_parse (argp*, argc, **argv, unsigned flags, int *arg_index, void *input)
@@ -150,13 +152,18 @@ Options:"
   }
 
   // initialize MPI
-  perftimer_inc(timer,"MPI init",-1);
+  perftimer_t* timer = perftimer_malloc();
+  if(args.rep == 0) {
+    perftimer_inc(timer,"initialization",-1);
+    perftimer_adjust_depth(timer,+1);
+    perftimer_inc(timer,"MPI init",-1);
+  }
   ierr = MPI_Init(&argc, &argv);               assert(ierr == 0);
-  perftimer_inc(timer,"MPI comms",-1);
   ierr = MPI_Comm_rank(MPI_COMM_WORLD, &myid); assert(ierr == 0);
 
   // Initialize a MUMPS instance. Use MPI_COMM_WORLD.
-  perftimer_inc(timer,"MUMPS",-1);
+  if(args.rep == 0)
+    perftimer_inc(timer,"MUMPS",-1);
   DMUMPS_STRUC_C id;
   id.job=JOB_INIT;
   id.par=1; // host involved in factorization/solve
@@ -175,15 +182,19 @@ Options:"
       perftimer_free(timer);
       exit(EXIT_FAILURE);
     }
-    perftimer_inc(timer,"sparse file handling",-1);
+    if(args.rep == 0)
+      perftimer_inc(timer,"sparse file handling",-1);
     bebop_default_initialize (argc, argv, &ierr); assert (ierr == 0);
 
-    perftimer_adjust_depth(timer,-1);
-    perftimer_inc(timer,"input",-1);
-    perftimer_adjust_depth(timer,+1);
+    if(args.rep == 0) {
+      perftimer_adjust_depth(timer,-1);
+      perftimer_inc(timer,"input",-1);
+      perftimer_adjust_depth(timer,+1);
+    }
 
     struct sparse_matrix_t* A;
-    perftimer_inc(timer,"load",-1);
+    if(args.rep == 0)
+      perftimer_inc(timer,"load",-1);
 
     // identify the file format from the extension
     enum sparse_matrix_file_format_t ext;
@@ -192,29 +203,29 @@ Options:"
       if(s > 2) {
         char *e = args.input + s - 3;
         // strcmp returned match
-	if(strcmp(e,".mm") == 0) {
-	  ext = MATRIX_MARKET;
-	}
-	else if(strcmp(e,".hb") == 0) {
-	  ext = HARWELL_BOEING;
-	  fprintf(stderr,"input error: Sorry Harwell-Boeing reader is broken\n");
-	  exit(EXIT_FAILURE);
-	}
-	else if(strcmp(e,".rb") == 0) {
-	  ext = HARWELL_BOEING;
-	  fprintf(stderr,"input error: Sorry Rutherford-Boeing reader is broken\n");
-	  exit(EXIT_FAILURE);
-	}
-	else if(strcmp(e-1,".mat") == 0) {
-	  ext = MATLAB;
-	  fprintf(stderr,"input error: Sorry Matlab reader is broken\n");
-	  exit(EXIT_FAILURE);
-	} // TODO test if the matlab reader is actually busted
-	else{
-	  fprintf(stderr,"input error: Unrecognized file extension\n");
-	  perftimer_free(timer);
-	  exit(EXIT_FAILURE);
-	}
+        if(strcmp(e,".mm") == 0) {
+          ext = MATRIX_MARKET;
+        }
+        else if(strcmp(e,".hb") == 0) {
+          ext = HARWELL_BOEING;
+          fprintf(stderr,"input error: Sorry Harwell-Boeing reader is broken\n");
+          exit(EXIT_FAILURE);
+        }
+        else if(strcmp(e,".rb") == 0) {
+          ext = HARWELL_BOEING;
+          fprintf(stderr,"input error: Sorry Rutherford-Boeing reader is broken\n");
+          exit(EXIT_FAILURE);
+        }
+        else if(strcmp(e-1,".mat") == 0) {
+          ext = MATLAB;
+          fprintf(stderr,"input error: Sorry Matlab reader is broken\n");
+          exit(EXIT_FAILURE);
+        } // TODO test if the matlab reader is actually busted
+        else{
+          fprintf(stderr,"input error: Unrecognized file extension\n");
+          perftimer_free(timer);
+          exit(EXIT_FAILURE);
+        }
       }
     }
     A = load_sparse_matrix (ext, args.input);
@@ -226,7 +237,8 @@ Options:"
     ierr = sparse_matrix_convert(A, COO); assert(ierr == 0);
 
     // check somethings are as expected
-    perftimer_inc(timer,"sanity check",-1);
+    if(args.rep == 0)
+      perftimer_inc(timer,"sanity check",-1);
     struct coo_matrix_t* Acoo = A->repr;
     coo_c_to_fortran(Acoo); assert(Acoo != NULL);
     assert(Acoo->index_base == ONE); // index zero is the first entry
@@ -235,19 +247,18 @@ Options:"
 
     // TODO do soemthing with A.ownership, so we can tell bebop to clean itself up, but not have to copy the elements
 
-    perftimer_inc(timer,"reformat",-1);
+    if(args.rep == 0)
+      perftimer_inc(timer,"reformat",-1);
     // mumps: irn=row indices, jcn=column idices, a=values, rhs=right-hand side, n = matrix order (on-a-side?) nz=non-zeros?
     id.n   = Acoo->m; // A.m: rows, A.n: columns
     id.nz  = Acoo->nnz; // non-zeros
     id.irn = Acoo->II; // row    indices
     id.jcn = Acoo->JJ; // column indices
     id.a   = Acoo->val;
-    perftimer_inc(timer,"rhs",-1);
+    if(args.rep == 0)
+      perftimer_inc(timer,"rhs",-1);
     // allocate an all-zeros right-hand side of A.m rows
     id.rhs = malloc(id.n * sizeof(double)); assert(id.rhs != NULL);
-    int i;
-    for(i=0;i<id.n;i++)
-      id.rhs[i] = i;
 
     // verbose output
     if(args.verbosity >= 2) { // an additional line showing MPI/OpenMP info
@@ -259,9 +270,10 @@ Options:"
     if(args.verbosity >= 1) {
       printf("Ax=b: A is %dx%d, nz=%d, b is %dx%d, nz=%d\n",
              Acoo->m, Acoo->n, Acoo->nnz,
-	     Acoo->m, 1, Acoo->m);
+       Acoo->m, 1, Acoo->m);
     }
     if(args.verbosity >= 2) {
+      int i;
       for(i=0;i<id.nz;i++) {
         printf("  A(%i,%i)=%.2f\n", id.irn[i], id.jcn[i], id.a[i]);
       }
@@ -270,13 +282,93 @@ Options:"
       }
     }
 
-    perftimer_adjust_depth(timer,-1);
+    if(args.rep == 0)
+      perftimer_adjust_depth(timer,-1);
     //destroy_sparse_matrix (A); // TODO can't release it unless we're copying it...
   }
 
-  perftimer_inc(timer,"solve",-1);
+  int i, r = 0;
+  do {
+    if(r != 0) perftimer_restart(&timer);
+    r++;
+    // reset the right hand side (b) for each iteration (including the first)
+    for(i=0;i<id.n;i++)
+      id.rhs[i] = i;
+
+    run_mumps(id, timer, args);
+
+  } while (r < args.rep);
+
+  if(args.rep == 0)
+    perftimer_inc(timer,"clean up",-1);
+  id.job=JOB_END; dmumps_c(&id); // Terminate instance
+  assert(id.INFOG(1) == 0); // check it worked
+
+  if(args.rep == 0) {
+    perftimer_adjust_depth(timer,-1);
+    perftimer_inc(timer,"output",-1);
+  }
+  if (myid == 0) {
+// TODO this code needs reworking to make it flexible: compare answers with-in some percentage?
+/*    printf("Solution is\n");
+    int i;
+    for(i=0;i<id.n;i++) {
+      printf("  %.2f\n", id.rhs[i]);
+      // Octave says the answer should be
+      // ans =
+      //     1.000000
+      //     0.434211
+      //     0.250000
+      //    -0.092105
+      //     0.250000
+      //
+    }
+    // test result
+    // TODO make this a command-line option with file to compare
+    perftimer_inc(timer,"test",-1);
+    const double const e[5] = {1.0, 0.434211, 0.25, -0.092105, 0.25};
+    if( results_match(e,id.rhs,id.n,0.001) ) {
+      retval = 0; printf("PASS\n");
+    }
+    else {
+      retval = 1; printf("FAIL\n");
+    }
+*/
+    // clean up
+    free(id.rhs);
+  }
+  if(args.rep == 0) {
+    perftimer_inc(timer,"clean up",-1);
+    perftimer_adjust_depth(timer,+1);
+
+    perftimer_inc(timer,"MPI",-1);
+  }
+  ierr = MPI_Finalize(); assert(ierr == 0);
+
+  // show timing info, if requested, to depth N
+  if(args.rep == 0) {
+    perftimer_adjust_depth(timer,-1);
+    perftimer_inc(timer,"finished",-1);
+  }
+  if(myid == 0) {
+    if(args.timing_enabled == 1) {
+      printf("#"); // prepend # to csv header so its easy to grep away
+      perftimer_printf_csv_header(timer,2);
+      perftimer_printf_csv_body(timer,2);
+    }
+    else if(args.timing_enabled != 0) {
+      perftimer_printf(timer,args.timing_enabled-2);
+    }
+  }
+  perftimer_free(timer);
+  return retval;
+}
+
+
+void run_mumps(DMUMPS_STRUC_C id, perftimer_t* timer, struct parse_args args) {
+  perftimer_inc(timer,"solver",-1);
   perftimer_adjust_depth(timer,+1);
-  perftimer_inc(timer,"MUMPS config",-1);
+  perftimer_inc(timer,"config",-1);
   #define ICNTL(I) icntl[(I)-1] // macro s.t. indices match documentation
   // No outputs
   if(args.verbosity < 3) { // no debug
@@ -289,7 +381,7 @@ Options:"
     id.ICNTL(4)=4; // debug level 0:none, 1: err, 2: warn/stats 3:diagnostics, 4:parameters
   }
   // Call the MUMPS package.
-  perftimer_inc(timer,"MUMPS analyze",-1);
+  perftimer_inc(timer,"analyze",-1);
   // ICNTL(22) != 0: out-of-core
   //   requires OOC_TMPDIR, OOC_PREFIX -> tmp location/prefix
   // ICNTL(14): memory relaxation
@@ -357,7 +449,7 @@ Options:"
   //   set ICNTL(23) for explicit max mem, per-proc [MB]
   //   set ICNTL(14) to limit mem increases
 
-  perftimer_inc(timer,"MUMPS factorize",-1);
+  perftimer_inc(timer,"factorize",-1);
   // requires id.A if ICNTL(5)=0 (assembled matrix)
   // requires id.A_ELT if ICNTL(5)=1 (elemental matrix)
   // if (ICNTL(5)=0 && ICNTL(18)!=0) (assembled matrix, distributed load) ???i
@@ -372,7 +464,7 @@ Options:"
   dmumps_c(&id);
   assert(id.INFOG(1) == 0); // check it worked
 
-  perftimer_inc(timer,"MUMPS solve",-1);
+  perftimer_inc(timer,"solve",-1);
   // solve Ax=b, AX=B OR A^t x=b, A^t X=B
   //   ICNTL(9)=1: A (default), 0: A^t
   // OR compute "null-space basis" if "null pivot row detection" was enabled
@@ -399,62 +491,6 @@ Options:"
   id.job=JOB_SOLVE;
   dmumps_c(&id);
   assert(id.INFOG(1) == 0); // check it worked
-
-  perftimer_inc(timer,"MUMPS clean up",-1);
-  id.job=JOB_END; dmumps_c(&id); // Terminate instance
-  assert(id.INFOG(1) == 0); // check it worked
-
-
-  perftimer_adjust_depth(timer,-1);
-  perftimer_inc(timer,"output",-1);
-  if (myid == 0) {
-// TODO this code needs reworking to make it flexible: compare answers with-in some percentage?
-/*    printf("Solution is\n");
-    int i;
-    for(i=0;i<id.n;i++) {
-      printf("  %.2f\n", id.rhs[i]);
-      // Octave says the answer should be
-      // ans =
-      //	   1.000000
-      //	   0.434211
-      //	   0.250000
-      //	  -0.092105
-      //	   0.250000
-      //
-    }
-    // test result
-    // TODO make this a command-line option with file to compare
-    perftimer_inc(timer,"test",-1);
-    const double const e[5] = {1.0, 0.434211, 0.25, -0.092105, 0.25};
-    if( results_match(e,id.rhs,id.n,0.001) ) {
-      retval = 0; printf("PASS\n");
-    }
-    else {
-      retval = 1; printf("FAIL\n");
-    }
-*/
-    // clean up
-    free(id.rhs);
-  }
-  perftimer_inc(timer,"clean up",-1);
-  perftimer_adjust_depth(timer,+1);
-
-  perftimer_inc(timer,"MPI",-1);
-  ierr = MPI_Finalize(); assert(ierr == 0);
-
-  // show timing info, if requested, to depth N
-  perftimer_adjust_depth(timer,-1);
-  perftimer_inc(timer,"finished",-1);
-  if(myid == 0) {
-    if(args.timing_enabled == 1) {
-      printf("#"); // prepend # to csv header so its easy to grep away
-      perftimer_printf_csv_header(timer,2);
-      perftimer_printf_csv_body(timer,2);
-    }
-    else if(args.timing_enabled != 0) {
-      perftimer_printf(timer,args.timing_enabled-2);
-    }
-  }
-  perftimer_free(timer);
-  return retval;
 }
+
+
