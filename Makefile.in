@@ -220,7 +220,7 @@ meagre_crowd_SOURCES = src/meagre-crowd.c src/perftimer.c
 noinst_HEADERS = src/perftimer.h
 
 # some random files we want to distribute with the package tar
-EXTRA_DIST = LICENSE get_dependencies testsuite.at \
+EXTRA_DIST = LICENSE get_dependencies launch_jobs testsuite.at \
 	$(srcdir)/package.m4 $(TESTSUITE) atlocal.in
 
 # the tests
