@@ -9,10 +9,10 @@ meagre_crowd_SOURCES = src/meagre-crowd.c src/perftimer.c
 # header files that need to be distributed but not installed
 noinst_HEADERS = src/perftimer.h
 
+# want these scripts installed in the end
+bin_SCRIPTS = launch_jobs collect_results
 # some random files we want to distribute with the package tar
-EXTRA_DIST = LICENSE get_dependencies launch_jobs
-# .. and want these scripts installed in the end
-bin_SCRIPTS = launch_jobs
+EXTRA_DIST = LICENSE get_dependencies $(bin_SCRIPTS)
 
 # the tests
 BUILT_TESTS = tests/file tests/helloworld-mpi tests/helloworld-mumps tests/mumps-file tests/unit-perftimer

@@ -1,0 +1,47 @@
+#! /bin/sh
+function usage() {
+  echo "Usage: $0 <results.dir>"
+  exit 1
+}
+
+[[ $# -lt 1 ]] && usage
+D=$1
+[[ ! -d "$D" ]] && echo "error: '$D' is not a directory" && usage
+[[ ! -f "$D/matrices" ]] && echo "error: '$D' does not contain results" && usage
+
+cd $D
+MATRICES=$(cat matrices)
+NCPU=$(cat ncpus)
+echo "ncpu: $NCPU"
+FIRSTLOG=$(cat matrices | cut --delimiter=' ' -f 1)
+echo "header from: ${FIRSTLOG}" # second last line of log
+cd -
+
+
+F=$D/summary.csv
+[[ -f $F ]] && rm $F
+
+# create header
+echo -n "N_cpu, matrix, m, n, nz, " >> $F
+tail -2 $D/${FIRSTLOG}.log | head -1 >> $F
+
+# collate data
+R=0
+for i in $MATRICES; do
+  echo -n $i
+  E=$D/$i.err
+  L=$D/$i.log
+  if [[ "$(cat $E | wc --bytes)" -ne 0 ]]; then
+    echo "  .. error"
+    cat $E
+    let R=$R+1
+  else
+    echo " .. pass"
+  fi
+  echo -n "$NCPU, $i, " >> $F
+  head -1 results.0846/Bai/dwa512.log | perl -pe 's/^.*?A is (\d+)x(\d+), nz=(\d+).*\n$/$1, $2, $3, /' >> $F
+  tail -1 $L >> $F # last line of logs
+done
+echo "summary: $F"
+
+exit $R
