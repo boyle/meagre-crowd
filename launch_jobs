@@ -65,3 +65,5 @@ done
 echo "Saving list"
 echo "${MATRICES}" > ${OUTPUT_DIR}/matrices
 echo "$N" > ${OUTPUT_DIR}/ncpus
+
+# TODO launch a final job that waits for the other jobs, then summarizes the results

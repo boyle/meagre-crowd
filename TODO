@@ -13,11 +13,12 @@ These are somewhat arranged in order of priority. Highest at the top.
    - allow outputing on stdout
  - Add other solvers - single system, SMP
    ?? which ones
- - Add ability to download from matrix libraries given input list [seperate script]
-   - University of Florida sparse matrix collection
-   - Harwell-Boeing sparse matrix collection
+ - ability to compare results vs. expected (testing!) w/in a certain precision
+   - precision might not need to be an option if there's an heuristic we can use
+ - add input list option to launcher (what matrices to run)
+ - make summary script run when launched jobs complete (sqsub --wait?)
  ?? are there any other stats we'd like to collect?
- - Add type tests: condition number, singularity, symmetric, hermitian
+ - Add type tests: condition number, singularity, symmetric, hermitian, real, complex
    ?? others
  - Make some default lists of common matrices used in papers.
  - Look at KCachegrind, Callgrind for profiling.
