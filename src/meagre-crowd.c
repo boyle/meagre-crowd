@@ -352,7 +352,6 @@ Options:"
   }
   if(myid == 0) {
     if(args.timing_enabled == 1) {
-      printf("#"); // prepend # to csv header so its easy to grep away
       perftimer_printf_csv_header(timer,2);
       perftimer_printf_csv_body(timer,2);
     }
@@ -441,7 +440,7 @@ void run_mumps(DMUMPS_STRUC_C id, perftimer_t* timer, struct parse_args args) {
   #define JOB_ANALYSE 1
   id.job=JOB_ANALYSE;
   dmumps_c(&id);
-  if(id.INFOG(1) == 0) printf("analysis failed");
+  if(id.INFOG(1) != 0) fprintf(stderr, "warning: analysis failed\n");
   assert(id.INFOG(1) == 0); // check it worked
 
   // available info:
