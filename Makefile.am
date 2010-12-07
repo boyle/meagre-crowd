@@ -11,6 +11,8 @@ noinst_HEADERS = src/perftimer.h
 
 # some random files we want to distribute with the package tar
 EXTRA_DIST = LICENSE get_dependencies launch_jobs
+# .. and want these scripts installed in the end
+bin_SCRIPTS = launch_jobs
 
 # the tests
 BUILT_TESTS = tests/file tests/helloworld-mpi tests/helloworld-mumps tests/mumps-file tests/unit-perftimer
