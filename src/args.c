@@ -20,6 +20,19 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     case 't': args->timing_enabled++; break;
     case 'v': args->verbosity++; break;
 
+    // solvers
+    case 's': {
+        if(strncmp(arg,"mumps",6)==0)
+          args->solver = MUMPS;
+        else if(strncmp(arg,"umfpack",8)==0)
+          args->solver = UMFPACK;
+        else {
+          fprintf(stderr,"invalid solver (-s)");
+          exit(EXIT_FAILURE);
+        }
+      }
+      break;
+
     case 'r': {
         int i = atoi(arg);
         i = (i < 0)?0:i; // > 0
@@ -81,6 +94,7 @@ Options:"
       // -vv: more detail(?), -vvv: max debug
       {"timing",'t',0,0,"Show/increase timing information",12},
       {"repeat",'r',"N",0,"Repeat calculations N times",15},
+      {"solver",'s',"<mumps|umfpack>",0,"Select solver",15},
       // TODO add note to man page: -t, -tt, -ttt for more detail
       // none: no output, -t: single-line (csv), -tt: chart, -ttt: greater detail
       //{"output",'o',0,0,"Output file (default: stdout)",20},
@@ -97,6 +111,6 @@ Options:"
     // error_t argp_parse (argp*, argc, **argv, unsigned flags, int *arg_index, void *input)
     argp_parse(&p, argc, argv, ARGP_NO_HELP, 0, args);
   }
-  
+
   return EXIT_SUCCESS;
 }

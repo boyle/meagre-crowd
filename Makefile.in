@@ -61,7 +61,7 @@ PROGRAMS = $(bin_PROGRAMS)
 am__dirstamp = $(am__leading_dot)dirstamp
 am_meagre_crowd_OBJECTS = src/meagre-crowd.$(OBJEXT) \
 	src/file.$(OBJEXT) src/args.$(OBJEXT) src/perftimer.$(OBJEXT) \
-	src/solver_mumps.$(OBJEXT)
+	src/solver_mumps.$(OBJEXT) src/solver_umfpack.$(OBJEXT)
 meagre_crowd_OBJECTS = $(am_meagre_crowd_OBJECTS)
 meagre_crowd_LDADD = $(LDADD)
 tests_file_SOURCES = tests/file.c
@@ -238,7 +238,11 @@ top_srcdir = @top_srcdir@
 
 # build to GNU standards
 AUTOMAKE_OPTIONS = gnu
-meagre_crowd_SOURCES = src/meagre-crowd.c src/file.c src/args.c src/perftimer.c src/solver_mumps.c
+meagre_crowd_SOURCES = src/meagre-crowd.c \
+    src/file.c src/args.c src/perftimer.c \
+    src/solver_mumps.c \
+    src/solver_umfpack.c
+
 
 # header files that need to be distributed but not installed
 noinst_HEADERS = src/perftimer.h
@@ -380,6 +384,8 @@ src/perftimer.$(OBJEXT): src/$(am__dirstamp) \
 	src/$(DEPDIR)/$(am__dirstamp)
 src/solver_mumps.$(OBJEXT): src/$(am__dirstamp) \
 	src/$(DEPDIR)/$(am__dirstamp)
+src/solver_umfpack.$(OBJEXT): src/$(am__dirstamp) \
+	src/$(DEPDIR)/$(am__dirstamp)
 meagre-crowd$(EXEEXT): $(meagre_crowd_OBJECTS) $(meagre_crowd_DEPENDENCIES) 
 	@rm -f meagre-crowd$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(meagre_crowd_OBJECTS) $(meagre_crowd_LDADD) $(LIBS)
@@ -458,6 +464,7 @@ mostlyclean-compile:
 	-rm -f src/meagre-crowd.$(OBJEXT)
 	-rm -f src/perftimer.$(OBJEXT)
 	-rm -f src/solver_mumps.$(OBJEXT)
+	-rm -f src/solver_umfpack.$(OBJEXT)
 	-rm -f src/tests_unit_perftimer-perftimer.$(OBJEXT)
 	-rm -f tests/file.$(OBJEXT)
 	-rm -f tests/helloworld-mpi.$(OBJEXT)
@@ -473,6 +480,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/meagre-crowd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/perftimer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/solver_mumps.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/solver_umfpack.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/tests_unit_perftimer-perftimer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/file.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/helloworld-mpi.Po@am__quote@

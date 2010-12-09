@@ -23,6 +23,7 @@
 #include "args.h"
 #include "perftimer.h"
 #include "solver_mumps.h"
+#include "solver_umfpack.h"
 #include "file.h"
 
 
@@ -52,7 +53,7 @@ int main(int argc, char ** argv) {
     free(args);
     return retval;
   }
-  
+
 
   // initialize MPI
   perftimer_t* timer = perftimer_malloc();
@@ -64,7 +65,7 @@ int main(int argc, char ** argv) {
   ierr = MPI_Init(&argc, &argv);               assert(ierr == 0);
   ierr = MPI_Comm_rank(MPI_COMM_WORLD, &(args->mpi_rank)); assert(ierr == 0);
 
-  
+
   // Define the problem on the host
   double* b = NULL;
   struct sparse_matrix_t* A;
@@ -124,7 +125,7 @@ int main(int argc, char ** argv) {
 
     // allocate an all-zeros right-hand side of A.m rows
     // TODO or load from a file
-    
+
     unsigned int n = matrix_rows(A);
     b = malloc(n*sizeof(double));
     assert(b != NULL); // malloc failure
@@ -139,10 +140,30 @@ int main(int argc, char ** argv) {
     }
   }
 
-  DMUMPS_STRUC_C* id = solver_init_dmumps(args, timer, NULL); // TODO figure out passing arguments for initialization to all clients (re: A)
+  DMUMPS_STRUC_C* mumps_p;
+  solve_system_umfpack_t* umfpack_p;
+  switch(args->solver) {
+    case MUMPS:
+      mumps_p = solver_init_dmumps(args, timer, NULL); // TODO figure out passing arguments for initialization to all clients (re: A)
+      break;
+    case UMFPACK:
+      umfpack_p = solver_init_umfpack(args, timer, NULL); // TODO figure out passing arguments for initialization to all clients (re: A)
+      break;
+    default:
+      assert(1); // should have caught unknown solver before now!
+  }
 
   if(args->mpi_rank == 0) {
-    solver_data_prep_dmumps(id, A, NULL); // Note: b is set w/in the execution loop
+    switch(args->solver) { // Note: b is set w/in the execution loop
+      case MUMPS:
+	solver_data_prep_dmumps(mumps_p, A, NULL);
+	break;
+      case UMFPACK:
+	solver_data_prep_umfpack(umfpack_p, A, NULL);
+	break;
+      default:
+	assert(1); // should have caught unknown solver before now!
+    }
   }
 
   int i, r = 0;
@@ -150,17 +171,46 @@ int main(int argc, char ** argv) {
     if(r != 0)
       perftimer_restart(&timer);
 
-    if(args->mpi_rank == 0)
-      solver_data_prep_dmumps(id, NULL, b); // reset rhs = b
+    if(args->mpi_rank == 0) {
+      switch(args->solver) {
+        case MUMPS:
+          solver_data_prep_dmumps(mumps_p, NULL, b); // reset rhs = b
+          break;
+        case UMFPACK:
+          solver_data_prep_umfpack(umfpack_p, NULL, b); // reset rhs = b
+          break;
+        default:
+          assert(1); // should have caught unknown solver before now!
+      }
+    }
 
-    solver_solve_dmumps(id, args, timer);
+    switch(args->solver) {
+      case MUMPS:
+        solver_solve_dmumps(mumps_p, args, timer);
+        break;
+      case UMFPACK:
+        solver_solve_umfpack(umfpack_p, args, timer);
+        break;
+      default:
+        assert(1); // should have caught unknown solver before now!
+    }
 
     r++;
   } while (r < args->rep);
 
   if(args->rep == 0)
     perftimer_inc(timer,"clean up",-1);
-  solver_finalize_dmumps(id);
+
+  switch(args->solver) {
+    case MUMPS:
+      solver_finalize_dmumps(mumps_p);
+      break;
+    case UMFPACK:
+      solver_finalize_umfpack(umfpack_p);
+      break;
+    default:
+      assert(1); // should have caught unknown solver before now!
+  }
 
   if(args->rep == 0) {
     perftimer_adjust_depth(timer,-1);
