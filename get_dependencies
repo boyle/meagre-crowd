@@ -412,7 +412,6 @@ MAKE=${MAKE_SAVE}
 # orderings:
 info "== orderings =="
 
-# for UMFPACK (MUMPS doesn't use it)
 
 info "AMD"
 if [[ ! -d ${S}/amd || ${S}/amd -nt ${INSTALL_LIB_DIR} ]]; then
@@ -420,9 +419,11 @@ if [[ ! -d ${S}/amd || ${S}/amd -nt ${INSTALL_LIB_DIR} ]]; then
   get_and_unpack amd http://www.cise.ufl.edu/research/sparse/UFconfig/UFconfig-${UFPACK_VER}.tar.gz
   cd ${S}/amd/AMD || err amd "bad dir"
   echo "CFLAGS = -O3 -fexceptions -fPIC" >> ../UFconfig/UFconfig.mk
+  sed -i '/CC/d' ../UFconfig/UFconfig.mk
   info "  build"
   ${MAKE} lib &> /dev/null || err amd "build failed"
   cp Include/amd.h ${INSTALL_INC_DIR}/
+  cp Include/amd_internal.h ${INSTALL_INC_DIR}/
   cp Lib/libamd.a  ${INSTALL_LIB_DIR}/
   a2so ${INSTALL_LIB_DIR}/libamd.a -lm
 else
@@ -436,6 +437,7 @@ if [[ ! -d ${S}/camd || ${S}/camd -nt ${INSTALL_LIB_DIR} ]]; then
   get_and_unpack camd http://www.cise.ufl.edu/research/sparse/UFconfig/UFconfig-${UFPACK_VER}.tar.gz
   cd ${S}/camd/CAMD || err camd "bad dir"
   echo "CFLAGS = -O3 -fexceptions -fPIC" >> ../UFconfig/UFconfig.mk
+  sed -i '/CC/d' ../UFconfig/UFconfig.mk
   info "  build"
   ${MAKE} lib &> /dev/null || err camd "build failed"
   cp Include/camd.h ${INSTALL_INC_DIR}/
@@ -453,6 +455,7 @@ if [[ ! -d ${S}/ccolamd || ${S}/ccolamd -nt ${INSTALL_LIB_DIR} ]]; then
   get_and_unpack ccolamd http://www.cise.ufl.edu/research/sparse/UFconfig/UFconfig-${UFPACK_VER}.tar.gz
   cd ${S}/ccolamd/CCOLAMD || err ccolamd "bad dir"
   echo "CFLAGS = -O3 -fexceptions -fPIC" >> ../UFconfig/UFconfig.mk
+  sed -i '/CC/d' ../UFconfig/UFconfig.mk
   info "  build"
   ${MAKE} lib &> /dev/null || err ccolamd "build failed"
   cp Include/ccolamd.h ${INSTALL_INC_DIR}/
@@ -469,6 +472,7 @@ if [[ ! -d ${S}/colamd || ${S}/colamd -nt ${INSTALL_LIB_DIR} ]]; then
   get_and_unpack colamd http://www.cise.ufl.edu/research/sparse/UFconfig/UFconfig-${UFPACK_VER}.tar.gz
   cd ${S}/colamd/COLAMD || err colamd "bad dir"
   echo "CFLAGS = -O3 -fexceptions -fPIC" >> ../UFconfig/UFconfig.mk
+  sed -i '/CC/d' ../UFconfig/UFconfig.mk
   info "  build"
   ${MAKE} lib &> /dev/null || err colamd "build failed"
   cp Include/colamd.h ${INSTALL_INC_DIR}/
@@ -506,6 +510,7 @@ case ${METIS} in
       get_and_unpack metis http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/metis-${METIS_VER}.tar.gz
       cd ${S}/metis/metis-${METIS_VER} || err metis "bad dir"
       sed -i "s/\(^COPTIONS *= \).*/\1 -DNDEBUG -fPIC/" Makefile.in
+      sed -i '/CC/d' Makefile.in
       # for some reason metis redefines log2 -- its in glibc
       sed -i "s/log2\([^_]\)/log2_local\1/g" $(grep -lr log2 .)
       sed -i "s/log2\$/log2_local/g" $(grep -lr log2 .)
@@ -570,9 +575,10 @@ if [[ ! -d ${S}/cholmod || ${S}/cholmod -nt ${INSTALL_LIB_DIR} ]]; then
   cd ${S}/cholmod; mkdir -p CAMD; cd CAMD; ln -s ${INSTALL_INC_DIR} Include
   cd ${S}/cholmod/CHOLMOD || err cholmod "bad dir"
   echo "CFLAGS = -O3 -fexceptions -fPIC" >> ../UFconfig/UFconfig.mk
+  sed -i '/CC/d' ../UFconfig/UFconfig.mk
   info "  build"
   ${MAKE} library &> /dev/null || err cholmod "build failed"
-  cp Include/cholmod.h ${INSTALL_INC_DIR}/
+  cp Include/cholmod*.h ${INSTALL_INC_DIR}/
   cp Lib/libcholmod.a  ${INSTALL_LIB_DIR}/
   a2so ${INSTALL_LIB_DIR}/libcholmod.a ${AMD_DLIB} ${CAMD_DLIB} ${METIS_DLIB} ${BLAS_DLIB} ${CCOLAMD_DLIB} ${COLAMD_DLIB} ${LAPACK_DLIB} -lm
 else
@@ -646,9 +652,10 @@ if [[ ! -d ${S}/umfpack || ${S}/umfpack -nt ${INSTALL_LIB_DIR} ]]; then
   cd ${S}/umfpack; mkdir metis-4.0; cd metis-4.0; ln -s ${INSTALL_INC_DIR} Lib
   cd ${S}/umfpack/UMFPACK || err amd "bad dir"
   echo "CFLAGS = -O3 -fexceptions -fPIC" >> ../UFconfig/UFconfig.mk
+  sed -i '/CC/d' ../UFconfig/UFconfig.mk
   info "  build"
   cd ${S}/umfpack/UMFPACK/Lib
-  ${MAKE} -f Makefile &> /dev/null || err amd "build failed"
+  ${MAKE} -f Makefile &> /dev/null || err umfpack "build failed"
   cd ${S}/umfpack/UMFPACK
   cp Include/umfpack.h ${INSTALL_INC_DIR}/
   cp Lib/libumfpack.a  ${INSTALL_LIB_DIR}/
