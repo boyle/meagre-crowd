@@ -8,11 +8,8 @@ at any patches or discuss potential solutions.
 These are somewhat arranged in order of priority. Highest at the top.
 
  - Run valgrind. Find bad allocations and uninitialized variables.
- - Refactor, refactor, refactor.
  - Add ability to save to an output file (-o)
    - allow outputing on stdout
- - Add other solvers - single system, SMP
-   ?? which ones
  - ability to compare results vs. expected (testing!) w/in a certain precision
    - precision might not need to be an option if there's an heuristic we can use
  - add input list option to launcher (what matrices to run)

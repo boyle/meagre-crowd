@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.65)
-AC_INIT([meagre-crowd],[0.0.5],[<alistair.js.boyle@gmail.com>])
+AC_INIT([meagre-crowd],[0.0.6],[<alistair.js.boyle@gmail.com>])
 
 AC_COPYRIGHT([Copyright (C) 2010 Alistair Boyle])
 
