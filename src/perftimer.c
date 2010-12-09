@@ -1,3 +1,4 @@
+#include "config.h"
 #include <stdlib.h> // malloc/free
 #include <errno.h>  // malloc error
 #include <err.h>    // malloc error text
