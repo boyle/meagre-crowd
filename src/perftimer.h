@@ -53,7 +53,7 @@ int perftimer_snprintf_csv_header(perftimer_t const * const pT, char* s, const s
 int perftimer_snprintf_csv_body(perftimer_t const * const pT, char* s, const size_t n, const unsigned int d);
 
 // perftimer_printlen()
-// determine the length of the string that would be generated without 
+// determine the length of the string that would be generated without
 // a constraint on length
 // T: a perftimer structure ptr
 // d: max depth, 0:unlimited

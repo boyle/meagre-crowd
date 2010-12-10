@@ -29,17 +29,17 @@ void solver_data_prep_umfpack(solve_system_umfpack_t* p, struct sparse_matrix_t*
     assert(Acsc->value_type == REAL); // don't handle complex... yet TODO
     // TODO do soemthing with A.ownership, so we can tell bebop to clean itself up, but not have to copy the elements
     // TODO really we should just copy this to be CORRECT/TYPESAFE (not worth being clever...)
-    
+
     p->m = p->n = Acsc->m;
     assert(Acsc->m == Acsc->n); // TODO can only handle square matrices at present (UMFPACK?)
-    
+
     // Compressed Column Format
     p->Ap = Acsc->colptr; // start index for column n, column 0 = 0, column N+1 = nz
     p->Ai = Acsc->rowidx; // row indices
     p->Ax = Acsc->values;
     assert(p->Ap[0] == 0);
     assert(p->Ap[p->n] == Acsc->nnz);
-    
+
     // TODO allocate x
   }
 
@@ -56,7 +56,7 @@ void solver_solve_umfpack(solve_system_umfpack_t* p, struct parse_args* args, pe
 
   perftimer_inc(timer,"analyze",-1);
   umfpack_di_symbolic(p->m, p->n, p->Ap, p->Ai, p->Ax, &Symbolic, NULL, NULL);
-  
+
   perftimer_inc(timer,"factorize",-1);
   umfpack_di_numeric(p->Ap, p->Ai, p->Ax, Symbolic, &Numeric, NULL, NULL);
   umfpack_di_free_symbolic(&Symbolic); // done with Symbolic data

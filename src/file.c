@@ -24,7 +24,7 @@ int load_matrix(char* n, struct sparse_matrix_t** A) {
   enum sparse_matrix_file_format_t ext;
   if( (retval = _identify_format_from_extension(n, &ext)) != 0)
     return retval;
-  
+
   *A = load_sparse_matrix(ext, n);
   if(*A == NULL) {
     fprintf(stderr,"input error: Failed to load matrix\n");

@@ -59,10 +59,10 @@ void solver_data_prep_dmumps(DMUMPS_STRUC_C* id, struct sparse_matrix_t* A, doub
     assert(Acoo->index_base == ONE); // index zero is the first entry
     assert(Acoo->symmetry_type == UNSYMMETRIC);
     assert(Acoo->value_type == REAL); // don't handle complex... yet TODO
-  
+
     // TODO do soemthing with A.ownership, so we can tell bebop to clean itself up, but not have to copy the elements
     // TODO really we should just copy this to be CORRECT/TYPESAFE (not worth being clever...)
-    
+
     // mumps: irn=row indices, jcn=column idices, a=values, rhs=right-hand side, n = matrix order (on-a-side?) nz=non-zeros?
     id->n   = Acoo->m; // A.m: rows, A.n: columns
     id->nz  = Acoo->nnz; // non-zeros
