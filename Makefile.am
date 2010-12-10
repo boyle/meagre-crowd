@@ -10,12 +10,12 @@ meagre_crowd_SOURCES = src/meagre-crowd.c \
     src/solver_umfpack.c
 
 # header files that need to be distributed but not installed
-noinst_HEADERS = src/perftimer.h
+noinst_HEADERS = src/perftimer.h src/args.h src/file.h src/solver_mumps.h src/solver_umfpack.h
 
 # want these scripts installed in the end
 bin_SCRIPTS = launch_jobs collect_results
 # some random files we want to distribute with the package tar
-EXTRA_DIST = LICENSE get_dependencies $(bin_SCRIPTS)
+EXTRA_DIST = LICENSE get_dependencies $(bin_SCRIPTS) tests/test.mm tests/test.hb tests/test.rb
 
 # the tests
 BUILT_TESTS = tests/file tests/helloworld-mpi tests/helloworld-mumps tests/mumps-file tests/unit-perftimer tests/hello-umfpack

@@ -121,9 +121,7 @@ AT_BANNER([functional tests])
 # test the file input
 AT_SETUP([-i <none>])
 AT_KEYWORDS([func])
-AT_CHECK(AT_PACKAGE_NAME -i,64,,[meagre-crowd: option requires an argument -- 'i'
-Try `meagre-crowd --help' or `meagre-crowd --usage' for more information.
-])
+AT_CHECK(AT_PACKAGE_NAME -i,64,,ignore)
 AT_CLEANUP
 AT_SETUP([-i bad])
 AT_KEYWORDS([func])

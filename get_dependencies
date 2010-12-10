@@ -620,6 +620,7 @@ if [[ ( ! -d ${S}/mumps ) || ( ${S}/mumps -nt ${INSTALL_LIB_DIR} ) ]]; then
 
   sed -i "s/^ORDERINGSF.*/ORDERINGSF = -Dscotch -Dmetis -Dpord -Dptscotch -D${METIS}/" Makefile.inc
   sed -i "s/^\(OPT.*=\) /\1 -fPIC /" Makefile.inc
+  sed -i "s/^\(OPTL.*=\) /\1 -fPIC/" Makefile.inc #-nofor_main seems to break here
 
   # TODO configure links to dependancies, vars: LIBBLAS, SCALAP, INCPAR, LIBPAR
   # d: double precision real (default), c: complex double, s: single precision real, z: single precision complex
@@ -657,7 +658,8 @@ if [[ ! -d ${S}/umfpack || ${S}/umfpack -nt ${INSTALL_LIB_DIR} ]]; then
   cd ${S}/umfpack/UMFPACK/Lib
   ${MAKE} -f Makefile &> /dev/null || err umfpack "build failed"
   cd ${S}/umfpack/UMFPACK
-  cp Include/umfpack.h ${INSTALL_INC_DIR}/
+  cp ../UFconfig/UFconfig.h ${INSTALL_INC_DIR}/
+  cp Include/umfpack*.h ${INSTALL_INC_DIR}/
   cp Lib/libumfpack.a  ${INSTALL_LIB_DIR}/
   a2so ${INSTALL_LIB_DIR}/libumfpack.a ${CHOLMOD_DLIB} -lm
 else
