@@ -2,9 +2,9 @@
 
 # select implimentations
 MPI="local" # mpich2 or mpich1 or openmpi or local or skip
-BLAS="local" # netlib or atlas or local
-LAPACK="local" # netlib or local
-METIS="metis" # parmetis or metis -- metis is required by cholmod
+BLAS="netlib" # netlib or atlas or local
+LAPACK="netlib" # netlib or local
+METIS="parmetis" # parmetis or metis -- metis is required by cholmod
 
 #PARALLEL_MAKE_DISABLED="yes" # force make to use a single core for compiling
 
@@ -676,6 +676,7 @@ if [[ ! -d ${S}/bebop || ${S}/bebop -nt ${INSTALL_LIB_DIR} ]]; then
   sed -i "s/\(^LDFLAGS\)=.*/\1=-Wl,-rpath,${INSTALL_LIB_DIR//\//\\/}/" Makefile.include
   cd ${S}/bebop/bebop_util
   info "  build util lib"
+  sed -i "s/\/dev\/random/\/dev\/urandom/" src/random_number.c # prevent blocking when not enough entropy
   make &> /dev/null || err bebop "util build failed"
   cd ${S}/bebop/sparse_matrix_converter
   info "  build sparse matrix convertor"
