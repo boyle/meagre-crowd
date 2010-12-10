@@ -56,7 +56,7 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)"
 am__EXEEXT_1 = tests/file$(EXEEXT) tests/helloworld-mpi$(EXEEXT) \
 	tests/helloworld-mumps$(EXEEXT) tests/mumps-file$(EXEEXT) \
-	tests/unit-perftimer$(EXEEXT)
+	tests/unit-perftimer$(EXEEXT) tests/hello-umfpack$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS)
 am__dirstamp = $(am__leading_dot)dirstamp
 am_meagre_crowd_OBJECTS = src/meagre-crowd.$(OBJEXT) \
@@ -67,6 +67,9 @@ meagre_crowd_LDADD = $(LDADD)
 tests_file_SOURCES = tests/file.c
 tests_file_OBJECTS = tests/file.$(OBJEXT)
 tests_file_LDADD = $(LDADD)
+tests_hello_umfpack_SOURCES = tests/hello-umfpack.c
+tests_hello_umfpack_OBJECTS = tests/hello-umfpack.$(OBJEXT)
+tests_hello_umfpack_LDADD = $(LDADD)
 tests_helloworld_mpi_SOURCES = tests/helloworld-mpi.c
 tests_helloworld_mpi_OBJECTS = tests/helloworld-mpi.$(OBJEXT)
 tests_helloworld_mpi_LDADD = $(LDADD)
@@ -126,12 +129,13 @@ am__v_CCLD_0 = @echo "  CCLD  " $@;
 AM_V_GEN = $(am__v_GEN_$(V))
 am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN   " $@;
-SOURCES = $(meagre_crowd_SOURCES) tests/file.c tests/helloworld-mpi.c \
-	tests/helloworld-mumps.c tests/mumps-file.c \
-	$(tests_unit_perftimer_SOURCES)
-DIST_SOURCES = $(meagre_crowd_SOURCES) tests/file.c \
+SOURCES = $(meagre_crowd_SOURCES) tests/file.c tests/hello-umfpack.c \
 	tests/helloworld-mpi.c tests/helloworld-mumps.c \
 	tests/mumps-file.c $(tests_unit_perftimer_SOURCES)
+DIST_SOURCES = $(meagre_crowd_SOURCES) tests/file.c \
+	tests/hello-umfpack.c tests/helloworld-mpi.c \
+	tests/helloworld-mumps.c tests/mumps-file.c \
+	$(tests_unit_perftimer_SOURCES)
 HEADERS = $(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
@@ -254,7 +258,7 @@ EXTRA_DIST = LICENSE get_dependencies $(bin_SCRIPTS) testsuite.at \
 	$(srcdir)/package.m4 $(TESTSUITE) atlocal.in
 
 # the tests
-BUILT_TESTS = tests/file tests/helloworld-mpi tests/helloworld-mumps tests/mumps-file tests/unit-perftimer
+BUILT_TESTS = tests/file tests/helloworld-mpi tests/helloworld-mumps tests/mumps-file tests/unit-perftimer tests/hello-umfpack
 tests_unit_perftimer_SOURCES = tests/unit-perftimer.c src/perftimer.c
 tests_unit_perftimer_CPPFLAGS = -I$(srcdir)/src
 AM_CFLAGS = -Werror #-Wextra
@@ -400,6 +404,11 @@ tests/file.$(OBJEXT): tests/$(am__dirstamp) \
 tests/file$(EXEEXT): $(tests_file_OBJECTS) $(tests_file_DEPENDENCIES) tests/$(am__dirstamp)
 	@rm -f tests/file$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(tests_file_OBJECTS) $(tests_file_LDADD) $(LIBS)
+tests/hello-umfpack.$(OBJEXT): tests/$(am__dirstamp) \
+	tests/$(DEPDIR)/$(am__dirstamp)
+tests/hello-umfpack$(EXEEXT): $(tests_hello_umfpack_OBJECTS) $(tests_hello_umfpack_DEPENDENCIES) tests/$(am__dirstamp)
+	@rm -f tests/hello-umfpack$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(tests_hello_umfpack_OBJECTS) $(tests_hello_umfpack_LDADD) $(LIBS)
 tests/helloworld-mpi.$(OBJEXT): tests/$(am__dirstamp) \
 	tests/$(DEPDIR)/$(am__dirstamp)
 tests/helloworld-mpi$(EXEEXT): $(tests_helloworld_mpi_OBJECTS) $(tests_helloworld_mpi_DEPENDENCIES) tests/$(am__dirstamp)
@@ -467,6 +476,7 @@ mostlyclean-compile:
 	-rm -f src/solver_umfpack.$(OBJEXT)
 	-rm -f src/tests_unit_perftimer-perftimer.$(OBJEXT)
 	-rm -f tests/file.$(OBJEXT)
+	-rm -f tests/hello-umfpack.$(OBJEXT)
 	-rm -f tests/helloworld-mpi.$(OBJEXT)
 	-rm -f tests/helloworld-mumps.$(OBJEXT)
 	-rm -f tests/mumps-file.$(OBJEXT)
@@ -483,6 +493,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/solver_umfpack.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/tests_unit_perftimer-perftimer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/file.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/hello-umfpack.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/helloworld-mpi.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/helloworld-mumps.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/mumps-file.Po@am__quote@

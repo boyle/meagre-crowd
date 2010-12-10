@@ -18,7 +18,7 @@ bin_SCRIPTS = launch_jobs collect_results
 EXTRA_DIST = LICENSE get_dependencies $(bin_SCRIPTS)
 
 # the tests
-BUILT_TESTS = tests/file tests/helloworld-mpi tests/helloworld-mumps tests/mumps-file tests/unit-perftimer
+BUILT_TESTS = tests/file tests/helloworld-mpi tests/helloworld-mumps tests/mumps-file tests/unit-perftimer tests/hello-umfpack
 #TESTS = $(BUILT_TESTS)
 check_PROGRAMS = $(BUILT_TESTS) 
 tests_unit_perftimer_SOURCES = tests/unit-perftimer.c src/perftimer.c

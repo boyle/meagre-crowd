@@ -45,6 +45,17 @@ AT_CHECK([mpirun -n 4 helloworld-mumps],0,[Solution is ( 1.00; 2.00 ): PASS
 ])
 AT_CLEANUP
 
+AT_SETUP([umfpack])
+AT_KEYWORDS([umfpack hello])
+AT_CHECK([hello-umfpack],0,[[x [0] = 1
+x [1] = 2
+x [2] = 3
+x [3] = 4
+x [4] = 5
+PASS
+]])
+AT_CLEANUP
+
 AT_SETUP([matrix-market files])
 AT_KEYWORDS([file hello])
 MC_DATA_FILE_TEST_RB
