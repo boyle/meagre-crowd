@@ -11,7 +11,9 @@ These are somewhat arranged in order of priority. Highest at the top.
  - Add ability to save to an output file (-o)
    - allow outputing on stdout
  - ability to compare results vs. expected (testing!) w/in a certain precision
-   - precision might not need to be an option if there's an heuristic we can use
+   - precision might not need to be an option if there's an heuristic we can use (1e-14?)
+   - add tests for mumps, umfpack solvers
+   - add unit tests for solvers, args, file
  - add input list option to launcher (what matrices to run)
  - make summary script run when launched jobs complete (sqsub --wait?)
  ?? are there any other stats we'd like to collect?
