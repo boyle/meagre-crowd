@@ -18,7 +18,7 @@ and would like to install it in your home directory)
 If you've used the get_dependancies script then you probably
 want to run configure with
 
-./configure LDFLAGS="-L$(pwd)/x86_64-pc-linux-gnu/lib -Wl,-rpath,$(pwd)/x86_64-pc-linux-gnu/lib" CPPFLAGS="-I $(pwd)/x86_64-pc-linux-gnu/include" --prefix=/home/boyle/proj/meagre-crowd/installed
+./configure LDFLAGS="-L$(pwd)/x86_64-pc-linux-gnu/lib -Wl,-rpath,$(pwd)/x86_64-pc-linux-gnu/lib" CPPFLAGS="-I $(pwd)/x86_64-pc-linux-gnu/include" --prefix=/home/boyle/proj/meagre-crowd/installed --enable-debug=yes
 
 or something similar. The -L and -I directories should be
 current locations for the files, while the -rpath should

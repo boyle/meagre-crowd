@@ -5,6 +5,7 @@
 #include <string.h> // memcpy
 #include <assert.h>
 
+#include <bebop/smc/sparse_matrix_ops.h>
 #include <bebop/smc/coo_matrix.h>
 #include <bebop/util/enumerations.h>
 
@@ -79,7 +80,7 @@ void solver_data_prep_dmumps(DMUMPS_STRUC_C* id, struct sparse_matrix_t* A, doub
   }
 }
 
-void solver_solve_dmumps(DMUMPS_STRUC_C* id, struct parse_args* args, perftimer_t* timer) {
+double* solver_solve_dmumps(DMUMPS_STRUC_C* id, struct parse_args* args, perftimer_t* timer) {
   // TODO rm?  perftimer_inc(timer,"solver",-1);
   // TODO rm?  perftimer_adjust_depth(timer,+1);
 
@@ -196,6 +197,8 @@ void solver_solve_dmumps(DMUMPS_STRUC_C* id, struct parse_args* args, perftimer_
   dmumps_c(id);
   assert(id->INFOG(1) == 0); // check it worked
   perftimer_inc(timer,"done",-1);
+
+  return id->rhs;
 }
 
 

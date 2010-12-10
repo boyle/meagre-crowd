@@ -69,6 +69,7 @@ int main(int argc, char ** argv) {
   // Define the problem on the host
   double* b = NULL;
   struct sparse_matrix_t* A;
+  unsigned int m = 0; // rows
   if (args->mpi_rank == 0) {
 
     if(args->rep == 0)
@@ -126,22 +127,22 @@ int main(int argc, char ** argv) {
     // allocate an all-zeros right-hand side of A.m rows
     // TODO or load from a file
 
-    unsigned int n = matrix_rows(A);
-    b = malloc(n*sizeof(double));
+    m = matrix_rows(A);
+    b = malloc(m*sizeof(double));
     assert(b != NULL); // malloc failure
     { // initialize right-hand-side (b)
       int i;
-      for(i=0;i<n;i++)
+      for(i=0;i<m;i++)
         b[i] = i;
       if(args->verbosity >= 2) { // show the rhs matrix
-        for(i=0;i<n;i++)
-          printf("  b(%i,1)=%.2f\n", i, b[i]);
+        for(i=0;i<m;i++)
+          printf("  b(%i)=%.2f\n", i, b[i]);
       }
     }
   }
 
-  DMUMPS_STRUC_C* mumps_p;
-  solve_system_umfpack_t* umfpack_p;
+  DMUMPS_STRUC_C* mumps_p = NULL;
+  solve_system_umfpack_t* umfpack_p = NULL;
   switch(args->solver) {
     case MUMPS:
       mumps_p = solver_init_dmumps(args, timer, NULL); // TODO figure out passing arguments for initialization to all clients (re: A)
@@ -166,7 +167,8 @@ int main(int argc, char ** argv) {
     }
   }
 
-  int i, r = 0;
+  int r = 0;
+  double* rhs = NULL;
   do {
     if(r != 0)
       perftimer_restart(&timer);
@@ -186,10 +188,10 @@ int main(int argc, char ** argv) {
 
     switch(args->solver) {
       case MUMPS:
-        solver_solve_dmumps(mumps_p, args, timer);
+        rhs = solver_solve_dmumps(mumps_p, args, timer);
         break;
       case UMFPACK:
-        solver_solve_umfpack(umfpack_p, args, timer);
+        rhs = solver_solve_umfpack(umfpack_p, args, timer);
         break;
       default:
         assert(1); // should have caught unknown solver before now!
@@ -200,6 +202,18 @@ int main(int argc, char ** argv) {
 
   if(args->rep == 0)
     perftimer_inc(timer,"clean up",-1);
+
+  if(args->rep == 0) {
+    perftimer_adjust_depth(timer,-1);
+    perftimer_inc(timer,"output",-1);
+
+    if((args->mpi_rank == 0) && (args->verbosity >= 2)) {
+      int i;
+      for(i=0;i<m;i++)
+        printf("  x(%d)=%.2f\n",i,rhs[i]);
+    }
+
+  }
 
   switch(args->solver) {
     case MUMPS:
@@ -212,10 +226,6 @@ int main(int argc, char ** argv) {
       assert(1); // should have caught unknown solver before now!
   }
 
-  if(args->rep == 0) {
-    perftimer_adjust_depth(timer,-1);
-    perftimer_inc(timer,"output",-1);
-  }
 /*  if (args->mpi_rank == 0) {
 // TODO this code needs reworking to make it flexible: compare answers with-in some percentage?
     printf("Solution is\n");

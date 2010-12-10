@@ -12,7 +12,7 @@ DMUMPS_STRUC_C* solver_init_dmumps(struct parse_args* args, perftimer_t* timer, 
 
 void solver_data_prep_dmumps(DMUMPS_STRUC_C* id, struct sparse_matrix_t* A, double* b);
 
-void solver_solve_dmumps(DMUMPS_STRUC_C* id, struct parse_args* args, perftimer_t* timer);
+double* solver_solve_dmumps(DMUMPS_STRUC_C* id, struct parse_args* args, perftimer_t* timer);
 
 void solver_finalize_dmumps(DMUMPS_STRUC_C* id);
 

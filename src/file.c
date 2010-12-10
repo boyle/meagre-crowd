@@ -35,7 +35,6 @@ int load_matrix(char* n, struct sparse_matrix_t** A) {
 
 // returns number of rows in matrix A
 unsigned int matrix_rows(struct sparse_matrix_t* A) {
-  unsigned int r = 0;
   if(A == NULL)
     return 0;
   int ierr = sparse_matrix_convert(A, COO); assert(ierr == 0);
@@ -47,31 +46,29 @@ unsigned int matrix_rows(struct sparse_matrix_t* A) {
 int _identify_format_from_extension(char* n, enum sparse_matrix_file_format_t* ext) {
 
   size_t s = strnlen(n,100);
-  if(s > 3) {
-    char *e = n + s - 3;
-    // strcmp returned match
-    if(strcmp(e,".mm") == 0) {
-      *ext = MATRIX_MARKET;
-      return 0; // success
-    }
-    else if(strcmp(e,".hb") == 0) {
-      *ext = HARWELL_BOEING;
-      fprintf(stderr,"input error: Sorry Harwell-Boeing reader is broken\n");
-      return 1; // failure
-    }
-    else if(strcmp(e,".rb") == 0) {
-      *ext = HARWELL_BOEING;
-      fprintf(stderr,"input error: Sorry Rutherford-Boeing reader is broken\n");
-      return 1; // failure
-    }
-    else if((s > 4) && (strcmp(e-1,".mat") == 0)) {
-      *ext = MATLAB;
-      fprintf(stderr,"input error: Sorry Matlab reader is broken\n");
-      return 1; // failure
-    } // TODO test if the matlab reader is actually busted
-    else{
-      fprintf(stderr,"input error: Unrecognized file extension\n");
-      return 1; // failure
-    }
+  char *e = n + s - 3;
+  // strcmp returned match
+  if((s > 3) && (strncmp(e,".mm",100) == 0)) {
+    *ext = MATRIX_MARKET;
+    return 0; // success
+  }
+  else if((s>3) && (strncmp(e,".hb",100) == 0)) {
+    *ext = HARWELL_BOEING;
+    fprintf(stderr,"input error: Sorry Harwell-Boeing reader is broken\n");
+    return 1; // failure
+  }
+  else if((s > 3) && (strncmp(e,".rb",100) == 0)) {
+    *ext = HARWELL_BOEING;
+    fprintf(stderr,"input error: Sorry Rutherford-Boeing reader is broken\n");
+    return 1; // failure
+  }
+  else if((s > 4) && (strncmp(e-1,".mat",100) == 0)) {
+    *ext = MATLAB;
+    fprintf(stderr,"input error: Sorry Matlab reader is broken\n");
+    return 1; // failure
+  } // TODO test if the matlab reader is actually busted
+  else{
+    fprintf(stderr,"input error: Unrecognized file extension\n");
+    return 1; // failure
   }
 }

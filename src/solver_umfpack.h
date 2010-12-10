@@ -21,7 +21,7 @@ solve_system_umfpack_t* solver_init_umfpack(struct parse_args* args, perftimer_t
 
 void solver_data_prep_umfpack(solve_system_umfpack_t* p, struct sparse_matrix_t* A, double* b);
 
-void solver_solve_umfpack(solve_system_umfpack_t* p, struct parse_args* args, perftimer_t* timer);
+double* solver_solve_umfpack(solve_system_umfpack_t* p, struct parse_args* args, perftimer_t* timer);
 
 void solver_finalize_umfpack(solve_system_umfpack_t* p);
 

@@ -6,6 +6,7 @@
 #include <string.h> // memcpy
 #include <assert.h>
 
+#include <bebop/smc/sparse_matrix_ops.h>
 #include <bebop/smc/csc_matrix.h>
 #include <bebop/util/enumerations.h>
 
@@ -41,6 +42,7 @@ void solver_data_prep_umfpack(solve_system_umfpack_t* p, struct sparse_matrix_t*
     assert(p->Ap[p->n] == Acsc->nnz);
 
     // TODO allocate x
+    p->x = malloc(p->m * sizeof(double));
   }
 
   if(b != NULL) {
@@ -51,7 +53,7 @@ void solver_data_prep_umfpack(solve_system_umfpack_t* p, struct sparse_matrix_t*
   }
 }
 
-void solver_solve_umfpack(solve_system_umfpack_t* p, struct parse_args* args, perftimer_t* timer) {
+double* solver_solve_umfpack(solve_system_umfpack_t* p, struct parse_args* args, perftimer_t* timer) {
   void *Symbolic, *Numeric;
 
   perftimer_inc(timer,"analyze",-1);
@@ -66,6 +68,8 @@ void solver_solve_umfpack(solve_system_umfpack_t* p, struct parse_args* args, pe
   umfpack_di_free_numeric(&Numeric);
 
   perftimer_inc(timer,"done",-1);
+
+  return p->x;
 }
 
 
