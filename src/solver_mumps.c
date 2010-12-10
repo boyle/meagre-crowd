@@ -76,7 +76,7 @@ void solver_data_prep_dmumps(DMUMPS_STRUC_C* id, struct sparse_matrix_t* A, doub
     free(id->rhs); // no-op if NULL
     id->rhs = malloc(id->n * sizeof(double));
     assert(id->rhs != NULL); // malloc failure
-    memcpy(id->rhs, b, id->n);
+    memcpy(id->rhs, b, id->n * sizeof(double));
   }
 }
 

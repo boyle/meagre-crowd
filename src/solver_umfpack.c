@@ -49,7 +49,7 @@ void solver_data_prep_umfpack(solve_system_umfpack_t* p, struct sparse_matrix_t*
     free(p->b); // no-op if NULL
     p->b = malloc(p->n * sizeof(double));
     assert(p->b != NULL); // malloc failure
-    memcpy(p->b, b, p->n);
+    memcpy(p->b, b, p->n * sizeof(double));
   }
 }
 
