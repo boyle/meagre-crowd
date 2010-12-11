@@ -44,6 +44,7 @@ int results_match(const double * const expected, const double const * result, co
 
 int main(int argc, char ** argv) {
   int ierr, retval;
+  const int false = 0;
   const int extra_timing = 0; // allow extra timing: initialization, matrix load, etc.
 
   // handle command-line arguments
@@ -95,22 +96,51 @@ int main(int argc, char ** argv) {
     }
 
     // verbose output
-    if(args->verbosity >= 2) { // an additional line showing MPI/OpenMP info
+    if(args->verbosity >= 1) {
+      assert(A != NULL);
       int c_mpi, c_omp;
       ierr = MPI_Comm_size(MPI_COMM_WORLD,&c_mpi); assert(ierr == 0);
       c_omp = 0; // TODO omp_get_num_threads();
-      printf("MPI cores=%d, openMP threads=%d\n",c_mpi,c_omp);
-    }
-
-    if(args->verbosity >= 1) {
-      assert(A != NULL);
       int ierr = sparse_matrix_convert(A, COO); assert(ierr == 0);
       struct coo_matrix_t* Acoo = A->repr;
-      printf("Ax=b: A is %dx%d, nz=%d, b is %dx%d, nz=%d\n",
+      const char* sym, *location, *type;
+      switch(Acoo->symmetry_type) {
+	case UNSYMMETRIC:    sym = "unsymmetric"; break;
+	case SYMMETRIC:      sym = "symmetric"; break;
+	case SKEW_SYMMETRIC: sym = "skew symmetric"; break;
+	case HERMITIAN:      sym = "hermitian"; break;
+	default: assert(false); // fell through
+      }
+      if((args->verbosity < 2) || (Acoo->symmetry_type == UNSYMMETRIC)) {
+	location = "";
+      }
+      else {
+	switch(Acoo->symmetric_storage_location) {
+	  case UPPER_TRIANGLE: location = " (upper)"; break;
+	  case LOWER_TRIANGLE: location = " (lower)"; break;
+	  default: assert(false);
+	}
+      }
+      switch(Acoo->value_type) {
+	case REAL:    type = "real"; break;
+	case COMPLEX: type = "complex"; break;
+	case PATTERN: type = "pattern"; break;
+	default: assert(false); // fell through
+      }
+      const char* solver;
+      switch(args->solver) {
+        case MUMPS:   solver = "mumps"; break;
+        case UMFPACK: solver = "umfpack"; break;
+	default: assert(false); // fell through
+      }
+      printf("Ax=b: A is %dx%d, nz=%d, %s%s, %s, b is %dx%d, nz=%d\nsolved with %s on %d core%s, %d thread%s\n",
              Acoo->m, Acoo->n, Acoo->nnz,
-             Acoo->m, 1, Acoo->m);
+	     sym, location, type,
+             Acoo->m, 1, Acoo->m,
+	     solver,
+	     c_mpi, c_mpi==1?"":"s",c_omp,c_omp==1?"":"s");
 
-      if(args->verbosity >= 2) {
+      if(args->verbosity >= 3) {
         int i;
         int n = Acoo->nnz;
         double* v = Acoo->val;
@@ -134,7 +164,7 @@ int main(int argc, char ** argv) {
       int i;
       for(i=0;i<m;i++)
         b[i] = i;
-      if(args->verbosity >= 2) { // show the rhs matrix
+      if(args->verbosity >= 3) { // show the rhs matrix
         for(i=0;i<m;i++)
           printf("  b(%i)=%.2f\n", i, b[i]);
       }
@@ -150,8 +180,7 @@ int main(int argc, char ** argv) {
     case UMFPACK:
       umfpack_p = solver_init_umfpack(args, timer, NULL); // TODO figure out passing arguments for initialization to all clients (re: A)
       break;
-    default:
-      assert(1); // should have caught unknown solver before now!
+    default: assert(false); // should have caught unknown solver before now!
   }
 
   if(args->mpi_rank == 0) {
@@ -162,8 +191,7 @@ int main(int argc, char ** argv) {
       case UMFPACK:
 	solver_data_prep_umfpack(umfpack_p, A, NULL);
 	break;
-      default:
-	assert(1); // should have caught unknown solver before now!
+      default: assert(false); // should have caught unknown solver before now!
     }
   }
 
@@ -181,8 +209,7 @@ int main(int argc, char ** argv) {
         case UMFPACK:
           solver_data_prep_umfpack(umfpack_p, NULL, b); // reset rhs = b
           break;
-        default:
-          assert(1); // should have caught unknown solver before now!
+        default: assert(false); // should have caught unknown solver before now!
       }
     }
 
@@ -193,8 +220,7 @@ int main(int argc, char ** argv) {
       case UMFPACK:
         rhs = solver_solve_umfpack(umfpack_p, args, timer);
         break;
-      default:
-        assert(1); // should have caught unknown solver before now!
+      default: assert(false); // should have caught unknown solver before now!
     }
 
     r++;
@@ -219,8 +245,7 @@ int main(int argc, char ** argv) {
     case UMFPACK:
       solver_finalize_umfpack(umfpack_p);
       break;
-    default:
-      assert(1); // should have caught unknown solver before now!
+    default: assert(false); // should have caught unknown solver before now!
   }
 
 /*  if (args->mpi_rank == 0) {
