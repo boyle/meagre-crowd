@@ -29,12 +29,13 @@ for M in $MATRICES; do
     E=${i/\.log/.err}
     if [[ -f $E && "$(cat $E | wc --bytes)" -ne 0 ]]; then
       [[ $RL -eq 0 ]] && echo ""
-      cat $E
+      head -1 $E
       let RL=$RL+1
+    else
+      head -2 $L | tail -1 | perl -pe 's/^solved with (\w+) on (\d+) \w+, (\d+) .*\n$/$1, $2, $3, /' >> $F
+      head -1 $L | perl -pe "s/^.*?A is (\d+)x(\d+), nz=(\d+), (\w+), (\w+),.*\n\$/${M/\//\/}, \$4, \$5, \$1, \$2, \$3, /" >> $F
+      tail -1 $L >> $F # last line of logs
     fi
-    head -2 $L | tail -1 | perl -pe 's/^solved with (\w+) on (\d+) \w+, (\d+) .*\n$/$1, $2, $3, /' >> $F
-    head -1 $L | perl -pe "s/^.*?A is (\d+)x(\d+), nz=(\d+), (\w+), (\w+),.*\n\$/${M/\//\/}, \$4, \$5, \$1, \$2, \$3, /" >> $F
-    tail -1 $L >> $F # last line of logs
   done
 
   ([[ $RL -eq 0 ]] && echo " .. pass") || echo " .. error"

@@ -22,6 +22,8 @@ These are somewhat arranged in order of priority. Highest at the top.
  - Make some default lists of common matrices used in papers.
  - Look at KCachegrind, Callgrind for profiling.
  - Generate a (random?) (sparse?) right-hand-side if one is not provided.
+ - for summary, when a failed test is encountered, add it to an summary.err file
+   so its easy to see where those happened
 
 Fix memory leaks:
  - there is a leak in one of the shared libraries atexit() - probably
