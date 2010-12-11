@@ -28,7 +28,6 @@
 
 
 
-
 // test result of matrix computations
 int results_match(const double * const expected, const double const * result, const int n, const double precision);
 int results_match(const double * const expected, const double const * result, const int n, const double precision) {
@@ -45,6 +44,7 @@ int results_match(const double * const expected, const double const * result, co
 
 int main(int argc, char ** argv) {
   int ierr, retval;
+  const int extra_timing = 0; // allow extra timing: initialization, matrix load, etc.
 
   // handle command-line arguments
   struct parse_args* args = calloc(1,sizeof(struct parse_args));
@@ -57,7 +57,7 @@ int main(int argc, char ** argv) {
 
   // initialize MPI
   perftimer_t* timer = perftimer_malloc();
-  if(args->rep == 0) {
+  if(extra_timing && args->rep == 0) {
     perftimer_inc(timer,"initialization",-1);
     perftimer_adjust_depth(timer,+1);
     perftimer_inc(timer,"MPI init",-1);
@@ -72,24 +72,24 @@ int main(int argc, char ** argv) {
   unsigned int m = 0; // rows
   if (args->mpi_rank == 0) {
 
-    if(args->rep == 0)
+    if(extra_timing && args->rep == 0)
       perftimer_inc(timer,"sparse file handling",-1);
     bebop_default_initialize (argc, argv, &ierr); assert (ierr == 0);
 
-    if(args->rep == 0) {
+    if(extra_timing && args->rep == 0) {
       perftimer_adjust_depth(timer,-1);
       perftimer_inc(timer,"input",-1);
       perftimer_adjust_depth(timer,+1);
     }
 
-    if(args->rep == 0)
+    if(extra_timing && args->rep == 0)
       perftimer_inc(timer,"load",-1);
 
     if((retval = load_matrix(args->input, &A)) != 0) {
       return retval;
     }
 
-    if(args->rep == 0) {
+    if(extra_timing && args->rep == 0) {
       perftimer_inc(timer,"solver",-1);
       perftimer_inc(timer,"rhs",-1);
     }
@@ -120,7 +120,7 @@ int main(int argc, char ** argv) {
       }
     }
 
-    if(args->rep == 0)
+    if(extra_timing && args->rep == 0)
       perftimer_adjust_depth(timer,-1);
     //destroy_sparse_matrix (A); // TODO can't release it unless we're copying it...
 
@@ -200,19 +200,16 @@ int main(int argc, char ** argv) {
     r++;
   } while (r < args->rep);
 
-  if(args->rep == 0)
+  if(extra_timing && args->rep == 0) {
     perftimer_inc(timer,"clean up",-1);
-
-  if(args->rep == 0) {
     perftimer_adjust_depth(timer,-1);
     perftimer_inc(timer,"output",-1);
+  }
 
-    if((args->mpi_rank == 0) && (args->verbosity >= 2)) {
-      int i;
-      for(i=0;i<m;i++)
-        printf("  x(%d)=%.2f\n",i,rhs[i]);
-    }
-
+  if((args->mpi_rank == 0) && (args->verbosity >= 2)) {
+    int i;
+    for(i=0;i<m;i++)
+      printf("  x(%d)=%.2f\n",i,rhs[i]);
   }
 
   switch(args->solver) {
@@ -255,7 +252,7 @@ int main(int argc, char ** argv) {
 */
   // clean up
   free(b);
-  if(args->rep == 0) {
+  if(extra_timing && args->rep == 0) {
     perftimer_inc(timer,"clean up",-1);
     perftimer_adjust_depth(timer,+1);
 
@@ -264,7 +261,7 @@ int main(int argc, char ** argv) {
   ierr = MPI_Finalize(); assert(ierr == 0);
 
   // show timing info, if requested, to depth N
-  if(args->rep == 0) {
+  if(extra_timing && args->rep == 0) {
     perftimer_adjust_depth(timer,-1);
     perftimer_inc(timer,"finished",-1);
   }
@@ -281,7 +278,3 @@ int main(int argc, char ** argv) {
   free(args);
   return retval;
 }
-
-
-
-
