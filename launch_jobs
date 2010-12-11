@@ -10,7 +10,7 @@ function usage() {
 # base working directory
 BASE=$1
 # number of cores
-CORES=${2:-"1 2 3"} # 4 5 6 7 8 16 32 64"} #default
+CORES=${2:-"1 2 3 4 5 6 7 8 16 24 30 60 120 240"} #default
 
 # arg checks
 for N in $CORES; do
@@ -22,11 +22,11 @@ MC=meagre-crowd
 MC_ARGS="-tv" # one iteration
 
 SUB=sqsub
-SUB_ARGS="-r 15m --mpp=1G -q mpi"
-SUB_ARGS_1="-r 15m --mpp=1G -q serial" # special options for single core
+SUB_ARGS="-r 1h --mpp=1G -q mpi"
+SUB_ARGS_1="-r 1h --mpp=1G -q serial" # special options for single core
 
 INPUT_DIR=matrices
-MATRICES="Bai/dwa512 Bai/dw4096 Bai/dw8192" # ATandT/onetone2 Freescale/transient Freescale/memchip Freescale/Freescale1 Freescale/circuit5M"
+MATRICES="Bai/dwa512 Bai/dw4096 Bai/dw8192 ATandT/onetone2 Freescale/transient Freescale/memchip Freescale/Freescale1 Freescale/circuit5M"
 
 
 $SUB -h &> /dev/null
