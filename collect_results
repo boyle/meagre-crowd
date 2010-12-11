@@ -11,36 +11,37 @@ D=$1
 
 cd $D
 MATRICES=$(cat matrices)
-NCPU=$(cat ncpus)
-echo "ncpu: $NCPU"
 FIRSTLOG=$(cat matrices | cut --delimiter=' ' -f 1)
-echo "header from: ${FIRSTLOG}" # second last line of log
-cd -
-
+echo "header from: ${FIRSTLOG}"
+cd - > /dev/null
 
 F=$D/summary.csv
 [[ -f $F ]] && rm $F
 
 # create header
-echo -n "N_cpu, matrix, m, n, nz, " >> $F
-tail -2 $D/${FIRSTLOG}.log | head -1 >> $F
+echo -n "solver, cores, threads, matrix, symmetry, type, m, n, nz, " >> $F
+cat $(ls $D/${FIRSTLOG}*.log) | tail -2 | head -1 >> $F # 2nd last line
 
 # collate data
 R=0
-for i in $MATRICES; do
-  echo -n $i
-  E=$D/$i.err
-  L=$D/$i.log
-  if [[ "$(cat $E | wc --bytes)" -ne 0 ]]; then
-    echo "  .. error"
-    cat $E
-    let R=$R+1
-  else
-    echo " .. pass"
-  fi
-  echo -n "$NCPU, $i, " >> $F
-  head -1 results.0846/Bai/dwa512.log | perl -pe 's/^.*?A is (\d+)x(\d+), nz=(\d+).*\n$/$1, $2, $3, /' >> $F
-  tail -1 $L >> $F # last line of logs
+for M in $MATRICES; do
+  RL=0
+  echo -n $M
+  for i in $D/$M*.log; do
+    L=$i
+    E=${i/\.log/.err}
+    if [[ -f $E && "$(cat $E | wc --bytes)" -ne 0 ]]; then
+      [[ $RL -eq 0 ]] && echo ""
+      cat $E
+      let RL=$RL+1
+    fi
+    head -2 $L | tail -1 | perl -pe 's/^solved with (\w+) on (\d+) \w+, (\d+) .*\n$/$1, $2, $3, /' >> $F
+    head -1 $L | perl -pe "s/^.*?A is (\d+)x(\d+), nz=(\d+), (\w+), (\w+),.*\n\$/${M/\//\/}, \$4, \$5, \$1, \$2, \$3, /" >> $F
+    tail -1 $L >> $F # last line of logs
+  done
+
+  ([[ $RL -eq 0 ]] && echo " .. pass") || echo " .. error"
+  let R=$R+$RL
 done
 echo "summary: $F"
 
