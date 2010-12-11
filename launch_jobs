@@ -22,8 +22,8 @@ MC=meagre-crowd
 MC_ARGS="-tv" # one iteration
 
 SUB=sqsub
-SUB_ARGS="-n $N -r 15m --mpp=1G -q mpi"
-SUB_ARGS_1="-n 1 -r 15m --mpp=1G -q serial" # special options for single core
+SUB_ARGS="-r 15m --mpp=1G -q mpi"
+SUB_ARGS_1="-r 15m --mpp=1G -q serial" # special options for single core
 
 INPUT_DIR=matrices
 MATRICES="Bai/dwa512 Bai/dw4096 Bai/dw8192" # ATandT/onetone2 Freescale/transient Freescale/memchip Freescale/Freescale1 Freescale/circuit5M"
@@ -61,9 +61,10 @@ function launch_job() {
   SA=${SUB_ARGS}
   [[ $N -eq 1 ]] && SA=${SUB_ARGS_1}
   ${SUB} ${SA} \
+    -n $N \
     -o ${OUTPUT_DIR}/$i-$N-$S.log \
     -e ${OUTPUT_DIR}/$i-$N-$S.err \
-    -j "MC($S:$N:$i)" \
+    -j "MC($S-$N-${i/\//_})" \
     ${MC} -i ${BASE}/${INPUT_DIR}/$i.mm ${MC_ARGS} -s $S \
       >> ${OUTPUT_DIR}/jobids
 }
@@ -83,6 +84,17 @@ done
 
 echo "Saving list"
 echo "${MATRICES}" > ${OUTPUT_DIR}/matrices
-echo "  output: ${OUTPUT_DIR}"
 
+# collect results once all the runs are done: we've saved the job ids
+JOBIDS=$(sed '/^$/d' ${OUTPUT_DIR}/jobids | sort | tr '\n' ',' | sed s/,$//)
+
+${SUB} ${SUB_ARGS_1} \
+  -n 1 \
+  -o ${OUTPUT_DIR}/collect.log \
+  -e ${OUTPUT_DIR}/collect.err \
+  --waitfor=${JOBIDS} \
+  -j "MC-collect" \
+  $(which collect_results) ${OUTPUT_DIR} > /dev/null
+
+echo "  Results are in '${OUTPUT_DIR}'"
 # TODO launch a final job that waits for the other jobs, then summarizes the results
