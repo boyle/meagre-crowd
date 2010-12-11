@@ -57,7 +57,7 @@
 #define PACKAGE_NAME "meagre-crowd"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "meagre-crowd 0.0.7"
+#define PACKAGE_STRING "meagre-crowd 0.1.0"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "meagre-crowd"
@@ -66,7 +66,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.0.7"
+#define PACKAGE_VERSION "0.1.0"
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
@@ -94,7 +94,7 @@
 
 
 /* Version number of package */
-#define VERSION "0.0.7"
+#define VERSION "0.1.0"
 
 /* Define to 1 if on MINIX. */
 /* #undef _MINIX */
