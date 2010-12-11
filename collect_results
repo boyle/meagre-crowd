@@ -18,9 +18,6 @@ cd - > /dev/null
 F=$D/summary.csv
 [[ -f $F ]] && rm $F
 
-# create header
-echo -n "solver, cores, threads, matrix, symmetry, type, m, n, nz, " >> $F
-cat $(ls $D/${FIRSTLOG}*.log) | tail -2 | head -1 >> $F # 2nd last line
 
 # collate data
 R=0
@@ -43,6 +40,15 @@ for M in $MATRICES; do
   ([[ $RL -eq 0 ]] && echo " .. pass") || echo " .. error"
   let R=$R+$RL
 done
-echo "summary: $F"
 
+# create header
+mv $F $F--b
+echo -n "solver, cores, threads, matrix, symmetry, type, m, n, nz, " >> $F
+cat $(ls $D/${FIRSTLOG}*.log) | tail -2 | head -1 >> $F # 2nd last line
+
+# append the body, sorted
+sort $F--b >> $F
+rm $F--b
+
+echo "summary: $F"
 exit $R
