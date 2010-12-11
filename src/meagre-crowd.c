@@ -66,6 +66,20 @@ int main(int argc, char ** argv) {
   ierr = MPI_Init(&argc, &argv);               assert(ierr == 0);
   ierr = MPI_Comm_rank(MPI_COMM_WORLD, &(args->mpi_rank)); assert(ierr == 0);
 
+  // if this solver is not thread/mpi safe, report an error if its been launched that way
+  int single_threaded = 0;
+  int c_mpi;
+  switch(args->solver) {
+    case UMFPACK: single_threaded = 1; break;
+    default: ; // otherwise do nothing
+  }
+  ierr = MPI_Comm_size(MPI_COMM_WORLD,&c_mpi); assert(ierr == 0);
+  if(single_threaded && c_mpi > 1) {
+    if(args->mpi_rank == 0)
+      fprintf(stderr, "error: selected solver is single threaded, but launched with %d threads\n",c_mpi);
+    ierr = MPI_Finalize(); assert(ierr == 0);
+    return 10;
+  }
 
   // Define the problem on the host
   double* b = NULL;
@@ -98,8 +112,7 @@ int main(int argc, char ** argv) {
     // verbose output
     if(args->verbosity >= 1) {
       assert(A != NULL);
-      int c_mpi, c_omp;
-      ierr = MPI_Comm_size(MPI_COMM_WORLD,&c_mpi); assert(ierr == 0);
+      int c_omp;
       c_omp = 0; // TODO omp_get_num_threads();
       int ierr = sparse_matrix_convert(A, COO); assert(ierr == 0);
       struct coo_matrix_t* Acoo = A->repr;
