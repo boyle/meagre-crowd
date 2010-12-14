@@ -4,7 +4,7 @@ Compiling and Installing
 
 If checking out code from a repository, run
 
-  ./autogen.sh
+  ./autogen
 
 to regenerate the configure scripts.
 
