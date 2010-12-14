@@ -15,7 +15,6 @@ These are somewhat arranged in order of priority. Highest at the top.
    - add tests for mumps, umfpack solvers
    - add unit tests for solvers, args, file
  - add input list option to launcher (what matrices to run)
- - make summary script run when launched jobs complete (sqsub --wait?)
  ?? are there any other stats we'd like to collect?
  - Add type tests: condition number, singularity, symmetric, hermitian, real, complex
    ?? others
