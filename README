@@ -49,7 +49,7 @@ To tar the archive, then expand, compile and run the test suite
 
 or, for local dependencies
 
-  make distcheck DISTCHECK_CONFIGURE_FLAGS='LDFLAGS="-L$PWD/x86_64-pc-linux-gnu/lib -Wl,-rpath,$PWD/x86_64-pc-linux-gnu/lib" CPPFLAGS="-I $PWD/x86_64-pc-linux-gnu/include"'
+  make distcheck DISTCHECK_CONFIGURE_FLAGS="LDFLAGS=\"-L$PWD/x86_64-pc-linux-gnu/lib -Wl,-rpath,$PWD/x86_64-pc-linux-gnu/lib\" CPPFLAGS=\"-I $PWD/x86_64-pc-linux-gnu/include\""
 
 
 Running the Program
@@ -73,7 +73,12 @@ For help indicating what the program can do run
 To load a matrix to solve using the default solver, using 2 MPI
 processes, show some info on the matrix and time the solving of it:
 
-  mpirun -n 2 ./meagre-crowd -i dir/abc.mm -v -t
+  mpirun -n 2 ./meagre-crowd -i tests/test.mm -v -t
 
 Note that you probably also need to submit a job to a scheduler if
-you are on a larger multicore system.
+you are on a larger multicore system. (bsub, qsub, sqsub?)
+
+Currently, meagre-crowd determines file type from extensions,
+it can only handle MatrixMarket format which it expects to have
+a .mm extension. Rutherford-Boeing and Harwell-Boeing would be
+.rb and .hb respectively.
