@@ -1,3 +1,21 @@
+ # Meagre-Crowd: A sparse distributed matrix solver testbench for performance benchmarking.
+ # Copyright (C) 2010 Alistair Boyle <alistair.js.boyle@gmail.com>
+ #
+ #     This file is part of Meagre-Crowd.
+ #
+ #     Meagre-Crowd program is free software: you can redistribute it and/or modify
+ #     it under the terms of the GNU Lesser General Public License as published by
+ #     the Free Software Foundation, either version 3 of the License, or
+ #     (at your option) any later version.
+ #
+ #     This program is distributed in the hope that it will be useful,
+ #     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ #     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ #     GNU Lesser General Public License for more details.
+ #
+ #     You should have received a copy of the GNU Lesser General Public License
+ #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 # build to GNU standards
 AUTOMAKE_OPTIONS = gnu
 
@@ -15,7 +33,7 @@ noinst_HEADERS = src/perftimer.h src/args.h src/file.h src/solver_mumps.h src/so
 # want these scripts installed in the end
 bin_SCRIPTS = launch_jobs collect_results
 # some random files we want to distribute with the package tar
-EXTRA_DIST = LICENSE get_dependencies $(bin_SCRIPTS) tests/test.mm tests/test.hb tests/test.rb
+EXTRA_DIST = LICENSE COPYING COPYING.LESSER get_dependencies $(bin_SCRIPTS) tests/test.mm tests/test.hb tests/test.rb
 
 # the tests
 BUILT_TESTS = tests/file tests/helloworld-mpi tests/helloworld-mumps tests/mumps-file tests/unit-perftimer tests/hello-umfpack
