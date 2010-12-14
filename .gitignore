@@ -2,6 +2,7 @@ dl
 x86_64-pc-linux-gnu
 autom4te.cache
 configure
+Makefile.in
 Makefile
 atlocal
 atconfig
@@ -15,7 +16,9 @@ stamp-h1
 testsuite
 testsuite.log
 package.m4
+build-aux
 meagre-crowd
+src/config.h
 tests/file
 tests/hello-umfpack
 tests/helloworld-mpi
