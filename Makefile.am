@@ -45,6 +45,10 @@ tests_unit_perftimer_CPPFLAGS = -I$(srcdir)/src
 AM_CFLAGS = -Werror #-Wextra
 
 clean-local: clean-local-check
+maintainer-clean-local:
+	-rm -f COPYING COPYING.LESSER aclocal.m4 configure ChangeLog Makefile.in src/config.h.in~
+	-rm -rf build-aux .deps
+
 
 ######
 ## vodoo incantations to get the test suite automation to build (autotest)
