@@ -1,6 +1,7 @@
 dl
 x86_64-pc-linux-gnu
 autom4te.cache
+aclocal.m4
 configure
 Makefile.in
 Makefile
