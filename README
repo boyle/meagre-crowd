@@ -1,15 +1,22 @@
+
 Compiling and Installing
 ------------------------
 
+If checking out code from a repository, run
+
+  ./autogen.sh
+
+to regenerate the configure scripts.
+
 Run the following commands to compile this program
 
-./configure
-make
-make install
+  ./configure
+  make
+  make install
 
 Run
 
-./configure --prefix=<dir>
+  ./configure --prefix=<dir>
 
 to have the files installed in a different location from the
 default /usr/local (i.e. if you don't have root permission
@@ -18,24 +25,31 @@ and would like to install it in your home directory)
 If you've used the get_dependancies script then you probably
 want to run configure with
 
-./configure LDFLAGS="-L$(pwd)/x86_64-pc-linux-gnu/lib -Wl,-rpath,$(pwd)/x86_64-pc-linux-gnu/lib" CPPFLAGS="-I $(pwd)/x86_64-pc-linux-gnu/include" --prefix=/home/boyle/proj/meagre-crowd/installed --enable-debug=yes
+  ./configure LDFLAGS="-L$PWD/x86_64-pc-linux-gnu/lib -Wl,-rpath,$PWD/x86_64-pc-linux-gnu/lib" CPPFLAGS="-I $PWD/x86_64-pc-linux-gnu/include" --prefix=$PWD/installed --enable-debug=yes
 
 or something similar. The -L and -I directories should be
 current locations for the files, while the -rpath should
 be the final installed location.
 
+
 Running the Tests
 -----------------
+
 To execute the test suite run
 
 make check
 
+
 Preparing for Distribution
 --------------------------
+
 To tar the archive, then expand, compile and run the test suite
 
-make distcheck
-make distcheck DISTCHECK_CONFIGURE_FLAGS='LDFLAGS="-L/home/boyle/proj/meagre-crowd/x86_64-pc-linux-gnu/lib -Wl,-rpath,/home/boyle/proj/meagre-crowd/x86_64-pc-linux-gnu/lib" CPPFLAGS="-I /home/boyle/proj/meagre-crowd/x86_64-pc-linux-gnu/include"'
+  make distcheck
+
+or, for local dependencies
+
+  make distcheck DISTCHECK_CONFIGURE_FLAGS='LDFLAGS="-L$PWD/x86_64-pc-linux-gnu/lib -Wl,-rpath,$PWD/x86_64-pc-linux-gnu/lib" CPPFLAGS="-I $PWD/x86_64-pc-linux-gnu/include"'
 
 
 Running the Program
@@ -48,14 +62,18 @@ collection, so you don't need to download both.
 
   http://www.cise.ufl.edu/research/sparse/matrices
 
-  wget http://www.cise.ufl.edu/research/sparse/mat/ChangeLog
+For usage information, run without any options
 
+  meagre-crowd
 
-To load a matrix to solve, show some info on the matrix and time the solving of it:
+For help indicating what the program can do run
 
-  mpirun -n N ./meagre-crowd -i dir/abc.mm -v -t
+  meagre-crowd --help
 
-  where N is the number of processors available.
+To load a matrix to solve using the default solver, using 2 MPI
+processes, show some info on the matrix and time the solving of it:
 
+  mpirun -n 2 ./meagre-crowd -i dir/abc.mm -v -t
 
-TODO instructions on how to make the program do stuff
+Note that you probably also need to submit a job to a scheduler if
+you are on a larger multicore system.
