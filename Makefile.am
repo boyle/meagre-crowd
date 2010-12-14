@@ -109,3 +109,17 @@ MPI_ARGS=-n 4
 VALGRIND=${VALGRIND_ENV} ${VALGRIND_BIN} ${VALGRIND_ARGS} ${MPI_BIN} ${MPI_ARGS}
 valgrind: tests/mumps-file
 	cd test && ${VALGRIND} mumps-file
+
+.PHONY: help
+help:
+	@echo "Useful make targets: make [target]"
+	@echo "  <none> == all"
+	@echo "  all              - build software"
+	@echo "  install"
+	@echo "  uninstall"
+	@echo "  clean            - remove built files"
+	@echo "  distclean        - clean to distributed state"
+	@echo "  maintainer-clean - delete all generated files"
+	@echo "  check            - run testsuite"
+	@echo "  dist             - create a .tar.gz for distribution"
+	@echo "  distcheck        - .tar, then untar in new dir and test"
