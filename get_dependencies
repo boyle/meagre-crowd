@@ -1,7 +1,7 @@
 #! /bin/sh
 
 # select implimentations
-MPI="local" # mpich2 or mpich1 or openmpi or local or skip
+MPI="openmpi" # mpich2 or mpich1 or openmpi or local or skip
 BLAS="netlib" # netlib or atlas or local
 LAPACK="netlib" # netlib or local
 METIS="parmetis" # parmetis or metis -- metis is required by cholmod
@@ -196,9 +196,11 @@ ${MPI_PATH}/bin/mpirun -V 2>&1 | head -1 || err ${MPI}-skipped "missing mpirun"
 if [[ -z "${MPI_DLIB}" ]]; then
   MPI_LIB=${MPI_PATH}/lib/libmpi.a
   MPI_DLIB="-L${MPI_PATH}/lib -lmpi"
+  [[ ${MPI_PATH} =~ "/usr" ]] && MPI_DLIB="-lmpi" # skip the rpath if its in the default location
   MPI_INC=${MPI_PATH}/include
   MPICC=${MPI_PATH}/bin/mpicc
   MPIF77=${MPI_PATH}/bin/mpif77
+  [[ ! -f $(which $MPICC) ]] && err ${MPI} "mpicc not found at ${MPICC}"
 fi
 
 # matrix tools:
@@ -273,7 +275,7 @@ if [[ ! -d ${S}/lapack || ${S}/lapack -nt ${INSTALL_LIB_DIR} ]]; then
       sed -i s/_LINUX/-${MACHINE}/ make.inc
       sed -i "s/\(^OPTS.*=\).*/\1 -O2 -fPIC/" make.inc
       sed -i "s/\(^NOOPT.*=\).*/\1 -O0 -fPIC/" make.inc
-      sed -i "s/\(BLASLIB *=\) .*/\1 ${BLAS_DLIB//\//\\/}/" make.inc
+      sed -i "s/\(BLASLIB *=\) .*/\1 -Wl,-rpath,${BLAS_DIR//\//\\/} ${BLAS_DLIB//\//\\/}/" make.inc
       info "  build"
       ${MAKE} all > /dev/null || err lapack "build failed"
       cp lapack-${MACHINE}.a  ${INSTALL_LIB_DIR}/liblapack.a

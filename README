@@ -6,7 +6,16 @@ If checking out code from a repository, run
 
   ./autogen
 
-to regenerate the configure scripts.
+to regenerate the configure scripts. You will need m4 and the autoconf tools installed to
+regenerate these scripts. If these are not available then download the tar ball
+which has the configure scripts pre-generated for you. (meagre-crowd-X.Y.Z.tar.gz)
+
+Make sure the prerequists are available, including MPI.
+You may need to add the MPI bin directory to the path. The
+script get_dependencies is a good starting point, though
+it will likely need to be modified. A proper dependency
+system via Gentoo, Ubuntu, or RedHat should be able to
+provide most of the dependencies.
 
 Run the following commands to compile this program
 
@@ -25,7 +34,7 @@ and would like to install it in your home directory)
 If you've used the get_dependancies script then you probably
 want to run configure with
 
-  ./configure LDFLAGS="-L$PWD/x86_64-pc-linux-gnu/lib -Wl,-rpath,$PWD/x86_64-pc-linux-gnu/lib" CPPFLAGS="-I $PWD/x86_64-pc-linux-gnu/include" --prefix=$PWD/installed --enable-debug=yes
+  ./configure LDFLAGS="-L$PWD/$(gcc -dumpmachine)/lib -Wl,-rpath,$PWD/$(gcc -dumpmachine)/lib" CPPFLAGS="-I $PWD/$(gcc -dumpmachine)/include" --prefix=$PWD/installed --enable-debug=yes
 
 or something similar. The -L and -I directories should be
 current locations for the files, while the -rpath should
@@ -49,7 +58,7 @@ To tar the archive, then expand, compile and run the test suite
 
 or, for local dependencies
 
-  make distcheck DISTCHECK_CONFIGURE_FLAGS="LDFLAGS=\"-L$PWD/x86_64-pc-linux-gnu/lib -Wl,-rpath,$PWD/x86_64-pc-linux-gnu/lib\" CPPFLAGS=\"-I $PWD/x86_64-pc-linux-gnu/include\""
+  make distcheck DISTCHECK_CONFIGURE_FLAGS="LDFLAGS=\"-L$PWD/$(gcc -dumpmachine)/lib -Wl,-rpath,$PWD/$(gcc -dumpmachine)/lib\" CPPFLAGS=\"-I $PWD/$(gcc -dumpmachine)/include\""
 
 
 Running the Program
