@@ -116,8 +116,8 @@ Options:"
       {0,      '?',0,OPTION_ALIAS},
       {"usage",-1, 0,0,"Show usage information",-1},
       {"version",'V', 0,0,"Show version information",-1},
-      {"input", 'i',"FILE",0,"Input matrix FILE",10},
-      {"output",'o',"FILE",0,"Output file FILE ('-' is stdout)",20},
+      {"input", 'i',"FILE",0,"Input matrix FILE (A)",10},
+      {"output",'o',"FILE",0,"Output matrix FILE (x) ('-' is stdout)",20},
       // TODO these should just be all the other command line components (no arg required ala gcc)
       {"verbose",'v',0,0,"Increase verbosity",11},
       // TODO add note to man page: -v, -vv, -vvv, etc for more detail

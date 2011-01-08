@@ -8,8 +8,12 @@ at any patches or discuss potential solutions.
 These are somewhat arranged in order of priority. Highest at the top.
 
  - Run valgrind. Find bad allocations and uninitialized variables.
+ - provide right-hand-side (-b F, --right-hand-side=F)
+   - Generate a (random?) (sparse?) right-hand-side if one is not provided.
  - ability to compare results vs. expected (testing!) w/in a certain precision
-   - precision might not need to be an option if there's an heuristic we can use (1e-14?)
+   - provide expected result (-x F, --expected=F)
+   - set expectation of precision ( --expected-precision=1e-14 ) default: 1e-14?
+     - precision might not need to be an option if there's an heuristic we can use (1e-14?)
    - add tests for mumps, umfpack solvers
    - add unit tests for solvers, args, file
  - add input list option to launcher (what matrices to run)
@@ -18,7 +22,6 @@ These are somewhat arranged in order of priority. Highest at the top.
    ?? others
  - Make some default lists of common matrices used in papers.
  - Look at KCachegrind, Callgrind for profiling.
- - Generate a (random?) (sparse?) right-hand-side if one is not provided.
  - for summary, when a failed test is encountered, add it to an summary.err file
    so its easy to see where those happened
 
