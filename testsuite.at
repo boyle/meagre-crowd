@@ -92,34 +92,6 @@ MC_DATA_FILE_TEST_MM
 AT_CHECK(mpirun -n 4 mumps-file,0,ignore)
 AT_CLEANUP
 
-AT_BANNER([help])
-
-m4_define([MC_CHECK_HELP_NOCRASH],[
-AT_SETUP([$1])
-AT_KEYWORDS([help])
-AT_CHECK(AT_PACKAGE_NAME[ $1],,ignore)
-AT_CLEANUP
-])
-
-m4_define([MC_CHECK_HELP_VER],[
-AT_SETUP([$1])
-AT_KEYWORDS([help])
-AT_CHECK(AT_PACKAGE_NAME[ $1],,AT_PACKAGE_NAME[ ]AT_PACKAGE_VERSION[
-])
-AT_CLEANUP
-])
-
-
-AT_SETUP([empty command-line])
-AT_KEYWORDS([help])
-AT_CHECK(AT_PACKAGE_NAME,1,,ignore)
-AT_CLEANUP
-MC_CHECK_HELP_NOCRASH([--help])
-MC_CHECK_HELP_NOCRASH([-h])
-MC_CHECK_HELP_NOCRASH([-?])
-MC_CHECK_HELP_VER([-V])
-MC_CHECK_HELP_VER([--version])
-
 
 
 m4_define([MC_UNIT_TEST],[
@@ -136,21 +108,42 @@ MC_UNIT_TEST([perftimer])
 
 
 AT_BANNER([functional tests])
-# test the file input
-AT_SETUP([-i <none>])
-AT_KEYWORDS([func])
-AT_CHECK(AT_PACKAGE_NAME -i,64,,ignore)
+
+
+
+AT_SETUP([help/usage])
+AT_KEYWORDS([help])
+AT_CHECK(AT_PACKAGE_NAME,1,,ignore)
+AT_CHECK(AT_PACKAGE_NAME --help,0,ignore)
+AT_CHECK(AT_PACKAGE_NAME -h,0,ignore)
+AT_CHECK(AT_PACKAGE_NAME -?,0,ignore)
 AT_CLEANUP
-AT_SETUP([-i bad])
-AT_KEYWORDS([func])
-AT_CHECK(AT_PACKAGE_NAME -i bad,1,,[input error: No such file or directory
+
+
+AT_SETUP(--version)
+AT_KEYWORDS([version])
+AT_CHECK(AT_PACKAGE_NAME --version,,AT_PACKAGE_NAME[ ]AT_PACKAGE_VERSION[
+])
+AT_CHECK(AT_PACKAGE_NAME -V,,AT_PACKAGE_NAME[ ]AT_PACKAGE_VERSION[
 ])
 AT_CLEANUP
-AT_SETUP([-i broken.mm])
+
+
+AT_SETUP([--input])
+AT_KEYWORDS([func])
+MC_DATA_FILE_TEST_MM
+AT_CHECK(AT_PACKAGE_NAME --input=test.mm,0,)
+AT_CHECK(AT_PACKAGE_NAME -i test.mm,0,)
+AT_CHECK(AT_PACKAGE_NAME --input,64,,ignore)
+AT_CHECK(AT_PACKAGE_NAME -i,64,,ignore)
+# TODO support stdin
+AT_CHECK(AT_PACKAGE_NAME -i -,1,,[input error: No such file or directory
+])
+AT_CHECK(AT_PACKAGE_NAME -i bad,1,,[input error: No such file or directory
+])
 AT_DATA([broken.mm],[ Jibberish file
 not even the right format
 ])
-AT_KEYWORDS([func])
 # TODO clean up the garbage left by read_matrix_market_sparse when it fails (turn it off somehow?)
 AT_CHECK(AT_PACKAGE_NAME -i broken.mm,1,,[*** read_matrix_market_sparse: Could not process MatrixMarket banner ***
 *** load_sparse_matrix: Failed to read MatrixMarket format sparse matrix from file "broken.mm", error code 14 ***
@@ -158,35 +151,33 @@ input error: Failed to load matrix
 ])
 AT_CLEANUP
 
-AT_SETUP([-i test.mm])
+
+AT_SETUP([--output])
+AT_KEYWORDS([func])
+MC_DATA_FILE_TEST_MM
+AT_CHECK(AT_PACKAGE_NAME --input=test.mm --output=test2.mm,0,)
+AT_CHECK(AT_PACKAGE_NAME -i test.mm -o test3.mm,0,)
+AT_CHECK(AT_PACKAGE_NAME --input=test.mm --output,64,,ignore)
+AT_CHECK(AT_PACKAGE_NAME -i test.mm -o,64,,ignore)
+AT_CHECK(AT_PACKAGE_NAME -i test.mm -o -,0,[  x(0)=1.00
+  x(1)=0.43
+  x(2)=0.25
+  x(3)=-0.09
+  x(4)=0.25
+])
+AT_CLEANUP
+
+
+AT_SETUP([--input formats])
 AT_KEYWORDS([func])
 MC_DATA_FILE_TEST_MM
 AT_CHECK(AT_PACKAGE_NAME -i test.mm,0,ignore)
-AT_CLEANUP
-
-AT_SETUP([--input=test.mm])
-AT_KEYWORDS([func])
-MC_DATA_FILE_TEST_MM
-AT_CHECK(AT_PACKAGE_NAME --input=test.mm,0,ignore)
-AT_CLEANUP
-
-
-AT_SETUP([-i test.rb])
-AT_KEYWORDS([func])
 MC_DATA_FILE_TEST_RB
 AT_CHECK(AT_PACKAGE_NAME -i test.rb,1,,[input error: Sorry Rutherford-Boeing reader is broken
 ])
-AT_CLEANUP
-
-AT_SETUP([-i test.hb])
-AT_KEYWORDS([func])
 MC_DATA_FILE_TEST_HB
 AT_CHECK(AT_PACKAGE_NAME -i test.hb,1,,[input error: Sorry Harwell-Boeing reader is broken
 ])
-AT_CLEANUP
-
-AT_SETUP([-i test.mat])
-AT_KEYWORDS([func])
 MC_DATA_FILE_TEST_MAT
 AT_CHECK(AT_PACKAGE_NAME -i test.mat,1,,[input error: Sorry Matlab reader is broken
 ])
@@ -194,23 +185,18 @@ AT_CLEANUP
 
 
 m4_define([MC_ARGS_STAGE2],[
-AT_SETUP([$1])
+AT_SETUP([--$1])
 AT_KEYWORDS([func])
 MC_DATA_FILE_TEST_MM
-AT_CHECK(AT_PACKAGE_NAME[ --input=test.mm $1],,ignore)
+AT_CHECK(AT_PACKAGE_NAME[ --input=test.mm --$1],0,ignore)
+AT_CHECK(AT_PACKAGE_NAME[ --input=test.mm -$2],0,ignore)
+AT_CHECK(AT_PACKAGE_NAME[ --input=test.mm -$2 -$2],0,ignore)
+AT_CHECK(AT_PACKAGE_NAME[ --input=test.mm -$2$2],0,ignore)
+AT_CHECK(AT_PACKAGE_NAME[ --input=test.mm -$2$2$2],0,ignore)
+AT_CHECK(AT_PACKAGE_NAME[ --input=test.mm -$2$2$2],0,ignore)
+AT_CHECK(AT_PACKAGE_NAME[ --input=test.mm -$2$2$2$2],0,ignore)
 AT_CLEANUP
 ])
 
-MC_ARGS_STAGE2([--verbose])
-MC_ARGS_STAGE2([-v])
-MC_ARGS_STAGE2([-v -v])
-MC_ARGS_STAGE2([-vv])
-MC_ARGS_STAGE2([-vvv])
-MC_ARGS_STAGE2([-vvvv])
-
-MC_ARGS_STAGE2([--timing])
-MC_ARGS_STAGE2([-t])
-MC_ARGS_STAGE2([-t -t])
-MC_ARGS_STAGE2([-tt])
-MC_ARGS_STAGE2([-ttt])
-MC_ARGS_STAGE2([-tttt])
+MC_ARGS_STAGE2([verbose],[v])
+MC_ARGS_STAGE2([timing],[t])

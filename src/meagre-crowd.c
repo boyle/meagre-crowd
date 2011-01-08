@@ -263,10 +263,42 @@ int main(int argc, char ** argv) {
     perftimer_inc(timer,"output",-1);
   }
 
-  if((args->mpi_rank == 0) && (args->verbosity >= 2)) {
-    int i;
-    for(i=0;i<m;i++)
-      printf("  x(%d)=%.2f\n",i,rhs[i]);
+  if((args->mpi_rank == 0) && (args->output != NULL)) {
+    if(strncmp(args->output,"-",2) == 0) {
+      int i;
+      for(i=0;i<m;i++)
+        printf("  x(%d)=%.2f\n",i,rhs[i]);
+    }
+    else {
+      // convert from vector to matrix format
+      struct coo_matrix_t Bcoo = {0};
+      struct sparse_matrix_t B = {0};
+      B.format = COO;
+      B.repr = &Bcoo;
+      Bcoo.m = m;
+      Bcoo.n = 1;
+      Bcoo.nnz = m;
+      Bcoo.val = rhs;
+      Bcoo.II = malloc(m*sizeof(int));
+      Bcoo.JJ = malloc(m*sizeof(int));
+      int i;
+      for(i=0;i<m;i++) {
+	Bcoo.II[i] = i;
+	Bcoo.JJ[i] = 0;
+      }
+      Bcoo.index_base = ZERO;
+      Bcoo.symmetry_type = UNSYMMETRIC;
+      Bcoo.value_type = REAL;
+      Bcoo.ownership = USER_DEALLOCATES;
+
+      // TODO test args->output to decide if its an acceptable filename before now
+      // TODO really, we shouldn't care what the file name is, just the file format...
+      if(save_matrix(&B, args->output) != 0)
+	retval = 12; // TODO normalize error codes so they are defined in one place (defines?)
+
+      free(Bcoo.II);
+      free(Bcoo.JJ);
+    }
   }
 
   switch(args->solver) {

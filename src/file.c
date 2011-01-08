@@ -28,7 +28,7 @@
 #include <bebop/smc/sparse_matrix_ops.h> // load_sparse_matrix
 #include <bebop/smc/coo_matrix.h> // convert to coo
 
-int _identify_format_from_extension(char* n, enum sparse_matrix_file_format_t* ext);
+int _identify_format_from_extension(char* n, enum sparse_matrix_file_format_t* ext, int is_input);
 
 // load a matrix from file "n" into matrix A
 // returns 0: success, 1: failure
@@ -40,7 +40,7 @@ int load_matrix(char* n, struct sparse_matrix_t** A) {
 
   int retval;
   enum sparse_matrix_file_format_t ext;
-  if( (retval = _identify_format_from_extension(n, &ext)) != 0)
+  if( (retval = _identify_format_from_extension(n, &ext, 1)) != 0)
     return retval;
 
   *A = load_sparse_matrix(ext, n);
@@ -51,6 +51,24 @@ int load_matrix(char* n, struct sparse_matrix_t** A) {
   return 0; // success
 }
 
+// save a matrix into file "n" from matrix A
+// returns 0: success, 1: failure
+int save_matrix(struct sparse_matrix_t* A, char* n) {
+  if(n == NULL) {
+    fprintf(stderr,"output error: No output specified (-o)\n");
+    return 1; // failure
+  }
+
+  int retval;
+  enum sparse_matrix_file_format_t ext;
+  if( (retval = _identify_format_from_extension(n, &ext, 0)) != 0)
+    return retval;
+
+  save_sparse_matrix(n, A, ext);
+  return 0; // success
+}
+
+
 // returns number of rows in matrix A
 unsigned int matrix_rows(struct sparse_matrix_t* A) {
   if(A == NULL)
@@ -59,9 +77,10 @@ unsigned int matrix_rows(struct sparse_matrix_t* A) {
   struct coo_matrix_t* Acoo = A->repr;
   return Acoo->m;
 }
-    // identify the file format from the extension
-    // return 0: success, 1: failure
-int _identify_format_from_extension(char* n, enum sparse_matrix_file_format_t* ext) {
+
+// identify the file format from the extension
+// return 0: success, 1: failure
+int _identify_format_from_extension(char* n, enum sparse_matrix_file_format_t* ext, int is_input) {
 
   size_t s = strnlen(n,100);
   char *e = n + s - 3;
@@ -72,21 +91,33 @@ int _identify_format_from_extension(char* n, enum sparse_matrix_file_format_t* e
   }
   else if((s>3) && (strncmp(e,".hb",100) == 0)) {
     *ext = HARWELL_BOEING;
-    fprintf(stderr,"input error: Sorry Harwell-Boeing reader is broken\n");
+    if(is_input)
+      fprintf(stderr,"input error: Sorry Harwell-Boeing reader is broken\n");
+    else
+      fprintf(stderr,"output error: Sorry Harwell-Boeing writer is broken\n");
     return 1; // failure
   }
   else if((s > 3) && (strncmp(e,".rb",100) == 0)) {
     *ext = HARWELL_BOEING;
-    fprintf(stderr,"input error: Sorry Rutherford-Boeing reader is broken\n");
+    if(is_input)
+      fprintf(stderr,"input error: Sorry Rutherford-Boeing reader is broken\n");
+    else
+      fprintf(stderr,"output error: Sorry Rutherford-Boeing writer is broken\n");
     return 1; // failure
   }
   else if((s > 4) && (strncmp(e-1,".mat",100) == 0)) {
     *ext = MATLAB;
-    fprintf(stderr,"input error: Sorry Matlab reader is broken\n");
+    if(is_input)
+      fprintf(stderr,"input error: Sorry Matlab reader is broken\n");
+    else
+      fprintf(stderr,"error: Sorry Matlab writer is broken\n");
     return 1; // failure
   } // TODO test if the matlab reader is actually busted
   else{
-    fprintf(stderr,"input error: Unrecognized file extension\n");
+    if(is_input)
+      fprintf(stderr,"input error: Unrecognized file extension\n");
+    else
+      fprintf(stderr,"output error: Unrecognized file extension\n");
     return 1; // failure
   }
 }

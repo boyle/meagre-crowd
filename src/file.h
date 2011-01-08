@@ -26,6 +26,10 @@
 // returns 0: success, 1: failure
 int load_matrix(char* n, struct sparse_matrix_t** A);
 
+// save a matrix into file "n" from matrix A
+// returns 0: success, 1: failure
+int save_matrix(struct sparse_matrix_t* A, char* n);
+
 // returns number of rows in matrix A
 unsigned int matrix_rows(struct sparse_matrix_t* A);
 

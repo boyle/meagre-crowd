@@ -68,6 +68,18 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       fclose(f);
       break;
 
+    case 'o':
+      args->output = arg;
+      if(strncmp(args->output,"-",2) != 0) {
+        FILE* f = fopen(args->output, "r");
+        if(f != NULL) {
+          fclose(f);
+          perror("output error: file exists");
+          exit(EXIT_FAILURE);
+        }
+      }
+      break;
+
     default:
       return ARGP_ERR_UNKNOWN;
   }
@@ -105,6 +117,7 @@ Options:"
       {"usage",-1, 0,0,"Show usage information",-1},
       {"version",'V', 0,0,"Show version information",-1},
       {"input", 'i',"FILE",0,"Input matrix FILE",10},
+      {"output",'o',"FILE",0,"Output file FILE ('-' is stdout)",20},
       // TODO these should just be all the other command line components (no arg required ala gcc)
       {"verbose",'v',0,0,"Increase verbosity",11},
       // TODO add note to man page: -v, -vv, -vvv, etc for more detail
@@ -115,7 +128,6 @@ Options:"
       {"solver",'s',"<mumps|umfpack>",0,"Select solver",15},
       // TODO add note to man page: -t, -tt, -ttt for more detail
       // none: no output, -t: single-line (csv), -tt: chart, -ttt: greater detail
-      //{"output",'o',0,0,"Output file (default: stdout)",20},
       { 0 } // null termintated list
     };
     // argp_option*, argp_parser, extra-usage line options, pre-help, // optional: argp_child, *help_filter, argp_domain
