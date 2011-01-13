@@ -60,12 +60,26 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     // file I/O
     case 'i':
       args->input = arg;
-      FILE* f = fopen(args->input, "r");
-      if(f == NULL) {
-        perror("input error");
-        exit(EXIT_FAILURE);
+      {
+	FILE* f = fopen(args->input, "r");
+	if(f == NULL) {
+	  perror("input error");
+	  exit(EXIT_FAILURE);
+	}
+	fclose(f);
       }
-      fclose(f);
+      break;
+
+    case 'b':
+      args->rhs = arg;
+      {
+	FILE* f = fopen(args->rhs, "r");
+	if(f == NULL) {
+	  perror("right-hand-side error");
+	  exit(EXIT_FAILURE);
+	}
+	fclose(f);
+      }
       break;
 
     case 'o':
@@ -117,6 +131,7 @@ Options:"
       {"usage",-1, 0,0,"Show usage information",-1},
       {"version",'V', 0,0,"Show version information",-1},
       {"input", 'i',"FILE",0,"Input matrix FILE (A)",10},
+      {"right-hand-side", 'b',"FILE",0,"RHS matrix FILE (b)",10},
       {"output",'o',"FILE",0,"Output matrix FILE (x) ('-' is stdout)",20},
       // TODO these should just be all the other command line components (no arg required ala gcc)
       {"verbose",'v',0,0,"Increase verbosity",11},

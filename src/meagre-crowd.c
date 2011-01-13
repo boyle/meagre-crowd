@@ -121,6 +121,53 @@ int main(int argc, char ** argv) {
     if((retval = load_matrix(args->input, &A)) != 0) {
       return retval;
     }
+    m = matrix_rows(A);
+    // TODO load a rhs from the --input matrix file
+
+    // allocate an sequentially numbered right-hand side of A.m rows
+    // TODO warn if there is already a rhs loaded
+    if(args->rhs != NULL) {
+      struct sparse_matrix_t* b_loaded;
+      if((retval = load_matrix(args->rhs, &b_loaded)) != 0) {
+        return retval;
+      }
+
+      int ierr = sparse_matrix_convert(b_loaded, COO); assert(ierr == 0);
+      struct coo_matrix_t* bcoo = b_loaded->repr;
+
+      assert(bcoo->m == m); // rows must match
+      assert(bcoo->n == 1); // TODO can only handle single column vector currently
+
+      b=malloc((bcoo->m)*sizeof(double));
+      assert(b!=NULL);
+
+      // convert from COO vector to dense format vector
+      size_t i;
+      size_t j = 0;
+      double* data = bcoo->val;
+      for(i=0; i < m; i++) {
+        assert( bcoo->II[j] >= i ); // or somehow the row indicies weren't ordered properly
+        if( bcoo->II[j] == i ) { // are we at the next row yet?
+	  b[i] = data[j]; // good, store the value
+	  j++;
+	}
+	else {
+	  b[i] = 0; // or we've got another zero
+	}
+      }
+
+      // clean up
+      //destroy_coo_matrix(bcoo);
+    }
+    else {
+      b = malloc(m*sizeof(double));
+      assert(b != NULL); // malloc failure
+      { // initialize right-hand-side (b)
+	int i;
+	for(i=0;i<m;i++)
+	  b[i] = i;
+      }
+    }
 
     if(extra_timing && args->rep == 0) {
       perftimer_inc(timer,"solver",-1);
@@ -171,7 +218,7 @@ int main(int argc, char ** argv) {
 	     solver,
 	     c_mpi, c_mpi==1?"":"s",c_omp,c_omp==1?"":"s");
 
-      if(args->verbosity >= 3) {
+      if(args->verbosity >= 2) {
         int i;
         int n = Acoo->nnz;
         double* v = Acoo->val;
@@ -179,27 +226,17 @@ int main(int argc, char ** argv) {
           printf("  A(%i,%i)=%.2f\n", Acoo->II[i], Acoo->JJ[i], v[i]);
         }
       }
+
+      if(args->verbosity >= 2) { // show the rhs matrix
+	int i;
+	for(i=0;i<Acoo->m;i++)
+	  printf("  b(%i)=%.2f\n", i, b[i]);
+      }
     }
 
     if(extra_timing && args->rep == 0)
       perftimer_adjust_depth(timer,-1);
     //destroy_sparse_matrix (A); // TODO can't release it unless we're copying it...
-
-    // allocate an all-zeros right-hand side of A.m rows
-    // TODO or load from a file
-
-    m = matrix_rows(A);
-    b = malloc(m*sizeof(double));
-    assert(b != NULL); // malloc failure
-    { // initialize right-hand-side (b)
-      int i;
-      for(i=0;i<m;i++)
-        b[i] = i;
-      if(args->verbosity >= 3) { // show the rhs matrix
-        for(i=0;i<m;i++)
-          printf("  b(%i)=%.2f\n", i, b[i]);
-      }
-    }
   }
 
   DMUMPS_STRUC_C* mumps_p = NULL;

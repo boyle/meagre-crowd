@@ -33,6 +33,7 @@ enum solver_types_t {
 struct parse_args {
   char* input;
   char* output;
+  char* rhs;
   unsigned int timing_enabled;
   unsigned int verbosity;
   unsigned int rep;
