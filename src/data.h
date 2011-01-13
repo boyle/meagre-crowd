@@ -24,16 +24,15 @@
 #include <stdlib.h>
 //#include <bebop/smc/sparse_matrix.h>
 
-// store along rows or columns first when serializing matrix
-// C uses ROWs naturally, Fortran uses COLUMNs
-enum matrix_order_t { ROW=0, COLUMN=1 };
-
 // whether the first index is zero or one for sparse storage
 enum matrix_base_t { FIRST_INDEX_ZERO=0, FIRST_INDEX_ONE=1 };
 
 // matrix storage format, either row or column based
-// DENSE: dense storage, no sparse optimizations,
+// DROW/DCOL: dense storage, no sparse optimizations,
 //   for vector storage set m or n to 1
+//   DROW = Dense (rows), DCOL = Dense (columns)
+//   store along rows or columns first when serializing matrix
+//   C uses ROWs naturally, Fortran uses COLUMNs
 // COO: coordinate based sparse storage
 // CSR/CSC=COMPRESSED: compressed row/column storage
 //   CSC/CSR are valid format requests since they are standard names
@@ -41,7 +40,7 @@ enum matrix_base_t { FIRST_INDEX_ZERO=0, FIRST_INDEX_ONE=1 };
 //   as appropriate and use 'COMPRESSED' in the 'format' field
 //   (CSC is COMPRESSED & COLUMN, CSR is COMPRESSED & ROW)
 // TODO: block storage formats BCOO, BCSR, JAD
-enum matrix_format_t { DENSE=0, COO=1, CSC, CSR, COMPRESSED };
+enum matrix_format_t { DROW=0, DCOL, COO, CSC, CSR };
 
 // matrix symmetry
 enum matrix_symmetry_t { UNSYMMETRIC=0, SYMMETRIC, SKEW_SYMMETRIC, HERMITIAN };
@@ -63,7 +62,6 @@ typedef struct matrix_t {
   // NOTE: m=n=0 indicates an empty/invalid matrix, if m=0, then n=0
   //   and vice-versa, so you only need to check one of them
   size_t nz; // non-zeros, invalid for DENSE
-  enum matrix_order_t  order;  // ROW or COLUMN (only relevant for CSC/CSR, ignored otherwise)
   enum matrix_base_t   base;   // FIRST_INDEX_ZERO, FIRST_INDEX_ONE (default zero index, 'one' supports Fortran)
   enum matrix_format_t format; //
   enum matrix_symmetry_t sym;  // UNSYMMETRIC, SYMMETRIC, SKEW_SYMMETRIC, HERMITIAN

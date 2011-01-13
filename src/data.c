@@ -42,18 +42,6 @@ void inline _normalize_matrix(matrix_t* m) {
     clear_matrix(m);
     return;
   }
-    
-  switch(m->format) {
-    case CSC:
-      m->format = COMPRESSED;
-      m->order = COLUMN;
-      break;
-    case CSR:
-      m->format = COMPRESSED;
-      m->order = ROW;
-      break;
-    default: break; // do nothing
-  }
 }
 
 // deep copy
@@ -101,72 +89,59 @@ matrix_t* copy_matrix(matrix_t* m) {
       memcpy(ret->jj, m->jj, (m->n)*sizeof(unsigned int)); // memcpy(*dest,*src,n)
       break;
 
-    // TODO remove redundancy - remove COMPRESSED and 'order' field in favour of CSR/CSC -- will need to change to DENSE_ROW/DENSE_COLUMN from DENSE
-    case CSC: case CSR: case COMPRESSED: 
-      switch(m->order) {
-        case ROW:
-
-	  ret->ii = malloc((m->m+1)*sizeof(unsigned int));
-	  if(ret->ii == NULL) { // malloc failed
-	    free(ret->dd);
-	    free(ret);
-	    return NULL;
-	  }
-	  memcpy(ret->ii, m->ii, (m->m+1)*sizeof(unsigned int)); // memcpy(*dest,*src,n)
-
-	  ret->jj = malloc((m->nz)*sizeof(unsigned int));
-	  if(ret->jj == NULL) { // malloc failed
-	    free(ret->ii);
-	    free(ret->dd);
-	    free(ret);
-	    return NULL;
-	  }
-	  memcpy(ret->jj, m->jj, (m->nz)*sizeof(unsigned int)); // memcpy(*dest,*src,n)
-
-	  break;
-
-	case COLUMN:
-
-	  ret->jj = malloc((m->n+1)*sizeof(unsigned int));
-	  if(ret->jj == NULL) { // malloc failed
-	    free(ret->dd);
-	    free(ret);
-	    return NULL;
-	  }
-	  memcpy(ret->jj, m->jj, (m->n+1)*sizeof(unsigned int)); // memcpy(*dest,*src,n)
-
-	  ret->ii = malloc((m->nz)*sizeof(unsigned int));
-	  if(ret->ii == NULL) { // malloc failed
-	    free(ret->jj);
-	    free(ret->dd);
-	    free(ret);
-	    return NULL;
-	  }
-	  memcpy(ret->ii, m->ii, (m->nz)*sizeof(unsigned int)); // memcpy(*dest,*src,n)
-
-	  break;
+    case CSR:
+      ret->ii = malloc((m->m+1)*sizeof(unsigned int));
+      if(ret->ii == NULL) { // malloc failed
+	free(ret->dd);
+	free(ret);
+	return NULL;
       }
+      memcpy(ret->ii, m->ii, (m->m+1)*sizeof(unsigned int)); // memcpy(*dest,*src,n)
+      ret->jj = malloc((m->nz)*sizeof(unsigned int));
+      if(ret->jj == NULL) { // malloc failed
+	free(ret->ii);
+	free(ret->dd);
+	free(ret);
+	return NULL;
+      }
+      memcpy(ret->jj, m->jj, (m->nz)*sizeof(unsigned int)); // memcpy(*dest,*src,n)
       break;
 
-      case DENSE:
+    case CSC:
+      ret->jj = malloc((m->n+1)*sizeof(unsigned int));
+      if(ret->jj == NULL) { // malloc failed
+	free(ret->dd);
+	free(ret);
+	return NULL;
+      }
+      memcpy(ret->jj, m->jj, (m->n+1)*sizeof(unsigned int)); // memcpy(*dest,*src,n)
+      ret->ii = malloc((m->nz)*sizeof(unsigned int));
+      if(ret->ii == NULL) { // malloc failed
+	free(ret->jj);
+	free(ret->dd);
+	free(ret);
+	return NULL;
+      }
+      memcpy(ret->ii, m->ii, (m->nz)*sizeof(unsigned int)); // memcpy(*dest,*src,n)
+      break;
 
-	ret->ii = malloc((m->m)*sizeof(unsigned int));
-	if(ret->ii == NULL) { // malloc failed
-	  free(ret->dd);
-	  free(ret);
-	  return NULL;
-	}
-	memcpy(ret->ii, m->ii, (m->m)*sizeof(unsigned int)); // memcpy(*dest,*src,n)
-
-	ret->jj = malloc((m->n)*sizeof(unsigned int));
-	if(ret->jj == NULL) { // malloc failed
-	  free(ret->ii);
-	  free(ret->dd);
-	  free(ret);
-	  return NULL;
-	}
-	memcpy(ret->jj, m->jj, (m->n)*sizeof(unsigned int)); // memcpy(*dest,*src,n)
-        break;
+    case DROW: case DCOL: // dense matrix
+      ret->ii = malloc((m->m)*sizeof(unsigned int));
+      if(ret->ii == NULL) { // malloc failed
+	free(ret->dd);
+	free(ret);
+	return NULL;
+      }
+      memcpy(ret->ii, m->ii, (m->m)*sizeof(unsigned int)); // memcpy(*dest,*src,n)
+      ret->jj = malloc((m->n)*sizeof(unsigned int));
+      if(ret->jj == NULL) { // malloc failed
+	free(ret->ii);
+	free(ret->dd);
+	free(ret);
+	return NULL;
+      }
+      memcpy(ret->jj, m->jj, (m->n)*sizeof(unsigned int)); // memcpy(*dest,*src,n)
+      break;
   }
 
   return ret;
@@ -186,7 +161,7 @@ int validate_matrix(matrix_t* m) {
     return -2;
 
   // if dense, ii, jj = NULL
-  if(m->format == DENSE) {
+  if((m->format == DROW) || (m->format == DCOL)) {
     if(m->ii != NULL)
       return -3;
     if(m->jj != NULL)
@@ -194,16 +169,14 @@ int validate_matrix(matrix_t* m) {
   }
 
   // if CSC/CSR, then nz must match expected value in first & last element of m->ii/jj
-  if(m->format == COMPRESSED) {
-    if((m->order == ROW) && ((m->ii)[m->m+1] != m->nz))
-      return -5;
-    if((m->order == COLUMN) && ((m->jj)[m->n+1] != m->nz))
-      return -6;
-    if((m->order == ROW) && ((m->ii)[0] != 0))
-      return -7;
-    if((m->order == COLUMN) && ((m->jj)[0] != 0))
-      return -8;
-  }
+  if((m->format == CSR) && ((m->ii)[m->m+1] != m->nz))
+    return -5;
+  if((m->format == CSC) && ((m->jj)[m->n+1] != m->nz))
+    return -6;
+  if((m->format == CSR) && ((m->ii)[0] != 0))
+    return -7;
+  if((m->format == CSC) && ((m->jj)[0] != 0))
+    return -8;
 
   // TODO if symmetric check there aren't any extra values
 
