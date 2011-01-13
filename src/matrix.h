@@ -16,8 +16,8 @@
  *     You should have received a copy of the GNU Lesser General Public License
  *     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _DATA_H_
-#define _DATA_H_
+#ifndef _MATRIX_H_
+#define _MATRIX_H_
 
 #include "config.h"
 

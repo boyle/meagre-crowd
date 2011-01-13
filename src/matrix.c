@@ -17,7 +17,7 @@
  *     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "config.h"
-#include "data.h"
+#include "matrix.h"
 
 #include <stdlib.h>
 #include <string.h>
