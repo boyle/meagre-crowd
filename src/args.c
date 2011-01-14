@@ -20,6 +20,7 @@
 #include "args.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 // global argp variables
 // TODO somehow hide these?
@@ -82,6 +83,31 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       }
       break;
 
+    case 'e':
+      args->expected = arg;
+      { // TODO refactor this file test: _file_exists(char* file, exists, char* err);
+        FILE* f = fopen(args->expected, "r");
+        if(f == NULL) {
+          perror("expected-output error");
+          exit(EXIT_FAILURE);
+        }
+        fclose(f);
+      }
+      break;
+
+    case 'p': {
+        int err = sscanf(arg, "%lf", &(args->expected_precision)); // convert string -> double
+        if(err != 1) {
+          fprintf(stderr, "bad precision (non-floating point number)\n");
+          exit(EXIT_FAILURE);
+        }
+        if(args->expected_precision < 0) {
+          fprintf(stderr, "precision must be non-negative\n");
+          exit(EXIT_FAILURE);
+        }
+      }
+      break;
+
     case 'o':
       args->output = arg;
       if(strncmp(args->output,"-",2) != 0) {
@@ -120,9 +146,14 @@ collection and the University of Florida sparse matrix collection.\n\
 \n\
 Limitations: currently only 'Matrix Market' format is supported (*.mm).\n\
   (The Rutherford/Harwell-Boeing format loader is broken. *.hb, *.rb)\n\
+  (MatLab format *.mat is unsupported.)\n\
+\n\
+Solvers:\n\
+  umfpack, mumps\n\
 \n\
 Options:"
 ;
+// TODO automatically list off available solvers and their version info?
     // TODO describe fields..
     // "long", 'l', "value", flags, "desc", groupid
     static const struct argp_option opt[] = {
@@ -130,17 +161,18 @@ Options:"
       {0,      '?',0,OPTION_ALIAS},
       {"usage",-1, 0,0,"Show usage information",-1},
       {"version",'V', 0,0,"Show version information",-1},
-      {"input", 'i',"FILE",0,"Input matrix FILE (A)",10},
-      {"right-hand-side", 'b',"FILE",0,"RHS matrix FILE (b)",10},
-      {"output",'o',"FILE",0,"Output matrix FILE (x) ('-' is stdout)",20},
-      // TODO these should just be all the other command line components (no arg required ala gcc)
-      {"verbose",'v',0,0,"Increase verbosity",11},
+      {"input", 'i',"FILE",0,"Input matrix from FILE (A)",10},
+      {"right-hand-side", 'b',"FILE",0,"RHS matrix from FILE (b)",11},
+      {"expected-answer",'e',"FILE",0,"Expected matrix as a FILE (x)",12},
+      {"precision",'p',"<float>",0,"Precision of comparison with expectation (a floating point number)",12},
+      {"output",'o',"FILE",0,"Output matrix to FILE (x) ('-' is stdout)",13},
+      {"verbose",'v',0,0,"Increase verbosity",20},
       // TODO add note to man page: -v, -vv, -vvv, etc for more detail
       // none: no output, -v: matrix info & any available stats (i.e. cond. number),
       // -vv: more detail(?), -vvv: max debug
-      {"timing",'t',0,0,"Show/increase timing information",12},
-      {"repeat",'r',"N",0,"Repeat calculations N times",15},
-      {"solver",'s',"<mumps|umfpack>",0,"Select solver",15},
+      {"timing",'t',0,0,"Show/increase timing information",21},
+      {"repeat",'r',"N",0,"Repeat calculations N times",6},
+      {"solver",'s',"SOLVER",0,"Select SOLVER (mumps|umfpack)",5},
       // TODO add note to man page: -t, -tt, -ttt for more detail
       // none: no output, -t: single-line (csv), -tt: chart, -ttt: greater detail
       { 0 } // null termintated list

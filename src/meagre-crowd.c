@@ -29,6 +29,7 @@
 
 #include <libgen.h>
 #include <string.h>
+#include <float.h> // machine epsilon: LDBL_EPSILON, DBL_EPSILON, FLT_EPSILON
 
 #include <mpi.h>
 
@@ -47,6 +48,8 @@
 
 
 // test result of matrix computations
+// returns: 1=match w/in precision, 0=non-matching
+// TODO refactor mv to matrix.h, operate on matrix_t objects
 int results_match(const double * const expected, const double const * result, const int n, const double precision);
 int results_match(const double * const expected, const double const * result, const int n, const double precision) {
   int i;
@@ -67,6 +70,8 @@ int main(int argc, char ** argv) {
 
   // handle command-line arguments
   struct parse_args* args = calloc(1,sizeof(struct parse_args));
+  // TODO should default to appropriate epsilon for solver, may need to be *2 or some larger value given numerical instability? should print out epsilon of solution in verbose mode
+  args->expected_precision = 5e-15; // TODO was DBL_EPSILON=1.11e-16 but not stored with enough digits? // default to machine epsilon for 'double'
   assert(args != NULL); // calloc failure
   if((retval = parse_args(argc, argv, args)) != EXIT_SUCCESS) {
     free(args);
@@ -101,6 +106,7 @@ int main(int argc, char ** argv) {
 
   // Define the problem on the host
   double* b = NULL;
+  double* expected = NULL;
   struct sparse_matrix_t* A;
   unsigned int m = 0; // rows
   if (args->mpi_rank == 0) {
@@ -168,6 +174,41 @@ int main(int argc, char ** argv) {
 	  b[i] = i;
       }
     }
+    if(args->expected != NULL) {
+      // TODO refactor: this is a cut and paste of the loader for 'b'
+      struct sparse_matrix_t* expected_loaded;
+      if((retval = load_matrix(args->expected, &expected_loaded)) != 0) {
+        return retval;
+      }
+
+      int ierr = sparse_matrix_convert(expected_loaded, COO); assert(ierr == 0);
+      struct coo_matrix_t* ecoo = expected_loaded->repr;
+
+      assert(ecoo->m == m); // rows must match
+      assert(ecoo->n == 1); // TODO can only handle single column vector currently
+
+      expected=malloc((ecoo->m)*sizeof(double));
+      assert(expected!=NULL);
+
+      // convert from COO vector to dense format vector
+      size_t i;
+      size_t j = 0;
+      double* data = ecoo->val;
+      for(i=0; i < m; i++) {
+        assert( ecoo->II[j] >= i ); // or somehow the row indicies weren't ordered properly
+        if( ecoo->II[j] == i ) { // are we at the next row yet?
+          expected[i] = data[j]; // good, store the value
+          j++;
+        }
+        else {
+          expected[i] = 0; // or we've got another zero
+        }
+      }
+
+      // clean up
+      //destroy_coo_matrix(ecoo);
+    }
+
 
     if(extra_timing && args->rep == 0) {
       perftimer_inc(timer,"solver",-1);
@@ -300,6 +341,19 @@ int main(int argc, char ** argv) {
     perftimer_inc(timer,"output",-1);
   }
 
+  // test result?
+  if((args->mpi_rank == 0) && (expected != NULL)){
+    perftimer_inc(timer,"test",-1);
+    if( results_match(expected, rhs, m, args->expected_precision) ) {
+      retval = 0;
+      printf("PASS\n");
+    }
+    else {
+      retval = 100;
+      printf("FAIL\n");
+    }
+  }
+
   if((args->mpi_rank == 0) && (args->output != NULL)) {
     if(strncmp(args->output,"-",2) == 0) {
       int i;
@@ -348,33 +402,6 @@ int main(int argc, char ** argv) {
     default: assert(false); // should have caught unknown solver before now!
   }
 
-/*  if (args->mpi_rank == 0) {
-// TODO this code needs reworking to make it flexible: compare answers with-in some percentage?
-    printf("Solution is\n");
-    int i;
-    for(i=0;i<id.n;i++) {
-      printf("  %.2f\n", id.rhs[i]);
-      // Octave says the answer should be
-      // ans =
-      //     1.000000
-      //     0.434211
-      //     0.250000
-      //    -0.092105
-      //     0.250000
-      //
-    }
-    // test result
-    // TODO make this a command-line option with file to compare
-    perftimer_inc(timer,"test",-1);
-    const double const e[5] = {1.0, 0.434211, 0.25, -0.092105, 0.25};
-    if( results_match(e,id.rhs,id.n,0.001) ) {
-      retval = 0; printf("PASS\n");
-    }
-    else {
-      retval = 1; printf("FAIL\n");
-    }
-  }
-*/
   // clean up
   free(b);
   if(extra_timing && args->rep == 0) {

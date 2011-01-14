@@ -34,6 +34,8 @@ struct parse_args {
   char* input;
   char* output;
   char* rhs;
+  char* expected;
+  double expected_precision;
   unsigned int timing_enabled;
   unsigned int verbosity;
   unsigned int rep;

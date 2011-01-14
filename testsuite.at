@@ -28,6 +28,8 @@ m4_define(MC_DATA_FILE_TEST_HB,[AT_DATA([test.hb],]m4_include(tests/test.hb)[)])
 m4_define(MC_DATA_FILE_TEST_MAT,[AT_DATA([test.mat],]m4_include(tests/test.mat)[)])
 
 m4_define(MC_DATA_FILE_RHS1_MM,[AT_DATA([rhs1.mm],]m4_include(tests/rhs1.mm)[)])
+m4_define(MC_DATA_FILE_ANS1_MM,[AT_DATA([ans1.mm],]m4_include(tests/ans1.mm)[)])
+m4_define(MC_DATA_FILE_ANS2_MM,[AT_DATA([ans2.mm],]m4_include(tests/ans2.mm)[)])
 
 AT_BANNER([hello-world])
 AT_SETUP([mpi default: 1 node])
@@ -183,9 +185,44 @@ AT_CHECK(AT_PACKAGE_NAME -i test.mm -b rhs1.mm -o -,0,[  x(0)=1.00
   x(3)=-0.36
   x(4)=0.25
 ])
-# Note that rhs1.mm is different from the default generated right-hand-side so we can see did actually load the file
+dnl Note that rhs1.mm is different from the default generated right-hand-side so we can see did actually load the file
 AT_CLEANUP
 
+
+AT_SETUP([--expected-answer, --precision])
+AT_KEYWORDS([func])
+MC_DATA_FILE_TEST_MM
+MC_DATA_FILE_RHS1_MM
+MC_DATA_FILE_ANS1_MM
+MC_DATA_FILE_ANS2_MM
+dnl check option exists
+AT_CHECK(AT_PACKAGE_NAME --input=test.mm --expected-answer=ans1.mm --precision=5e-3,0,[PASS
+])
+AT_CHECK(AT_PACKAGE_NAME -i test.mm -e ans1.mm -p 5e-3,0,[PASS
+])
+dnl check option fails when precision is too high, but default will pass
+AT_CHECK(AT_PACKAGE_NAME -i test.mm -e ans1.mm -p 0,100,[FAIL
+])
+AT_CHECK(AT_PACKAGE_NAME -i test.mm -e ans1.mm,0,[PASS
+])
+dnl checks that missing arguments are caught
+AT_CHECK(AT_PACKAGE_NAME --input=test.mm --expected-answer,64,,ignore)
+AT_CHECK(AT_PACKAGE_NAME -i test.mm -e,64,,ignore)
+AT_CHECK(AT_PACKAGE_NAME --input=test.mm --precision,64,,ignore)
+AT_CHECK(AT_PACKAGE_NAME -i test.mm -p,64,,ignore)
+dnl check if wrong answer is put in it fails, if proper rhs is used, answer matches
+AT_CHECK(AT_PACKAGE_NAME -i test.mm -e ans2.mm,100,[FAIL
+])
+AT_CHECK(AT_PACKAGE_NAME -i test.mm -b rhs1.mm -e ans2.mm,0,[PASS
+])
+dnl precision is non-negative
+AT_CHECK(AT_PACKAGE_NAME -i test.mm -b rhs1.mm -e ans2.mm -p 0.1,0,[PASS
+])
+AT_CHECK(AT_PACKAGE_NAME -i test.mm -b rhs1.mm -e ans2.mm -p -0.1,1,,[precision must be non-negative
+])
+AT_CHECK(AT_PACKAGE_NAME -i test.mm -b rhs1.mm -e ans2.mm -p abcd,1,,[bad precision (non-floating point number)
+])
+AT_CLEANUP
 
 
 
