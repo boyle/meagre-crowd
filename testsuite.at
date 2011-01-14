@@ -258,3 +258,29 @@ AT_CLEANUP
 
 MC_ARGS_STAGE2([verbose],[v])
 MC_ARGS_STAGE2([timing],[t])
+
+m4_define([MC_SOLVERS],[
+AT_SETUP([--solver $1])
+AT_KEYWORDS([func])
+dnl TODO add more testcases: different size matrices, known results
+MC_DATA_FILE_TEST_MM
+MC_DATA_FILE_RHS1_MM
+MC_DATA_FILE_ANS1_MM
+MC_DATA_FILE_ANS2_MM
+dnl check solver gives the expected result (i.e. it is linked and configured correctly)
+AT_CHECK(AT_PACKAGE_NAME[ --input=test.mm --expected=ans1.mm --solver=$1],0,[PASS
+])
+AT_CHECK(AT_PACKAGE_NAME[ --input=test.mm --right-hand-side=rhs1.mm --expected=ans2.mm --solver=$1],0,[PASS
+])
+AT_CHECK(AT_PACKAGE_NAME[ --input=test.mm --expected=ans1.mm -s $1],0,[PASS
+])
+dnl check for missing arguments
+AT_CHECK(AT_PACKAGE_NAME[ --input=test.mm --expected=ans1.mm -s],64,,ignore)
+AT_CHECK(AT_PACKAGE_NAME[ --input=test.mm --expected=ans1.mm --solver],64,,ignore)
+AT_CLEANUP
+])
+
+
+MC_SOLVERS([umfpack])
+MC_SOLVERS([mumps])
+

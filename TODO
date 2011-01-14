@@ -8,9 +8,6 @@ at any patches or discuss potential solutions.
 These are somewhat arranged in order of priority. Highest at the top.
 
  - Run valgrind. Find bad allocations and uninitialized variables.
- - ability to compare results vs. expected (testing!) w/in a certain precision
-   - add tests for mumps, umfpack solvers
-   - add unit tests for solvers, args, file
  - add input list option to launcher (what matrices to run)
  ?? are there any other stats we'd like to collect?
  - Add type tests: condition number, singularity, symmetric, hermitian, real, complex
