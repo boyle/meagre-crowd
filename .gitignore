@@ -1,5 +1,5 @@
 dl
-x86_64-pc-linux-gnu
+x86_64-*
 autom4te.cache
 aclocal.m4
 configure
@@ -21,6 +21,7 @@ package.m4
 build-aux
 meagre-crowd
 src/config.h
+src/config.h.in
 tests/file
 tests/hello-umfpack
 tests/helloworld-mpi

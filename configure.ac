@@ -20,7 +20,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.65)
-AC_INIT([meagre-crowd],[0.1.1],[<alistair.js.boyle@gmail.com>])
+AC_INIT([meagre-crowd],[0.2.0],[<alistair.js.boyle@gmail.com>])
 
 AC_COPYRIGHT([Copyright (C) 2010 Alistair Boyle])
 
@@ -84,10 +84,11 @@ AC_SEARCH_LIBS([dmumps_c], [dmumps],,AC_MSG_ERROR([could not find required doubl
 AC_SEARCH_LIBS([umfpack_di_symbolic], [umfpack],,AC_MSG_ERROR([missing UMFPACK]))
 
 # Checks for header files.
-AC_CHECK_HEADERS([stdlib.h string.h sys/time.h])
+AC_CHECK_HEADERS([float.h stdlib.h string.h sys/time.h])
 AC_HEADER_ASSERT
 
 # Checks for typedefs, structures, and compiler characteristics.
+AC_HEADER_STDBOOL
 AC_C_INLINE
 AC_TYPE_SIZE_T
 
