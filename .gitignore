@@ -11,6 +11,7 @@ atconfig
 config.status
 config.log
 .deps
+.Tpo
 .dirstamp
 stamp-h1
 *.o
