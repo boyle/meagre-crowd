@@ -25,6 +25,27 @@
 // how many matrix_format_t entries are there
 #define matrix_format_t__MAX 6
 
+struct enum2format_t {
+  const enum matrix_format_t f;
+  const char* s;
+};
+
+static const struct enum2format_t enum2format[] = 
+  { {INVALID, "invalid"},
+    {DROW,    "dense (rows)"},
+    {DCOL,    "dense (columns)"},
+    {SM_COO,  "COO"},
+    {SM_CSC,  "CSC"},
+    {SM_CSR,  "CSR"} };
+
+struct enum2base_t {
+  const enum matrix_base_t b;
+  const char* s;
+};
+
+const struct enum2base_t enum2base[] =
+  { {FIRST_INDEX_ZERO,"zero"},
+    {FIRST_INDEX_ONE, "one"} };
 
 void test_formats(matrix_t* a);
 void test_formats(matrix_t* a) {
@@ -34,23 +55,37 @@ void test_formats(matrix_t* a) {
   int i,j,k,l,ret;
   for(i=0;i<2;i++) { // two types of base: 0 or 1
     for(j=0; j < matrix_format_t__MAX; j++) { // storage formats
+      enum matrix_format_t old_format = b->format;
       ret = convert_matrix(b, (enum matrix_format_t) j, (enum matrix_base_t) i);
-      assert(ret == 0);
-      assert(b->format == (enum matrix_format_t) j);
-      assert(b->base == (enum matrix_base_t) i);
-      assert(cmp_matrix(a,b) == 0);
+      if(j == 0) { // INVALID
+        assert(ret != 0);
+        assert(b->format == old_format);
+      }
+      else {
+        assert(ret == 0);
+	assert(b->base == (enum matrix_base_t) i);
+	assert(cmp_matrix(a,b) == 0);
+        assert(b->format == (enum matrix_format_t) j);
+      }
 
       for(k=0;k<2;k++) {
-	for(l=0; l < matrix_format_t__MAX; l++) { // to all other storage formats
+	for(l=1; l < matrix_format_t__MAX; l++) { // to all other storage formats
           matrix_t* c = copy_matrix(b);
           assert(c != NULL);
 
 	  ret = convert_matrix(c, (enum matrix_format_t) l, (enum matrix_base_t) k);
-	  assert(ret == 0);
-	  assert(c->format == (enum matrix_format_t) l);
-	  assert(c->base == (enum matrix_base_t) k);
-          assert(cmp_matrix(b,c) == 0);
-      
+	  printf("%s -> %s (base %s -> %s)\n", enum2format[j].s, enum2format[l].s, enum2base[i].s, enum2base[k].s);
+	  if((j == 0) || (l == 0)) { // INVALID -> x OR x -> INVALID
+	    assert(ret != 0);
+	    assert(c->format == (enum matrix_format_t) j);
+	  }
+	  else {
+	    assert(ret == 0);
+	    assert(c->base == (enum matrix_base_t) k);
+            assert(cmp_matrix(b,c) == 0);
+	    assert(c->format == (enum matrix_format_t) l);
+	  }
+
           free_matrix(c);
 	}
       }
@@ -107,7 +142,7 @@ void test_basic() {
   }
 
   // try converting between all types
-  // TODO broken: test_formats(c);
+  test_formats(c);
 
   // TODO test behaviour of an emtpy matrix (nz=0) in all formats
 }
