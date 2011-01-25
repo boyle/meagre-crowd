@@ -63,6 +63,8 @@ matrix_t* copy_matrix(matrix_t* m) {
     return NULL;
 
   *ret = *m; // shallow copy
+
+  // and now the deep copy (ii, jj, dd)
   size_t data_bytes = 0;
   switch(m->data_type) {
     case REAL_SINGLE: data_bytes = sizeof(float); break;
@@ -80,16 +82,19 @@ matrix_t* copy_matrix(matrix_t* m) {
     }
     memcpy(ret->dd, m->dd, (m->nz)*data_bytes); // memcpy(*dest,*src,n)
   }
+  else { // otherwise, make sure the shallow copy didn't have cruft in it
+    ret->dd = NULL;
+  }
 
   switch(m->format) {
     case SM_COO:
-      ret->ii = malloc((m->m)*sizeof(unsigned int));
+      ret->ii = malloc((m->nz)*sizeof(unsigned int));
       if(ret->ii == NULL) { // malloc failed
         free(ret->dd);
 	free(ret);
 	return NULL;
       }
-      memcpy(ret->ii, m->ii, (m->m)*sizeof(unsigned int)); // memcpy(*dest,*src,n)
+      memcpy(ret->ii, m->ii, (m->nz)*sizeof(unsigned int)); // memcpy(*dest,*src,n)
       ret->jj = malloc((m->n)*sizeof(unsigned int));
       if(ret->jj == NULL) { // malloc failed
         free(ret->ii);
@@ -97,7 +102,7 @@ matrix_t* copy_matrix(matrix_t* m) {
 	free(ret);
 	return NULL;
       }
-      memcpy(ret->jj, m->jj, (m->n)*sizeof(unsigned int)); // memcpy(*dest,*src,n)
+      memcpy(ret->jj, m->jj, (m->nz)*sizeof(unsigned int)); // memcpy(*dest,*src,n)
       break;
 
     case SM_CSR:
@@ -154,6 +159,8 @@ matrix_t* copy_matrix(matrix_t* m) {
       memcpy(ret->jj, m->jj, (m->n)*sizeof(unsigned int)); // memcpy(*dest,*src,n)
       break;
     case INVALID:
+      ret->ii = NULL;
+      ret->jj = NULL;
       break;
   }
 
@@ -161,14 +168,17 @@ matrix_t* copy_matrix(matrix_t* m) {
 }
 
 // from enum, returns width of ea. value in the matrix in bytes
-inline size_t _data_width(enum matrix_data_type_t t);
-  switch(a->data_type) {
+inline size_t _data_width(const enum matrix_data_type_t t);
+inline size_t _data_width(const enum matrix_data_type_t t) {
+  switch(t) {
     case REAL_SINGLE:    return sizeof(float);
     case REAL_DOUBLE:    return sizeof(double);
     case COMPLEX_SINGLE: return 2*sizeof(float);
     case COMPLEX_DOUBLE: return 2*sizeof(double);
     case SM_PATTERN:     return 0;
   }
+  assert(0); // unhittable
+  return 0;
 }
 
 // compare matrices
@@ -212,8 +222,8 @@ int cmp_matrix(matrix_t* a, matrix_t* b) {
 
   // decide how many bytes of each ptr to compare
   size_t iilen, jjlen, ddlen;
+  iilen = jjlen = ddlen = 0;
   const size_t dwidth = _data_width(a->data_type);
-  iilen = jjlen = 0; // make compiler happy: hide warning
   switch(a->format) {
     case INVALID:
       assert(0); // shouldn't be able to get here (checked for above)
@@ -467,7 +477,7 @@ int _drow2coo(matrix_t* m) {
 
 // DROW -> DCOL
 int _drow2dcol(matrix_t* m);
-int _drow2dcol(matrix_t* m,) {
+int _drow2dcol(matrix_t* m) {
   void* d_new = malloc((m->m)*(m->n)*_data_width(m->data_type));
   if(d_new != NULL)
     return -1; // malloc failure
@@ -480,8 +490,8 @@ int _drow2dcol(matrix_t* m,) {
   const size_t dwidth = _data_width(m->data_type);
   for(i=0; i < rows; i++) {
     for(j=0; j < cols; j++) {
-      const void* src = d_old[(i*cols + j)*dwidth];
-      const void* dest = d_new[(j*rows + i)*dwidth];
+      const void* src =  (char*)d_old + (i*cols + j)*dwidth;
+      void*       dest = (char*)d_new + (j*rows + i)*dwidth;
       memcpy(dest, src, dwidth);
     }
   }
@@ -510,8 +520,8 @@ int _dcol2drow(matrix_t* m) {
   // TODO common code: only swapping roll of i,j and indexing between _dcol2drow and _drow2dcol
   for(i=0; i < cols; i++) {
     for(j=0; j < rows; j++) {
-      const void* src = d_old[(i*rows + j)*dwidth];
-      const void* dest = d_new[(j*cols + i)*dwidth];
+      const void* src = (char*)d_old + (i*rows + j)*dwidth;
+      void*       dest =(char*)d_new + (j*cols + i)*dwidth;
       memcpy(dest, src, dwidth);
     }
   }

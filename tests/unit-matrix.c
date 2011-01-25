@@ -60,6 +60,7 @@ void test_formats(matrix_t* a) {
       if(j == 0) { // INVALID
         assert(ret != 0);
         assert(b->format == old_format);
+        b->format = INVALID; // force it to be invalid so we can test the conversions
       }
       else {
         assert(ret == 0);
@@ -89,6 +90,9 @@ void test_formats(matrix_t* a) {
           free_matrix(c);
 	}
       }
+      // return to old format
+      if(b->format == INVALID)
+        b->format = old_format;
     }
   }
   free_matrix(b);
@@ -133,7 +137,7 @@ void test_basic() {
   {
     int i;
     double* d = c->dd;
-    for(i=0;i < a->nz; i++) {
+    for(i=0;i < c->nz; i++) {
       d[i] = (double) i+10.0;
       c->ii[i] = i*2;
       c->jj[i] = i+4;
