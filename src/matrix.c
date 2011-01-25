@@ -160,6 +160,17 @@ matrix_t* copy_matrix(matrix_t* m) {
   return ret;
 }
 
+// from enum, returns width of ea. value in the matrix in bytes
+inline size_t _data_width(enum matrix_data_type_t t);
+  switch(a->data_type) {
+    case REAL_SINGLE:    return sizeof(float);
+    case REAL_DOUBLE:    return sizeof(double);
+    case COMPLEX_SINGLE: return 2*sizeof(float);
+    case COMPLEX_DOUBLE: return 2*sizeof(double);
+    case SM_PATTERN:     return 0;
+  }
+}
+
 // compare matrices
 // returns: zero on match
 // TODO compare with-in a given precision (floating pt. data a->dd)
@@ -200,14 +211,8 @@ int cmp_matrix(matrix_t* a, matrix_t* b) {
   }
 
   // decide how many bytes of each ptr to compare
-  size_t iilen, jjlen, ddlen, dwidth;
-  switch(a->data_type) { // TODO refactor (duplicated code!)
-    case REAL_SINGLE:    dwidth = sizeof(float);
-    case REAL_DOUBLE:    dwidth = sizeof(double);
-    case COMPLEX_SINGLE: dwidth = 2*sizeof(float);
-    case COMPLEX_DOUBLE: dwidth = 2*sizeof(double);
-    case SM_PATTERN:     dwidth = 0;
-  }
+  size_t iilen, jjlen, ddlen;
+  const size_t dwidth = _data_width(a->data_type);
   iilen = jjlen = 0; // make compiler happy: hide warning
   switch(a->format) {
     case INVALID:
@@ -433,6 +438,21 @@ int _coo2csr(matrix_t* m) {
 // COO -> DROW
 int _coo2drow(matrix_t* m);
 int _coo2drow(matrix_t* m) {
+  void* d_new = malloc((m->m)*(m->n)*_data_width(m->data_type));
+  if(d_new != NULL)
+    return -1; // malloc failure
+
+  // TODO convert from COO to DROW
+  assert(0); // incomplete
+
+  free(m->dd);
+  free(m->ii);
+  free(m->jj);
+  m->dd = d_new;
+  m->ii = NULL;
+  m->jj = NULL;
+  m->format = DROW;
+
   assert(0); // TODO implement me
   return 0;
 }
@@ -444,17 +464,63 @@ int _drow2coo(matrix_t* m) {
   return 0;
 }
 
+
 // DROW -> DCOL
 int _drow2dcol(matrix_t* m);
-int _drow2dcol(matrix_t* m) {
-  assert(0); // TODO implement me
+int _drow2dcol(matrix_t* m,) {
+  void* d_new = malloc((m->m)*(m->n)*_data_width(m->data_type));
+  if(d_new != NULL)
+    return -1; // malloc failure
+
+  // swaps rows and columns
+  unsigned int i, j;
+  void* d_old = m->dd;
+  const unsigned int rows = m->m;
+  const unsigned int cols = m->n;
+  const size_t dwidth = _data_width(m->data_type);
+  for(i=0; i < rows; i++) {
+    for(j=0; j < cols; j++) {
+      const void* src = d_old[(i*cols + j)*dwidth];
+      const void* dest = d_new[(j*rows + i)*dwidth];
+      memcpy(dest, src, dwidth);
+    }
+  }
+
+  // swap ptrs
+  free(m->dd);
+  m->dd = d_new;
+  m->format = DCOL;
+
   return 0;
 }
 
 // DCOL -> DROW
 int _dcol2drow(matrix_t* m);
 int _dcol2drow(matrix_t* m) {
-  assert(0); // TODO implement me
+  void* d_new = malloc((m->m)*(m->n)*_data_width(m->data_type));
+  if(d_new != NULL)
+    return -1; // malloc failure
+
+  // swaps rows and columns
+  unsigned int i, j;
+  void* d_old = m->dd;
+  const unsigned int rows = m->m;
+  const unsigned int cols = m->n;
+  const size_t dwidth = _data_width(m->data_type);
+  // TODO common code: only swapping roll of i,j and indexing between _dcol2drow and _drow2dcol
+  for(i=0; i < cols; i++) {
+    for(j=0; j < rows; j++) {
+      const void* src = d_old[(i*rows + j)*dwidth];
+      const void* dest = d_new[(j*cols + i)*dwidth];
+      memcpy(dest, src, dwidth);
+    }
+  }
+
+  // swap ptrs
+  free(m->dd);
+  m->dd = d_new;
+  m->format = DROW;
+
   return 0;
 }
 
@@ -462,7 +528,7 @@ int _dcol2drow(matrix_t* m) {
 // convert between formats: some conversions might take more than one step
 // non-zero means failure: -1 to/from INVALID, +1 malloc/realloc failed
 int convert_matrix(matrix_t* m, enum matrix_format_t f, enum matrix_base_t b) {
-  if(m->base != f) {
+  if(m->base != b) {
     int i;
     switch(m->format) {
       case INVALID:
