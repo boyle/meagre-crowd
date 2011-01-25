@@ -108,6 +108,7 @@ AT_CLEANUP
 
 AT_BANNER([unit tests])
 MC_UNIT_TEST([perftimer])
+MC_UNIT_TEST([matrix])
 
 
 

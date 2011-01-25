@@ -29,5 +29,6 @@ tests/helloworld-mpi
 tests/helloworld-mumps
 tests/mumps-file
 tests/unit-perftimer
+tests/unit-matrix
 COPYING
 COPYING.LESSER

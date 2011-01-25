@@ -40,10 +40,10 @@ enum matrix_base_t { FIRST_INDEX_ZERO=0, FIRST_INDEX_ONE=1 };
 //   as appropriate and use 'COMPRESSED' in the 'format' field
 //   (CSC is COMPRESSED & COLUMN, CSR is COMPRESSED & ROW)
 // TODO: block storage formats BCOO, BCSR, JAD
-enum matrix_format_t { DROW=0, DCOL, COO, CSC, CSR };
+enum matrix_format_t { INVALID=0, DROW, DCOL, SM_COO, SM_CSC, SM_CSR }; // TODO remove SM prefixes (bebop conflict)
 
 // matrix symmetry
-enum matrix_symmetry_t { UNSYMMETRIC=0, SYMMETRIC, SKEW_SYMMETRIC, HERMITIAN };
+enum matrix_symmetry_t { SM_UNSYMMETRIC=0, SM_SYMMETRIC, SM_SKEW_SYMMETRIC, SM_HERMITIAN }; //  TODO remove SM prefixes (bebop conflict)
 // and where the data is stored (upper or lower triangular)
 //   if !BOTH, then storage locations can be validated
 enum matrix_symmetric_storage_t { BOTH=0, UPPER_TRIANGULAR, LOWER_TRIANGULAR };
@@ -54,7 +54,7 @@ enum matrix_symmetric_storage_t { BOTH=0, UPPER_TRIANGULAR, LOWER_TRIANGULAR };
 // COMPLEX_SINGLE: two C floats make a complex single-precision floating point number
 // COMPLEX_SINGLE: two C floats make a complex single-precision floating point number
 // PATTERN: no data (dd), pattern of non-zero entries is indicated by ii, jj
-enum matrix_data_type_t { REAL=0, REAL_DOUBLE=0, REAL_SINGLE=1, COMPLEX=2, COMPLEX_DOUBLE=2, COMPLEX_SINGLE=3, PATTERN=4 };
+enum matrix_data_type_t { SM_REAL=0, REAL_DOUBLE=0, REAL_SINGLE=1, SM_COMPLEX=2, COMPLEX_DOUBLE=2, COMPLEX_SINGLE=3, SM_PATTERN=4 };  //  TODO remove SM prefixes (bebop conflict)
 
 typedef struct matrix_t {
   size_t m; // rows
@@ -83,15 +83,22 @@ typedef struct matrix_t {
 // Note: initializing via 'matrix_t A = {0};' should get the most common defaults and a valid but empty matrix
 
 // helper functionis to deallocate the components of a matrix_t or the whole thing, assuming it was malloc-ed
-void free_matrix(matrix_t* m_);
+matrix_t* malloc_matrix();
+void free_matrix(matrix_t* m);
 void clear_matrix(matrix_t* m);
+// TODO const correctness
 matrix_t* copy_matrix(matrix_t* m); // deep copy
+// compare matrices
+// returns: zero on match
+// TODO const correctness
+int cmp_matrix(matrix_t* a, matrix_t* b);
 // convert matrix to a new format
-// returns: NULL on failure
-matrix_t* convert_matrix(matrix_t* m, enum matrix_format_t f);
+// returns: non-zero on failure
+int convert_matrix(matrix_t* m, enum matrix_format_t f, enum matrix_base_t b);
 
 // check the matrix isn't malformed
 // returns: 0: okay, <0=problem found
+// TODO const correctness
 int validate_matrix(matrix_t* m);
 
 #endif

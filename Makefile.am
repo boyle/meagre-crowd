@@ -36,11 +36,13 @@ bin_SCRIPTS = launch_jobs collect_results
 EXTRA_DIST = LICENSE COPYING COPYING.LESSER get_dependencies $(bin_SCRIPTS) tests/test.mm tests/test.hb tests/test.rb
 
 # the tests
-BUILT_TESTS = tests/file tests/helloworld-mpi tests/helloworld-mumps tests/mumps-file tests/unit-perftimer tests/hello-umfpack
+BUILT_TESTS = tests/file tests/helloworld-mpi tests/helloworld-mumps tests/mumps-file tests/unit-perftimer tests/unit-matrix tests/hello-umfpack
 #TESTS = $(BUILT_TESTS)
 check_PROGRAMS = $(BUILT_TESTS) 
 tests_unit_perftimer_SOURCES = tests/unit-perftimer.c src/perftimer.c
 tests_unit_perftimer_CPPFLAGS = -I$(srcdir)/src
+tests_unit_matrix_SOURCES = tests/unit-matrix.c src/matrix.c
+tests_unit_matrix_CPPFLAGS = -I$(srcdir)/src
 
 AM_CFLAGS = -Werror #-Wextra
 
