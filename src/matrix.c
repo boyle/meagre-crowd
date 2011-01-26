@@ -528,10 +528,10 @@ int _drow2coo(matrix_t* m) {
 
   // resize ptr arrays to the correct size, now that
   // we know exactly how many non-zero entries there are
-  void* p = realloc(m->ii, m->nz);
+  void* p = realloc(m->ii, m->nz*sizeof(unsigned int));
   if(p != NULL)
     m->ii = p;
-  p = realloc(m->jj, m->nz);
+  p = realloc(m->jj, m->nz*sizeof(unsigned int));
   if(p != NULL)
     m->jj = p;
   p = realloc(m->dd, m->nz*dwidth);
