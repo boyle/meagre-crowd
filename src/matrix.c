@@ -142,23 +142,7 @@ matrix_t* copy_matrix(matrix_t* m) {
       break;
 
     case DROW: case DCOL: // dense matrix
-      ret->ii = malloc((m->m)*sizeof(unsigned int));
-      if(ret->ii == NULL) { // malloc failed
-	free(ret->dd);
-	free(ret);
-	return NULL;
-      }
-      memcpy(ret->ii, m->ii, (m->m)*sizeof(unsigned int)); // memcpy(*dest,*src,n)
-      ret->jj = malloc((m->n)*sizeof(unsigned int));
-      if(ret->jj == NULL) { // malloc failed
-	free(ret->ii);
-	free(ret->dd);
-	free(ret);
-	return NULL;
-      }
-      memcpy(ret->jj, m->jj, (m->n)*sizeof(unsigned int)); // memcpy(*dest,*src,n)
-      break;
-    case INVALID:
+    case INVALID: // invalid matrix
       ret->ii = NULL;
       ret->jj = NULL;
       break;
@@ -448,13 +432,24 @@ int _coo2csr(matrix_t* m) {
 // COO -> DROW
 int _coo2drow(matrix_t* m);
 int _coo2drow(matrix_t* m) {
-  void* d_new = malloc((m->m)*(m->n)*_data_width(m->data_type));
-  if(d_new != NULL)
+  const size_t dwidth = _data_width(m->data_type);
+  void* d_new = calloc((m->m)*(m->n), dwidth);
+  if(d_new == NULL)
     return -1; // malloc failure
 
-  // TODO convert from COO to DROW
-  assert(0); // incomplete
+  // convert from COO to DROW
+  int i;
+  const unsigned int cols = m->n;
+  for(i=0; i < m->nz; i++) {
+    // find index in row-major order, given dwidth size entries
+    // copy to the appropriate location in the dense array
+    const void* src  = (char*) m->dd + i*dwidth;
+    void*       dest = (char*) d_new + ((m->ii[i] * cols) + m->jj[i])*dwidth;
+    memcpy(dest, src, dwidth);
+  }
+  // rest of the entries in the array are zero from calloc()
 
+  // now clean up
   free(m->dd);
   free(m->ii);
   free(m->jj);
@@ -463,14 +458,65 @@ int _coo2drow(matrix_t* m) {
   m->jj = NULL;
   m->format = DROW;
 
-  assert(0); // TODO implement me
+  return 0;
+}
+
+int _cmp_matrix_entry(void* a, void* b, const enum data_type_t t, const double tol);
+int _cmp_matrix_entry(void* a, void* b, const enum data_type_t t, const double tol) {
+  assert(0); // TODO impliment
   return 0;
 }
 
 // DROW -> COO
 int _drow2coo(matrix_t* m);
 int _drow2coo(matrix_t* m) {
-  assert(0); // TODO implement me
+  const double tol = 1e-15; // tolerance: what to approximate as zero when converting // TODO use machine epsilon*2?
+  const size_t dwidth = _data_width(m->data_type);
+  const void* zero = calloc(1,_data_width(COMPLEX_DOUBLE)); // largest entry type
+
+  // allocate maximum size, then realloc later to reduce to the appropriate size ptr
+  // data (dd) is already maximum size
+  m->ii = malloc((m->m)*(m->n)*sizeof(unsigned int));
+  m->jj = malloc((m->m)*(m->n)*sizeof(unsigned int));
+  m->nz = 0;
+
+  // in-place compression of data, row-by-row
+  int i;
+  const unsigned int rows = m->m;
+  const unsigned int cols = m->n;
+  unsigned int  index = 0;
+  void*         d_old = m->dd;
+  void*         d_new = m->dd;
+  unsigned int* i_new = m->ii;
+  unsigned int* j_new = m->jj;
+  for(i=0; i<rows; i++) {
+    for(j=0; j<cols; j++) {
+      // index = (i*cols + j); // row-major indexing
+      assert(index == (i*cols + j)); // check indexing is correct
+      if(cmp_matrix_entry(d_old, zero, m->data_type, tol) != 0) { // store, otherwise its zero so skip
+        // TODO store, if not the same address? does memcpy check?
+
+        d_new += dwidth;
+        i_new++;
+        j_new++;
+      }
+      d_old += dwidth;
+      index++; // TODO rm unused
+    }
+  }
+
+  // resize ptr arrays to the correct size, now that
+  // we know exactly how many non-zero entries there are
+  void* p = realloc(m->ii, m->nz);
+  if(p != NULL)
+    m->ii = p;
+  p = realloc(m->jj, m->nz);
+  if(p != NULL)
+    m->jj = p;
+  p = realloc(m->dd, m->nz*dwidth);
+  if(p != NULL)
+    m->dd = p;
+
   return 0;
 }
 
@@ -479,7 +525,7 @@ int _drow2coo(matrix_t* m) {
 int _drow2dcol(matrix_t* m);
 int _drow2dcol(matrix_t* m) {
   void* d_new = malloc((m->m)*(m->n)*_data_width(m->data_type));
-  if(d_new != NULL)
+  if(d_new == NULL)
     return -1; // malloc failure
 
   // swaps rows and columns
@@ -508,7 +554,7 @@ int _drow2dcol(matrix_t* m) {
 int _dcol2drow(matrix_t* m);
 int _dcol2drow(matrix_t* m) {
   void* d_new = malloc((m->m)*(m->n)*_data_width(m->data_type));
-  if(d_new != NULL)
+  if(d_new == NULL)
     return -1; // malloc failure
 
   // swaps rows and columns
@@ -590,11 +636,11 @@ int convert_matrix(matrix_t* m, enum matrix_format_t f, enum matrix_base_t b) {
   int ret1, ret2, ret3;
   switch(m->format) {
     case INVALID:
-      return -1;
+      return -2;
     case DROW:
       switch(f) {
         case INVALID:
-	  return -1;
+	  return -3;
 	case DROW:
 	  return 0; // nothing to do
 	case DCOL:
@@ -615,7 +661,7 @@ int convert_matrix(matrix_t* m, enum matrix_format_t f, enum matrix_base_t b) {
     case DCOL:
       switch(f) {
         case INVALID:
-	  return -1;
+	  return -4;
 	case DROW:
 	  ret1 = _dcol2drow(m);
 	  return ret1;
@@ -639,7 +685,7 @@ int convert_matrix(matrix_t* m, enum matrix_format_t f, enum matrix_base_t b) {
     case SM_COO:
       switch(f) {
         case INVALID:
-	  return -1;
+	  return -5;
 	case DROW:
 	  ret1 = _coo2drow(m);
 	  return ret1;
@@ -659,7 +705,7 @@ int convert_matrix(matrix_t* m, enum matrix_format_t f, enum matrix_base_t b) {
     case SM_CSC:
       switch(f) {
         case INVALID:
-	  return -1;
+	  return -6;
 	case DROW:
 	  ret1 = _csc2coo(m);
 	  ret2 = _coo2drow(m);
@@ -682,7 +728,7 @@ int convert_matrix(matrix_t* m, enum matrix_format_t f, enum matrix_base_t b) {
     case SM_CSR:
       switch(f) {
         case INVALID:
-	  return -1;
+	  return -7;
 	case DROW:
 	  ret1 = _csr2coo(m);
 	  ret2 = _coo2drow(m);
@@ -704,7 +750,7 @@ int convert_matrix(matrix_t* m, enum matrix_format_t f, enum matrix_base_t b) {
       }
   }
   assert(0); // shouldn't be able to get here due to returns
-  return -2;
+  return -8;
 }
 
 // test matrix

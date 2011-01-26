@@ -22,14 +22,13 @@
 #include "matrix.h"
 
 
-// how many matrix_format_t entries are there
-#define matrix_format_t__MAX 6
-
 struct enum2format_t {
   const enum matrix_format_t f;
   const char* s;
 };
 
+// how many matrix_format_t entries are there
+#define matrix_format_t__MAX 6
 static const struct enum2format_t enum2format[] = 
   { {INVALID, "invalid"},
     {DROW,    "dense (rows)"},
@@ -63,6 +62,8 @@ void test_formats(matrix_t* a) {
         b->format = INVALID; // force it to be invalid so we can test the conversions
       }
       else {
+        if(ret != 0) // some debug info
+          printf("ret=%d: %s -> %s\n",ret,enum2format[b->format].s,enum2format[j].s);
         assert(ret == 0);
 	assert(b->base == (enum matrix_base_t) i);
 	assert(cmp_matrix(a,b) == 0);
