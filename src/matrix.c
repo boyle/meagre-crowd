@@ -463,7 +463,23 @@ int _coo2drow(matrix_t* m) {
 
 int _cmp_matrix_entry(void* a, void* b, const enum data_type_t t, const double tol);
 int _cmp_matrix_entry(void* a, void* b, const enum data_type_t t, const double tol) {
-  assert(0); // TODO impliment
+  switch(t) {
+    case REAL_DOUBLE:
+      double* aa = (double*) a;
+      double* bb = (double*) b;
+      if( aa > bb + tol )
+        return 1;
+      else if( aa < bb - tol )
+        return -1;
+      else
+        return 0;
+      break;
+    case REAL_SINGLE: // TODO
+    case COMPLEX_SINGLE: // TODO
+    case COMPLEX_DOUBLE: // TODO
+      break;
+  }
+  assert(0);
   return 0;
 }
 
@@ -472,7 +488,7 @@ int _drow2coo(matrix_t* m);
 int _drow2coo(matrix_t* m) {
   const double tol = 1e-15; // tolerance: what to approximate as zero when converting // TODO use machine epsilon*2?
   const size_t dwidth = _data_width(m->data_type);
-  const void* zero = calloc(1,_data_width(COMPLEX_DOUBLE)); // largest entry type
+  const void* zero = calloc(2,sizeof(double)); // largest data size: COMPLEX_DOUBLE=2*double
 
   // allocate maximum size, then realloc later to reduce to the appropriate size ptr
   // data (dd) is already maximum size
@@ -493,8 +509,13 @@ int _drow2coo(matrix_t* m) {
     for(j=0; j<cols; j++) {
       // index = (i*cols + j); // row-major indexing
       assert(index == (i*cols + j)); // check indexing is correct
-      if(cmp_matrix_entry(d_old, zero, m->data_type, tol) != 0) { // store, otherwise its zero so skip
-        // TODO store, if not the same address? does memcpy check?
+
+      // TODO this cmp is inefficient, since there's a switch on data type within the loop, its probably better to code 4 loops, one for each data type
+      if(_cmp_matrix_entry(d_old, zero, m->data_type, tol) != 0) { // store, otherwise its zero so skip
+        // store, if not the same address
+	if(d_old != d_new) { // addresses can't overlap
+	  memcpy(d_new, d_old, dwidth); // memcpy(dest,src,size)
+	}
 
         d_new += dwidth;
         i_new++;
@@ -517,6 +538,7 @@ int _drow2coo(matrix_t* m) {
   if(p != NULL)
     m->dd = p;
 
+  free(zero);
   return 0;
 }
 
