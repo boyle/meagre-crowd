@@ -464,9 +464,9 @@ int _coo2drow(matrix_t* m) {
 int _cmp_matrix_entry(const void* a, const void* b, const enum matrix_data_type_t t, const double tol);
 int _cmp_matrix_entry(const void* a, const void* b, const enum matrix_data_type_t t, const double tol) {
   switch(t) {
-    case REAL_DOUBLE:
-      double* aa = (double*) a;
-      double* bb = (double*) b;
+    case REAL_DOUBLE: {
+      double aa = *((double*) a);
+      double bb = *((double*) b);
       if( aa > bb + tol )
         return 1;
       else if( aa < bb - tol )
@@ -474,9 +474,11 @@ int _cmp_matrix_entry(const void* a, const void* b, const enum matrix_data_type_
       else
         return 0;
       break;
+    }
     case REAL_SINGLE: // TODO
     case COMPLEX_SINGLE: // TODO
     case COMPLEX_DOUBLE: // TODO
+    case SM_PATTERN: // TODO
       break;
   }
   assert(0);
@@ -488,7 +490,7 @@ int _drow2coo(matrix_t* m);
 int _drow2coo(matrix_t* m) {
   const double tol = 1e-15; // tolerance: what to approximate as zero when converting // TODO use machine epsilon*2?
   const size_t dwidth = _data_width(m->data_type);
-  const void* zero = calloc(2,sizeof(double)); // largest data size: COMPLEX_DOUBLE=2*double
+  void* zero = calloc(2,sizeof(double)); // largest data size: COMPLEX_DOUBLE=2*double
 
   // allocate maximum size, then realloc later to reduce to the appropriate size ptr
   // data (dd) is already maximum size
