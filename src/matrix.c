@@ -461,8 +461,8 @@ int _coo2drow(matrix_t* m) {
   return 0;
 }
 
-int _cmp_matrix_entry(void* a, void* b, const enum data_type_t t, const double tol);
-int _cmp_matrix_entry(void* a, void* b, const enum data_type_t t, const double tol) {
+int _cmp_matrix_entry(const void* a, const void* b, const enum matrix_data_type_t t, const double tol);
+int _cmp_matrix_entry(const void* a, const void* b, const enum matrix_data_type_t t, const double tol) {
   switch(t) {
     case REAL_DOUBLE:
       double* aa = (double*) a;
@@ -497,7 +497,6 @@ int _drow2coo(matrix_t* m) {
   m->nz = 0;
 
   // in-place compression of data, row-by-row
-  int i;
   const unsigned int rows = m->m;
   const unsigned int cols = m->n;
   unsigned int  index = 0;
@@ -505,6 +504,7 @@ int _drow2coo(matrix_t* m) {
   void*         d_new = m->dd;
   unsigned int* i_new = m->ii;
   unsigned int* j_new = m->jj;
+  int i, j;
   for(i=0; i<rows; i++) {
     for(j=0; j<cols; j++) {
       // index = (i*cols + j); // row-major indexing
