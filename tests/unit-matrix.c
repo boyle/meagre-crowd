@@ -46,15 +46,44 @@ const struct enum2base_t enum2base[] =
   { {FIRST_INDEX_ZERO,"zero"},
     {FIRST_INDEX_ONE, "one"} };
 
+void print_matrix(matrix_t* a);
+void print_matrix(matrix_t* a) {
+  printf("  %zux%zu (nz:%zu) %s%s%s%s %s\n",
+         a->m, a->n, a->nz,
+	 enum2format[a->format].s,
+	 (a->dd==NULL)?" !dd":"",
+	 (a->ii==NULL)?" !ii":"",
+	 (a->jj==NULL)?" !jj":"",
+	 (a->base==FIRST_INDEX_ZERO)?"base0":"base1");
+  if(a->format == SM_COO && a->data_type == REAL_DOUBLE) {
+    printf("    dd:");
+    int i;
+    for(i=0; i<a->nz; i++)
+      printf(" %e",(double)((double*)(a->dd))[i]);
+    printf("\n");
+    printf("    ii:");
+    for(i=0; i<a->nz; i++)
+      printf(" %d",(unsigned int)((unsigned int*)(a->ii))[i]);
+    printf("\n");
+    printf("    jj:");
+    for(i=0; i<a->nz; i++)
+      printf(" %d",(unsigned int)((unsigned int*)(a->jj))[i]);
+    printf("\n");
+  }
+}
+
+
 void test_formats(matrix_t* a);
 void test_formats(matrix_t* a) {
   matrix_t* b = copy_matrix(a);
   assert(b != NULL);
+  print_matrix(b);
 
   int i,j,k,l,ret;
   for(i=0;i<2;i++) { // two types of base: 0 or 1
     for(j=0; j < matrix_format_t__MAX; j++) { // storage formats
       enum matrix_format_t old_format = b->format;
+      printf("%s -> %s (base %s -> %s)\n", enum2format[b->format].s, enum2format[j].s, enum2base[b->base].s, enum2base[i].s);
       ret = convert_matrix(b, (enum matrix_format_t) j, (enum matrix_base_t) i);
       if(j == 0) { // INVALID
         assert(ret != 0);
@@ -62,8 +91,6 @@ void test_formats(matrix_t* a) {
         b->format = INVALID; // force it to be invalid so we can test the conversions
       }
       else {
-        if(ret != 0) // some debug info
-          printf("ret=%d: %s -> %s\n",ret,enum2format[b->format].s,enum2format[j].s);
         assert(ret == 0);
 	assert(b->base == (enum matrix_base_t) i);
 	assert(cmp_matrix(a,b) == 0);
@@ -75,16 +102,21 @@ void test_formats(matrix_t* a) {
           matrix_t* c = copy_matrix(b);
           assert(c != NULL);
 
+	  printf("  %s -> %s (base %s -> %s)\n", enum2format[j].s, enum2format[l].s, enum2base[i].s, enum2base[k].s);
 	  ret = convert_matrix(c, (enum matrix_format_t) l, (enum matrix_base_t) k);
-	  printf("%s -> %s (base %s -> %s)\n", enum2format[j].s, enum2format[l].s, enum2base[i].s, enum2base[k].s);
 	  if((j == 0) || (l == 0)) { // INVALID -> x OR x -> INVALID
 	    assert(ret != 0);
 	    assert(c->format == (enum matrix_format_t) j);
 	  }
 	  else {
 	    assert(ret == 0);
+	    print_matrix(b);
+	    print_matrix(c);
 	    assert(c->base == (enum matrix_base_t) k);
+	    printf("    cmp_matrix(b,c) = %d\n",cmp_matrix(b,c));
+	    printf("    cmp_matrix(c,b) = %d\n",cmp_matrix(c,b));
             assert(cmp_matrix(b,c) == 0);
+            assert(cmp_matrix(c,b) == 0);
 	    assert(c->format == (enum matrix_format_t) l);
 	  }
 
@@ -122,8 +154,8 @@ void test_basic() {
   matrix_t* c = malloc_matrix();
   assert(c != NULL);
   *c = (matrix_t){0};
-  c->m = 32;
-  c->n = 15;
+  c->m = 8;
+  c->n = 9;
   c->nz = 4;
   c->base = FIRST_INDEX_ZERO;
   c->format = SM_COO;
@@ -148,6 +180,8 @@ void test_basic() {
 
   // try converting between all types
   test_formats(c);
+
+  // TODO do some cmp_matrix's that are supposed to fail in different ways
 
   // TODO test behaviour of an emtpy matrix (nz=0) in all formats
 }

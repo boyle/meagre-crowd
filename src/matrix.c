@@ -52,6 +52,19 @@ void inline clear_matrix(matrix_t* m) {
   *m = (matrix_t){0}; // assign all zeros
 }
 
+// from enum, returns width of ea. value in the matrix in bytes
+inline size_t _data_width(const enum matrix_data_type_t t);
+inline size_t _data_width(const enum matrix_data_type_t t) {
+  switch(t) {
+    case REAL_SINGLE:    return sizeof(float);
+    case REAL_DOUBLE:    return sizeof(double);
+    case COMPLEX_SINGLE: return 2*sizeof(float);
+    case COMPLEX_DOUBLE: return 2*sizeof(double);
+    case SM_PATTERN:     return 0;
+  }
+  assert(0); // unhittable
+  return 0;
+}
 
 // deep copy
 // TODO const correctness
@@ -65,22 +78,25 @@ matrix_t* copy_matrix(matrix_t* m) {
   *ret = *m; // shallow copy
 
   // and now the deep copy (ii, jj, dd)
-  size_t data_bytes = 0;
-  switch(m->data_type) {
-    case REAL_SINGLE: data_bytes = sizeof(float); break;
-    case REAL_DOUBLE: data_bytes = sizeof(double); break;
-    case COMPLEX_SINGLE: data_bytes = 2*sizeof(float); break;
-    case COMPLEX_DOUBLE: data_bytes = 2*sizeof(double); break;
-    case SM_PATTERN: data_bytes = 0; break;
-  }
+  const size_t dwidth = _data_width(m->data_type);
   // if its only a pattern, or an empty matrix, then there is nothing in 'dd', it's a NULL ptr
-  if((m->data_type != SM_PATTERN) && (m->format != INVALID)) {
-    ret->dd = malloc((m->nz)*data_bytes);
-    if(ret->dd == NULL) { // malloc failed
+  if((m->data_type != SM_PATTERN) && (m->format != INVALID) && (m->nz != 0)) {
+
+    size_t n; // entries to copy
+    if((m->format == DROW) || (m->format == DCOL))
+      n = (m->m)*(m->n); // rows*cols entries
+    else
+      n = m->nz;
+
+    ret->dd = malloc(n*dwidth); // nz entries
+
+    // malloc failed
+    if(ret->dd == NULL) {
       free(ret);
       return NULL;
     }
-    memcpy(ret->dd, m->dd, (m->nz)*data_bytes); // memcpy(*dest,*src,n)
+
+    memcpy(ret->dd, m->dd, n*dwidth); // memcpy(*dest,*src,n)
   }
   else { // otherwise, make sure the shallow copy didn't have cruft in it
     ret->dd = NULL;
@@ -151,20 +167,6 @@ matrix_t* copy_matrix(matrix_t* m) {
   return ret;
 }
 
-// from enum, returns width of ea. value in the matrix in bytes
-inline size_t _data_width(const enum matrix_data_type_t t);
-inline size_t _data_width(const enum matrix_data_type_t t) {
-  switch(t) {
-    case REAL_SINGLE:    return sizeof(float);
-    case REAL_DOUBLE:    return sizeof(double);
-    case COMPLEX_SINGLE: return 2*sizeof(float);
-    case COMPLEX_DOUBLE: return 2*sizeof(double);
-    case SM_PATTERN:     return 0;
-  }
-  assert(0); // unhittable
-  return 0;
-}
-
 // compare matrices
 // returns: zero on match
 // TODO compare with-in a given precision (floating pt. data a->dd)
@@ -180,7 +182,7 @@ int cmp_matrix(matrix_t* a, matrix_t* b) {
     return -1; // not matching
 
   // do sizes/types match?
-  if((a->m != b->m) || (a->n != b->n) || (a->nz != b->nz) ||
+  if((a->m != b->m) || (a->n != b->n) ||
      (a->data_type != b->data_type))
     return -2;
 
@@ -196,12 +198,19 @@ int cmp_matrix(matrix_t* a, matrix_t* b) {
     int ret = convert_matrix(bb, a->format, a->base);
     if(ret != 0) {
       free_matrix(bb);
-      return -3;
+      return -5;
     }
   }
   else {
     copied = 0;
     bb = b;
+  }
+
+  if(a->nz != bb->nz) {
+    printf("a->nz=%zd  bb->nz=%zd\n",a->nz, bb->nz);
+    if(copied)
+      free_matrix(bb);
+    return -7;
   }
 
   // decide how many bytes of each ptr to compare
@@ -240,7 +249,7 @@ int cmp_matrix(matrix_t* a, matrix_t* b) {
     if(ret != 0) {
       if(copied)
         free_matrix(bb);
-      return -3;
+      return -10;
     }
   }
 
@@ -251,18 +260,46 @@ int cmp_matrix(matrix_t* a, matrix_t* b) {
     if(ret != 0) {
       if(copied)
         free_matrix(bb);
-      return -4;
+      return -11;
     }
   }
 
   if(ddlen != 0) {
     assert(a->dd != NULL);
     assert(bb->dd != NULL);
-    int ret = memcmp(a->dd, bb->dd, ddlen);
+
+
+    int ret;
+//    ret = memcmp(a->dd, bb->dd, ddlen); // TODO compare with some tolerance
+    switch(a->data_type) {
+      case REAL_DOUBLE: {
+        const double tol = 1e-15; // tolerance: what to approximate as zero when converting // TODO use machine epsilon*2?
+        double* d_old = a->dd;
+        double* d_new = bb->dd;
+        int i;
+        for(i=0; i < a->nz; i++) {
+	  if( (*d_old < *d_new - tol) || (*d_old > *d_new + tol) ) { // if !zero store, otherwise skip
+	    ret = -1;
+	    break;
+	  }
+          d_old++;
+          d_new++;
+        }
+        ret = 0;
+        break;
+      }
+      case REAL_SINGLE:
+      case COMPLEX_DOUBLE:
+      case COMPLEX_SINGLE:
+      case SM_PATTERN:
+        assert(0); // TODO
+        break;
+    }
+
     if(ret != 0) {
       if(copied)
         free_matrix(bb);
-      return -5;
+      return -12;
     }
   }
 
@@ -339,7 +376,10 @@ struct sparse_matrix_t* _bebop_input(matrix_t* m, enum sparse_matrix_storage_for
       p->val = m->dd;
       p->II = (int*) m->ii;
       p->JJ = (int*) m->jj;
-      p->index_base = ZERO; // TODO don't lose this!
+      if(m->base == FIRST_INDEX_ZERO)
+        p->index_base = ZERO;
+      else
+        p->index_base = ONE;
       p->symmetry_type = UNSYMMETRIC; // TODO
       p->value_type = v;
       p->ownership = USER_DEALLOCATES;
@@ -369,7 +409,7 @@ int _csc2coo(matrix_t* m) {
   int ierr = sparse_matrix_convert(A, COO); assert(ierr == 0);
 
   struct coo_matrix_t* p = A->repr;
-  m->format = COO;
+  m->format = SM_COO;
   m->ii = (unsigned int*) p->II;
   m->jj = (unsigned int*) p->JJ;
   m->dd = p->val;
@@ -386,7 +426,7 @@ int _coo2csc(matrix_t* m) {
   int ierr = sparse_matrix_convert(A, CSC); assert(ierr == 0);
 
   struct csc_matrix_t* p = A->repr;
-  m->format = CSC;
+  m->format = SM_CSC;
   m->ii = (unsigned int*) p->rowidx;
   m->jj = (unsigned int*) p->colptr;
   m->dd = p->values;
@@ -403,7 +443,7 @@ int _csr2coo(matrix_t* m) {
   int ierr = sparse_matrix_convert(A, COO); assert(ierr == 0);
 
   struct coo_matrix_t* p = A->repr;
-  m->format = COO;
+  m->format = SM_COO;
   m->ii = (unsigned int*) p->II;
   m->jj = (unsigned int*) p->JJ;
   m->dd = p->val;
@@ -420,7 +460,7 @@ int _coo2csr(matrix_t* m) {
   int ierr = sparse_matrix_convert(A, CSR); assert(ierr == 0);
 
   struct csr_matrix_t* p = A->repr;
-  m->format = CSR;
+  m->format = SM_CSR;
   m->ii = (unsigned int*) p->rowptr;
   m->jj = (unsigned int*) p->colidx;
   m->dd = p->values;
@@ -444,7 +484,11 @@ int _coo2drow(matrix_t* m) {
     // find index in row-major order, given dwidth size entries
     // copy to the appropriate location in the dense array
     const void* src  = (char*) m->dd + i*dwidth;
-    void*       dest = (char*) d_new + ((m->ii[i] * cols) + m->jj[i])*dwidth;
+    void*       dest;
+    if(m->base == FIRST_INDEX_ZERO)
+      dest = (char*) d_new + ((m->ii[i] * cols) + m->jj[i])*dwidth;
+    else // FIRST_INDEX_ONE
+      dest = (char*) d_new + (((m->ii[i] -1) * cols) + (m->jj[i] -1))*dwidth;
     memcpy(dest, src, dwidth);
   }
   // rest of the entries in the array are zero from calloc()
@@ -457,79 +501,81 @@ int _coo2drow(matrix_t* m) {
   m->ii = NULL;
   m->jj = NULL;
   m->format = DROW;
+  m->nz = m->m * m->n; // not really valid, but might as well set it to a sane value
 
   return 0;
 }
 
-int _cmp_matrix_entry(const void* a, const void* b, const enum matrix_data_type_t t, const double tol);
-int _cmp_matrix_entry(const void* a, const void* b, const enum matrix_data_type_t t, const double tol) {
-  switch(t) {
-    case REAL_DOUBLE: {
-      double aa = *((double*) a);
-      double bb = *((double*) b);
-      if( aa > bb + tol )
-        return 1;
-      else if( aa < bb - tol )
-        return -1;
-      else
-        return 0;
-      break;
-    }
-    case REAL_SINGLE: // TODO
-    case COMPLEX_SINGLE: // TODO
-    case COMPLEX_DOUBLE: // TODO
-    case SM_PATTERN: // TODO
-      break;
-  }
-  assert(0);
-  return 0;
-}
 
 // DROW -> COO
-int _drow2coo(matrix_t* m);
-int _drow2coo(matrix_t* m) {
+int _drow2coo(matrix_t* m, const enum matrix_base_t b);
+int _drow2coo(matrix_t* m, const enum matrix_base_t b) {
+  assert(m != NULL);
   const double tol = 1e-15; // tolerance: what to approximate as zero when converting // TODO use machine epsilon*2?
   const size_t dwidth = _data_width(m->data_type);
-  void* zero = calloc(2,sizeof(double)); // largest data size: COMPLEX_DOUBLE=2*double
 
   // allocate maximum size, then realloc later to reduce to the appropriate size ptr
   // data (dd) is already maximum size
   m->ii = malloc((m->m)*(m->n)*sizeof(unsigned int));
+  if(m->ii == NULL)
+    return -1;
   m->jj = malloc((m->m)*(m->n)*sizeof(unsigned int));
-  m->nz = 0;
+  if(m->jj == NULL) {
+    free(m->ii);
+    return -1;
+  }
 
   // in-place compression of data, row-by-row
   const unsigned int rows = m->m;
   const unsigned int cols = m->n;
-  unsigned int  index = 0;
-  void*         d_old = m->dd;
-  void*         d_new = m->dd;
   unsigned int* i_new = m->ii;
   unsigned int* j_new = m->jj;
   int i, j;
-  for(i=0; i<rows; i++) {
-    for(j=0; j<cols; j++) {
-      // index = (i*cols + j); // row-major indexing
-      assert(index == (i*cols + j)); // check indexing is correct
 
-      // TODO this cmp is inefficient, since there's a switch on data type within the loop, its probably better to code 4 loops, one for each data type
-      if(_cmp_matrix_entry(d_old, zero, m->data_type, tol) != 0) { // store, otherwise its zero so skip
-        // store, if not the same address
-	if(d_old != d_new) { // addresses can't overlap
-	  memcpy(d_new, d_old, dwidth); // memcpy(dest,src,size)
+  m->nz = 0;
+  switch(m->data_type) {
+    case REAL_DOUBLE: {
+      double* d_old = m->dd;
+      double* d_new = m->dd;
+      for(i=0; i<rows; i++) { // (i initialized already)
+	for(j=0; j<cols; j++) { // (j initialized already)
+	  // index = (i*cols + j); // row-major indexing
+	  if( (*d_old < 0.0 - tol) || (*d_old > 0.0 + tol) ) { // if !zero store, otherwise skip
+	    // store, if not the same address
+            if(d_old != d_new) // addresses can't overlap for memcpy
+              memcpy(d_new, d_old, dwidth); // memcpy(dest,src,size)
+
+            if(b == FIRST_INDEX_ONE) {// then loop variables have to be +1
+              *i_new = i +1;
+              *j_new = j +1;
+	    }
+	    else { // FIRST_INDEX_ZERO
+              *i_new = i;
+              *j_new = j;
+	    }
+
+	    d_new++;
+	    i_new++;
+	    j_new++;
+	    m->nz++; // update the entry count
+	  }
+	  d_old++;
 	}
-
-        d_new += dwidth;
-        i_new++;
-        j_new++;
       }
-      d_old += dwidth;
-      index++; // TODO rm unused
     }
+    break;
+    case REAL_SINGLE:
+    case COMPLEX_DOUBLE:
+    case COMPLEX_SINGLE:
+    case SM_PATTERN:
+      assert(0);
+      break;
   }
 
+  // optimization!
   // resize ptr arrays to the correct size, now that
   // we know exactly how many non-zero entries there are
+  // -- if these fail we still have the original ptr
   void* p = realloc(m->ii, m->nz*sizeof(unsigned int));
   if(p != NULL)
     m->ii = p;
@@ -540,7 +586,9 @@ int _drow2coo(matrix_t* m) {
   if(p != NULL)
     m->dd = p;
 
-  free(zero);
+  m->format = SM_COO;
+  m->base = b;
+
   return 0;
 }
 
@@ -655,6 +703,7 @@ int convert_matrix(matrix_t* m, enum matrix_format_t f, enum matrix_base_t b) {
         }
         break;
     }
+    m->base = b;
   }
 
   int ret1, ret2, ret3;
@@ -671,14 +720,14 @@ int convert_matrix(matrix_t* m, enum matrix_format_t f, enum matrix_base_t b) {
 	  ret1 = _drow2dcol(m);
 	  return ret1;
 	case SM_COO:
-	  ret1 = _drow2coo(m);
+	  ret1 = _drow2coo(m, b);
 	  return ret1;
 	case SM_CSC:
-	  ret1 = _drow2coo(m);
+	  ret1 = _drow2coo(m, b);
 	  ret2 = _coo2csc(m);
 	  return (ret1 || ret2);
 	case SM_CSR:
-	  ret1 = _drow2coo(m);
+	  ret1 = _drow2coo(m, b);
 	  ret2 = _coo2csr(m);
 	  return (ret1 || ret2);
       }
@@ -693,16 +742,16 @@ int convert_matrix(matrix_t* m, enum matrix_format_t f, enum matrix_base_t b) {
 	  return 0; // nothing to do
 	case SM_COO:
 	  ret1 = _dcol2drow(m);
-	  ret2 = _drow2coo(m);
+	  ret2 = _drow2coo(m, b);
 	  return (ret1 || ret2);
 	case SM_CSC:
 	  ret1 = _dcol2drow(m);
-	  ret2 = _drow2coo(m);
+	  ret2 = _drow2coo(m, b);
 	  ret3 = _coo2csc(m);
 	  return (ret1 || ret2 || ret3);
 	case SM_CSR:
 	  ret1 = _dcol2drow(m);
-	  ret2 = _drow2coo(m);
+	  ret2 = _drow2coo(m, b);
 	  ret3 = _coo2csr(m);
 	  return (ret1 || ret2 || ret3);
       }
