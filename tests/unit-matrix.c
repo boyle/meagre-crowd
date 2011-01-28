@@ -186,6 +186,7 @@ void test_basic() {
 
   // try converting between all types
   test_formats(c);
+  free_matrix(c);
 
   // TODO do some cmp_matrix's that are supposed to fail in different ways
 
