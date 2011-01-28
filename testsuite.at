@@ -150,9 +150,7 @@ AT_DATA([broken.mm],[ Jibberish file
 not even the right format
 ])
 # TODO clean up the garbage left by read_matrix_market_sparse when it fails (turn it off somehow?)
-AT_CHECK(AT_PACKAGE_NAME -i broken.mm,1,,[*** read_matrix_market_sparse: Could not process MatrixMarket banner ***
-*** load_sparse_matrix: Failed to read MatrixMarket format sparse matrix from file "broken.mm", error code 14 ***
-input error: Failed to load matrix
+AT_CHECK(AT_PACKAGE_NAME -i broken.mm,1,,[input error: Failed to load matrix
 ])
 AT_CLEANUP
 

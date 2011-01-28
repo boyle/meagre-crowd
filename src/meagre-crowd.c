@@ -47,6 +47,10 @@
 // TODO cmp_matrix()
 int results_match(matrix_t* expected_matrix, matrix_t* result_matrix, const double precision);
 int results_match(matrix_t* expected_matrix, matrix_t* result_matrix, const double precision) {
+  assert(expected_matrix != NULL);
+  assert(result_matrix != NULL);
+  assert(expected_matrix->format != INVALID);
+  assert(result_matrix->format != INVALID);
   assert(expected_matrix->data_type == REAL_DOUBLE);
   assert(result_matrix->data_type == REAL_DOUBLE);
   assert(result_matrix->m == expected_matrix->m);
@@ -318,7 +322,7 @@ int main(int argc, char ** argv) {
   }
 
   // test result?
-  if((args->mpi_rank == 0) && (expected != NULL)){
+  if((args->mpi_rank == 0) && (expected->format != INVALID)){
     perftimer_inc(timer,"test",-1);
     if( results_match(expected, rhs, args->expected_precision) ) {
       retval = 0;
