@@ -19,6 +19,9 @@ These are somewhat arranged in order of priority. Highest at the top.
  - add matrix handling (various formats)
  - add solver abstraction layer
 
+ - fix "inline" in matrix.c/h
+ - add optimization: DROW <-> DCOL when they're a single vector short-circuit
+
 Fix memory leaks:
  - there is a leak in one of the shared libraries atexit() - probably
    the BeBop sparse matrix loader library, maybe rewrite/extract the bits

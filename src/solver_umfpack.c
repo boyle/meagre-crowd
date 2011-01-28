@@ -32,34 +32,31 @@
 
 // Initialize a MUMPS instance. Use MPI_COMM_WORLD.
 // Note: only using A to determine matrix type
-solve_system_umfpack_t* solver_init_umfpack(struct parse_args* args, perftimer_t* timer, struct sparse_matrix_t* A) {
+solve_system_umfpack_t* solver_init_umfpack(struct parse_args* args, perftimer_t* timer, matrix_t* A) {
   return calloc(1,sizeof(solve_system_umfpack_t));
 }
 
 // if NULL, do nothing to A or b
 // TODO b can be sparse...
-void solver_data_prep_umfpack(solve_system_umfpack_t* p, struct sparse_matrix_t* A, double* b) {
+void solver_data_prep_umfpack(solve_system_umfpack_t* p, matrix_t* A, matrix_t* b) {
   if(A != NULL) {
     // prepare the matrix
-    int ierr = sparse_matrix_convert(A, CSC); assert(ierr == 0);
-    struct csc_matrix_t* Acsc = A->repr;
-    assert(Acsc != NULL);
-    assert(Acsc->symmetry_type == UNSYMMETRIC);
-    assert(Acsc->value_type == REAL); // don't handle complex... yet TODO
-    // TODO do soemthing with A.ownership, so we can tell bebop to clean itself up, but not have to copy the elements
-    // TODO really we should just copy this to be CORRECT/TYPESAFE (not worth being clever...)
+    int ierr = convert_matrix(A, SM_CSC, FIRST_INDEX_ZERO);
+    assert(ierr == 0);
+    assert(A->sym == SM_UNSYMMETRIC);
+    assert(A->data_type == REAL_DOUBLE); // don't handle complex... yet TODO
 
-    p->m = p->n = Acsc->m;
-    assert(Acsc->m == Acsc->n); // TODO can only handle square matrices at present (UMFPACK?)
+    assert(A->m == A->n); // TODO can only handle square matrices at present (UMFPACK?)
+    p->m = p->n = A->m;
 
     // Compressed Column Format
-    p->Ap = Acsc->colptr; // start index for column n, column 0 = 0, column N+1 = nz
-    p->Ai = Acsc->rowidx; // row indices
-    p->Ax = Acsc->values;
+    p->Ap = (int*) A->jj; // start index for column n, column 0 = 0, column N+1 = nz
+    p->Ai = (int*) A->ii; // row indices
+    p->Ax = A->dd;
     assert(p->Ap[0] == 0);
-    assert(p->Ap[p->n] == Acsc->nnz);
+    assert(p->Ap[p->n] == A->nz);
 
-    // TODO allocate x
+    // allocate x
     p->x = malloc(p->m * sizeof(double));
   }
 
@@ -67,11 +64,17 @@ void solver_data_prep_umfpack(solve_system_umfpack_t* p, struct sparse_matrix_t*
     free(p->b); // no-op if NULL
     p->b = malloc(p->n * sizeof(double));
     assert(p->b != NULL); // malloc failure
-    memcpy(p->b, b, p->n * sizeof(double));
+    int ret = convert_matrix(b, DROW, FIRST_INDEX_ZERO);
+    assert(ret == 0);
+    if(A != NULL)
+      assert(b->m == A->m);
+    assert(b->n == 1); // TOOD MUMPS can handle vectors...
+    assert(b->data_type == REAL_DOUBLE);
+    memcpy(p->b, b->dd, p->n * sizeof(double));
   }
 }
 
-double* solver_solve_umfpack(solve_system_umfpack_t* p, struct parse_args* args, perftimer_t* timer) {
+void solver_solve_umfpack(solve_system_umfpack_t* p, struct parse_args* args, perftimer_t* timer, matrix_t* ans) {
   void *Symbolic, *Numeric;
 
   perftimer_inc(timer,"analyze",-1);
@@ -87,7 +90,14 @@ double* solver_solve_umfpack(solve_system_umfpack_t* p, struct parse_args* args,
 
   perftimer_inc(timer,"done",-1);
 
-  return p->x;
+  clear_matrix(ans);
+  ans->m = p->n;
+  ans->n = 1;
+  ans->format = DROW;
+  ans->data_type = REAL_DOUBLE;
+  ans->dd = malloc(p->n * sizeof(double));
+  assert(ans->dd != NULL);
+  memcpy(ans->dd, p->x, p->n * sizeof(double));
 }
 
 

@@ -23,7 +23,7 @@
 #include <bebop/smc/sparse_matrix.h>
 #include "args.h"
 #include "perftimer.h"
-
+#include "matrix.h"
 
 typedef struct {
   int m;
@@ -35,11 +35,11 @@ typedef struct {
   double* x;
 } solve_system_umfpack_t;
 
-solve_system_umfpack_t* solver_init_umfpack(struct parse_args* args, perftimer_t* timer, struct sparse_matrix_t* A);
+solve_system_umfpack_t* solver_init_umfpack(struct parse_args* args, perftimer_t* timer, matrix_t* A);
 
-void solver_data_prep_umfpack(solve_system_umfpack_t* p, struct sparse_matrix_t* A, double* b);
+void solver_data_prep_umfpack(solve_system_umfpack_t* p, matrix_t* A, matrix_t* b);
 
-double* solver_solve_umfpack(solve_system_umfpack_t* p, struct parse_args* args, perftimer_t* timer);
+void solver_solve_umfpack(solve_system_umfpack_t* p, struct parse_args* args, perftimer_t* timer, matrix_t* ans);
 
 void solver_finalize_umfpack(solve_system_umfpack_t* p);
 

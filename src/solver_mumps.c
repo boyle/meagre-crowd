@@ -38,7 +38,7 @@
 
 // Initialize a MUMPS instance. Use MPI_COMM_WORLD.
 // Note: only using A to determine matrix type
-DMUMPS_STRUC_C* solver_init_dmumps(struct parse_args* args, perftimer_t* timer, struct sparse_matrix_t* A) {
+DMUMPS_STRUC_C* solver_init_dmumps(struct parse_args* args, perftimer_t* timer, matrix_t* A) {
   // initialize MUMPS instance
   DMUMPS_STRUC_C* id = calloc(1,sizeof(DMUMPS_STRUC_C)); // initialize to zero
   assert(id != NULL); // calloc failure
@@ -69,36 +69,41 @@ DMUMPS_STRUC_C* solver_init_dmumps(struct parse_args* args, perftimer_t* timer, 
 
 // if NULL, do nothing to A or b
 // TODO b can be sparse...
-void solver_data_prep_dmumps(DMUMPS_STRUC_C* id, struct sparse_matrix_t* A, double* b) {
+void solver_data_prep_dmumps(DMUMPS_STRUC_C* id, matrix_t* A, matrix_t* b) {
   if(A != NULL) {
     // prepare the matrix
-    int ierr = sparse_matrix_convert(A, COO); assert(ierr == 0);
-    struct coo_matrix_t* Acoo = A->repr;
-    coo_c_to_fortran(Acoo); assert(Acoo != NULL);
-    assert(Acoo->index_base == ONE); // index zero is the first entry
-    assert(Acoo->symmetry_type == UNSYMMETRIC);
-    assert(Acoo->value_type == REAL); // don't handle complex... yet TODO
+    int ierr = convert_matrix(A, SM_COO, FIRST_INDEX_ONE);
+    assert(ierr == 0);
+    assert(A->base == FIRST_INDEX_ONE); // index zero is the first entry
+    assert(A->sym == SM_UNSYMMETRIC);
+    assert(A->data_type == REAL_DOUBLE); // don't handle complex... yet TODO
 
     // TODO do soemthing with A.ownership, so we can tell bebop to clean itself up, but not have to copy the elements
     // TODO really we should just copy this to be CORRECT/TYPESAFE (not worth being clever...)
 
     // mumps: irn=row indices, jcn=column idices, a=values, rhs=right-hand side, n = matrix order (on-a-side?) nz=non-zeros?
-    id->n   = Acoo->m; // A.m: rows, A.n: columns
-    id->nz  = Acoo->nnz; // non-zeros
-    id->irn = Acoo->II; // row    indices
-    id->jcn = Acoo->JJ; // column indices
-    id->a   = Acoo->val;
+    id->n   = A->m; // A.m: rows, A.n: columns
+    id->nz  = A->nz; // non-zeros
+    id->irn = (int*) A->ii; // row    indices
+    id->jcn = (int*) A->jj; // column indices
+    id->a   = A->dd;
   }
 
   if(b != NULL) {
     free(id->rhs); // no-op if NULL
     id->rhs = malloc(id->n * sizeof(double));
     assert(id->rhs != NULL); // malloc failure
-    memcpy(id->rhs, b, id->n * sizeof(double));
+    int ret = convert_matrix(b, DROW, FIRST_INDEX_ZERO); // TODO MUMPS can handle sparse vectors
+    assert(ret == 0);
+    if(A != NULL)
+      assert(b->m == A->m);
+    assert(b->n == 1); // TOOD MUMPS can handle vectors...
+    assert(b->data_type == REAL_DOUBLE);
+    memcpy(id->rhs, b->dd, id->n * sizeof(double));
   }
 }
 
-double* solver_solve_dmumps(DMUMPS_STRUC_C* id, struct parse_args* args, perftimer_t* timer) {
+void solver_solve_dmumps(DMUMPS_STRUC_C* id, struct parse_args* args, perftimer_t* timer, matrix_t* ans) {
   // TODO rm?  perftimer_inc(timer,"solver",-1);
   // TODO rm?  perftimer_adjust_depth(timer,+1);
 
@@ -216,7 +221,15 @@ double* solver_solve_dmumps(DMUMPS_STRUC_C* id, struct parse_args* args, perftim
   assert(id->INFOG(1) == 0); // check it worked
   perftimer_inc(timer,"done",-1);
 
-  return id->rhs;
+  // put the answer in a nice formatted bundle
+  clear_matrix(ans);
+  ans->m = id->n;
+  ans->n = 1;
+  ans->format = DROW;
+  ans->data_type = REAL_DOUBLE;
+  ans->dd = malloc(id->n * sizeof(double));
+  assert(ans->dd != NULL);
+  memcpy(ans->dd, id->rhs, id->n * sizeof(double));
 }
 
 

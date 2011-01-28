@@ -33,15 +33,24 @@
 #include <bebop/smc/csc_matrix.h>
 
 inline matrix_t* malloc_matrix() {
-  return malloc(sizeof(matrix_t));
+  matrix_t* m = malloc(sizeof(matrix_t));
+  // make this safe to free_matrix() whatever comes out of this
+  if(m != NULL) {
+    m->format = INVALID;
+    m->ii = NULL;
+    m->jj = NULL;
+    m->dd = NULL;
+  }
+  return m;
 }
 
 void inline free_matrix(matrix_t* m) {
-  assert(m != NULL);
-  free(m->dd);
-  free(m->ii);
-  free(m->jj);
-  free(m);
+  if(m != NULL) {
+    free(m->dd);
+    free(m->ii);
+    free(m->jj);
+    free(m);
+  }
 }
 
 void inline clear_matrix(matrix_t* m) {
@@ -665,6 +674,9 @@ int _drow2dcol(matrix_t* m) {
   void* d_new = malloc((m->m)*(m->n)*_data_width(m->data_type));
   if(d_new == NULL)
     return -1; // malloc failure
+
+  // TODO dcol == drow if rows or cols == 1, short-circuit in that case and change format
+  // TODO do this going the other way too dcol -> drow
 
   // swaps rows and columns
   unsigned int i, j;

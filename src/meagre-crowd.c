@@ -33,25 +33,35 @@
 
 #include <mpi.h>
 
-#include <bebop/util/init.h>
-#include <bebop/util/enumerations.h>
-#include <bebop/smc/sparse_matrix.h>
-#include <bebop/smc/sparse_matrix_ops.h>
-#include <bebop/smc/coo_matrix.h>
-
 #include "args.h"
 #include "perftimer.h"
 #include "solver_mumps.h"
 #include "solver_umfpack.h"
 #include "file.h"
-
+#include "matrix.h"
 
 
 // test result of matrix computations
 // returns: 1=match w/in precision, 0=non-matching
 // TODO refactor mv to matrix.h, operate on matrix_t objects
-int results_match(const double * const expected, const double const * result, const int n, const double precision);
-int results_match(const double * const expected, const double const * result, const int n, const double precision) {
+// TODO cmp_matrix()
+int results_match(matrix_t* expected_matrix, matrix_t* result_matrix, const double precision);
+int results_match(matrix_t* expected_matrix, matrix_t* result_matrix, const double precision) {
+  assert(expected_matrix->data_type == REAL_DOUBLE);
+  assert(result_matrix->data_type == REAL_DOUBLE);
+  assert(result_matrix->m == expected_matrix->m);
+  assert(result_matrix->n == expected_matrix->n);
+  assert(result_matrix->n == 1);
+
+  int ret;
+  ret = convert_matrix(expected_matrix, DROW, FIRST_INDEX_ZERO);
+  assert(ret == 0);
+  ret = convert_matrix(result_matrix,   DROW, FIRST_INDEX_ZERO);
+  assert(ret == 0);
+
+  const double* expected = expected_matrix->dd;
+  const double* result = result_matrix->dd;
+  const unsigned int n = result_matrix->m;
   int i;
   for(i=0;i<n;i++) {
     if( (result[i] < (expected[i] - precision)) ||
@@ -105,15 +115,12 @@ int main(int argc, char ** argv) {
   }
 
   // Define the problem on the host
-  double* b = NULL;
-  double* expected = NULL;
-  struct sparse_matrix_t* A;
+  matrix_t* b = malloc_matrix();
+  matrix_t* expected = malloc_matrix();
+  matrix_t* A = malloc_matrix();
+  matrix_t* rhs = malloc_matrix();
   unsigned int m = 0; // rows
   if (args->mpi_rank == 0) {
-
-    if(extra_timing && args->rep == 0)
-      perftimer_inc(timer,"sparse file handling",-1);
-    bebop_default_initialize (argc, argv, &ierr); assert (ierr == 0);
 
     if(extra_timing && args->rep == 0) {
       perftimer_adjust_depth(timer,-1);
@@ -124,7 +131,7 @@ int main(int argc, char ** argv) {
     if(extra_timing && args->rep == 0)
       perftimer_inc(timer,"load",-1);
 
-    if((retval = load_matrix(args->input, &A)) != 0) {
+    if((retval = load_matrix(args->input, A)) != 0) {
       return retval;
     }
     m = matrix_rows(A);
@@ -133,80 +140,45 @@ int main(int argc, char ** argv) {
     // allocate an sequentially numbered right-hand side of A.m rows
     // TODO warn if there is already a rhs loaded
     if(args->rhs != NULL) {
-      struct sparse_matrix_t* b_loaded;
-      if((retval = load_matrix(args->rhs, &b_loaded)) != 0) {
+      if((retval = load_matrix(args->rhs, b)) != 0) {
         return retval;
       }
-
-      int ierr = sparse_matrix_convert(b_loaded, COO); assert(ierr == 0);
-      struct coo_matrix_t* bcoo = b_loaded->repr;
-
-      assert(bcoo->m == m); // rows must match
-      assert(bcoo->n == 1); // TODO can only handle single column vector currently
-
-      b=malloc((bcoo->m)*sizeof(double));
-      assert(b!=NULL);
+      assert(b->m == m); // rows must match // TODO nice error (user could load some random matrix file, also testcases)
+      assert(b->n == 1); // TODO can only handle single column vector currently
 
       // convert from COO vector to dense format vector
-      size_t i;
-      size_t j = 0;
-      double* data = bcoo->val;
-      for(i=0; i < m; i++) {
-        assert( bcoo->II[j] >= i ); // or somehow the row indicies weren't ordered properly
-        if( bcoo->II[j] == i ) { // are we at the next row yet?
-	  b[i] = data[j]; // good, store the value
-	  j++;
-	}
-	else {
-	  b[i] = 0; // or we've got another zero
-	}
-      }
-
-      // clean up
-      //destroy_coo_matrix(bcoo);
+      // TODO this is redundant, since it needs to be done in the solver ... do it there, remove this later
+      convert_matrix(b, DCOL, FIRST_INDEX_ZERO);
     }
     else {
-      b = malloc(m*sizeof(double));
       assert(b != NULL); // malloc failure
+      *b = (matrix_t){0};
+      b->m = m;
+      b->n = 1;
+      b->nz = m;
+      b->format = DROW;
+      b->dd = malloc(m*sizeof(double));
+      b->data_type = REAL_DOUBLE;
       { // initialize right-hand-side (b)
 	int i;
-	for(i=0;i<m;i++)
-	  b[i] = i;
+	double* d = b->dd;
+	for(i=0;i<m;i++) {
+	  *d = i;
+	  d++;
+	}
       }
     }
     if(args->expected != NULL) {
       // TODO refactor: this is a cut and paste of the loader for 'b'
-      struct sparse_matrix_t* expected_loaded;
-      if((retval = load_matrix(args->expected, &expected_loaded)) != 0) {
+      if((retval = load_matrix(args->expected, expected)) != 0) {
         return retval;
       }
-
-      int ierr = sparse_matrix_convert(expected_loaded, COO); assert(ierr == 0);
-      struct coo_matrix_t* ecoo = expected_loaded->repr;
-
-      assert(ecoo->m == m); // rows must match
-      assert(ecoo->n == 1); // TODO can only handle single column vector currently
-
-      expected=malloc((ecoo->m)*sizeof(double));
-      assert(expected!=NULL);
+      assert(expected->m == m); // rows must match // TODO nice error (user could load some random matrix file, also testcases)
+      assert(expected->n == 1); // TODO can only handle single column vector currently
 
       // convert from COO vector to dense format vector
-      size_t i;
-      size_t j = 0;
-      double* data = ecoo->val;
-      for(i=0; i < m; i++) {
-        assert( ecoo->II[j] >= i ); // or somehow the row indicies weren't ordered properly
-        if( ecoo->II[j] == i ) { // are we at the next row yet?
-          expected[i] = data[j]; // good, store the value
-          j++;
-        }
-        else {
-          expected[i] = 0; // or we've got another zero
-        }
-      }
-
-      // clean up
-      //destroy_coo_matrix(ecoo);
+      // TODO this is redundant, since it needs to be done in the solver ... do it there, remove this later
+      convert_matrix(b, DCOL, FIRST_INDEX_ZERO);
     }
 
 
@@ -220,30 +192,33 @@ int main(int argc, char ** argv) {
       assert(A != NULL);
       int c_omp;
       c_omp = 0; // TODO omp_get_num_threads();
-      int ierr = sparse_matrix_convert(A, COO); assert(ierr == 0);
-      struct coo_matrix_t* Acoo = A->repr;
+      int ierr = convert_matrix(A, SM_COO, FIRST_INDEX_ZERO);
+      assert(ierr == 0);
       const char* sym, *location, *type;
-      switch(Acoo->symmetry_type) {
-	case UNSYMMETRIC:    sym = "unsymmetric"; break;
-	case SYMMETRIC:      sym = "symmetric"; break;
-	case SKEW_SYMMETRIC: sym = "skew symmetric"; break;
-	case HERMITIAN:      sym = "hermitian"; break;
+      switch(A->sym) {
+	case SM_UNSYMMETRIC:    sym = "unsymmetric"; break;
+	case SM_SYMMETRIC:      sym = "symmetric"; break;
+	case SM_SKEW_SYMMETRIC: sym = "skew symmetric"; break;
+	case SM_HERMITIAN:      sym = "hermitian"; break;
 	default: assert(false); // fell through
       }
-      if((args->verbosity < 2) || (Acoo->symmetry_type == UNSYMMETRIC)) {
+      if((args->verbosity < 2) || (A->sym == SM_UNSYMMETRIC)) {
 	location = "";
       }
       else {
-	switch(Acoo->symmetric_storage_location) {
-	  case UPPER_TRIANGLE: location = " (upper)"; break;
-	  case LOWER_TRIANGLE: location = " (lower)"; break;
+	switch(A->location) {
+	  case UPPER_TRIANGULAR: location = " (upper)"; break;
+	  case LOWER_TRIANGULAR: location = " (lower)"; break;
+	  case BOTH:             location = ""; break; // nothing
 	  default: assert(false);
 	}
       }
-      switch(Acoo->value_type) {
-	case REAL:    type = "real"; break;
-	case COMPLEX: type = "complex"; break;
-	case PATTERN: type = "pattern"; break;
+      switch(A->data_type) {
+	case REAL_DOUBLE:    type = "real"; break;
+	case REAL_SINGLE:    type = "real (single-precision)"; break;
+	case COMPLEX_DOUBLE: type = "complex"; break;
+	case COMPLEX_SINGLE: type = "complex (single-precision)"; break;
+	case SM_PATTERN: type = "pattern"; break;
 	default: assert(false); // fell through
       }
       const char* solver;
@@ -252,26 +227,28 @@ int main(int argc, char ** argv) {
         case UMFPACK: solver = "umfpack"; break;
 	default: assert(false); // fell through
       }
-      printf("Ax=b: A is %dx%d, nz=%d, %s%s, %s, b is %dx%d, nz=%d\nsolved with %s on %d core%s, %d thread%s\n",
-             Acoo->m, Acoo->n, Acoo->nnz,
+      printf("Ax=b: A is %zux%zu, nz=%zu, %s%s, %s, b is %zux%zu, nz=%zu\nsolved with %s on %d core%s, %d thread%s\n",
+             A->m, A->n, A->nz,
 	     sym, location, type,
-             Acoo->m, 1, Acoo->m,
+             b->m, b->n, b->nz,
 	     solver,
 	     c_mpi, c_mpi==1?"":"s",c_omp,c_omp==1?"":"s");
 
       if(args->verbosity >= 2) {
         int i;
-        int n = Acoo->nnz;
-        double* v = Acoo->val;
-        for(i=0;i<n;i++) {
-          printf("  A(%i,%i)=%.2f\n", Acoo->II[i], Acoo->JJ[i], v[i]);
+	assert(A->data_type == REAL_DOUBLE);
+        double* v = A->dd;
+        for(i=0; i < A->nz; i++) {
+          printf("  A(%i,%i)=%.2f\n", A->ii[i], A->jj[i], v[i]);
         }
       }
 
       if(args->verbosity >= 2) { // show the rhs matrix
 	int i;
-	for(i=0;i<Acoo->m;i++)
-	  printf("  b(%i)=%.2f\n", i, b[i]);
+	assert(b->data_type == REAL_DOUBLE);
+	double* d = b->dd;
+	for(i=0;i<b->m;i++)
+	  printf("  b(%i)=%.2f\n", i, d[i]);
       }
     }
 
@@ -305,7 +282,6 @@ int main(int argc, char ** argv) {
   }
 
   int r = 0;
-  double* rhs = NULL;
   do {
     if(r != 0)
       perftimer_restart(&timer);
@@ -324,10 +300,10 @@ int main(int argc, char ** argv) {
 
     switch(args->solver) {
       case MUMPS:
-        rhs = solver_solve_dmumps(mumps_p, args, timer);
+        solver_solve_dmumps(mumps_p, args, timer, rhs);
         break;
       case UMFPACK:
-        rhs = solver_solve_umfpack(umfpack_p, args, timer);
+        solver_solve_umfpack(umfpack_p, args, timer, rhs);
         break;
       default: assert(false); // should have caught unknown solver before now!
     }
@@ -344,7 +320,7 @@ int main(int argc, char ** argv) {
   // test result?
   if((args->mpi_rank == 0) && (expected != NULL)){
     perftimer_inc(timer,"test",-1);
-    if( results_match(expected, rhs, m, args->expected_precision) ) {
+    if( results_match(expected, rhs, args->expected_precision) ) {
       retval = 0;
       printf("PASS\n");
     }
@@ -356,39 +332,20 @@ int main(int argc, char ** argv) {
 
   if((args->mpi_rank == 0) && (args->output != NULL)) {
     if(strncmp(args->output,"-",2) == 0) {
+      int ret = convert_matrix(rhs, DROW, FIRST_INDEX_ZERO);
+      assert(ret == 0);
+
       int i;
-      for(i=0;i<m;i++)
-        printf("  x(%d)=%.2f\n",i,rhs[i]);
+      assert(rhs->data_type == REAL_DOUBLE);
+      double* d = rhs->dd;
+      for(i=0;i<rhs->m;i++)
+        printf("  x(%d)=%.2f\n",i,d[i]);
     }
     else {
-      // convert from vector to matrix format
-      struct coo_matrix_t Bcoo = {0};
-      struct sparse_matrix_t B = {0};
-      B.format = COO;
-      B.repr = &Bcoo;
-      Bcoo.m = m;
-      Bcoo.n = 1;
-      Bcoo.nnz = m;
-      Bcoo.val = rhs;
-      Bcoo.II = malloc(m*sizeof(int));
-      Bcoo.JJ = malloc(m*sizeof(int));
-      int i;
-      for(i=0;i<m;i++) {
-	Bcoo.II[i] = i;
-	Bcoo.JJ[i] = 0;
-      }
-      Bcoo.index_base = ZERO;
-      Bcoo.symmetry_type = UNSYMMETRIC;
-      Bcoo.value_type = REAL;
-      Bcoo.ownership = USER_DEALLOCATES;
-
       // TODO test args->output to decide if its an acceptable filename before now
       // TODO really, we shouldn't care what the file name is, just the file format...
-      if(save_matrix(&B, args->output) != 0)
+      if(save_matrix(rhs, args->output) != 0)
 	retval = 12; // TODO normalize error codes so they are defined in one place (defines?)
-
-      free(Bcoo.II);
-      free(Bcoo.JJ);
     }
   }
 
@@ -402,8 +359,13 @@ int main(int argc, char ** argv) {
     default: assert(false); // should have caught unknown solver before now!
   }
 
-  // clean up
-  free(b);
+  // clean up matrices
+  free_matrix(b);
+  free_matrix(expected);
+  free_matrix(A);
+  free_matrix(rhs);
+
+  // close down MPI
   if(extra_timing && args->rep == 0) {
     perftimer_inc(timer,"clean up",-1);
     perftimer_adjust_depth(timer,+1);
