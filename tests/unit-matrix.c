@@ -29,7 +29,7 @@ struct enum2format_t {
 
 // how many matrix_format_t entries are there
 #define matrix_format_t__MAX 6
-static const struct enum2format_t enum2format[] = 
+static const struct enum2format_t enum2format[] =
   { {INVALID, "invalid"},
     {DROW,    "dense (rows)"},
     {DCOL,    "dense (columns)"},
@@ -48,7 +48,7 @@ const struct enum2base_t enum2base[] =
 
 void print_matrix(matrix_t* a);
 void print_matrix(matrix_t* a) {
-  printf("  %zux%zu (nz:%zu) %s%s%s%s %s\n",
+  printf("    %zux%zu (nz:%zu) %s%s%s%s %s\n",
          a->m, a->n, a->nz,
 	 enum2format[a->format].s,
 	 (a->dd==NULL)?" !dd":"",
@@ -56,16 +56,16 @@ void print_matrix(matrix_t* a) {
 	 (a->jj==NULL)?" !jj":"",
 	 (a->base==FIRST_INDEX_ZERO)?"base0":"base1");
   if(a->format == SM_COO && a->data_type == REAL_DOUBLE) {
-    printf("    dd:");
+    printf("      dd:");
     int i;
     for(i=0; i<a->nz; i++)
       printf(" %e",(double)((double*)(a->dd))[i]);
     printf("\n");
-    printf("    ii:");
+    printf("      ii:");
     for(i=0; i<a->nz; i++)
       printf(" %d",(unsigned int)((unsigned int*)(a->ii))[i]);
     printf("\n");
-    printf("    jj:");
+    printf("      jj:");
     for(i=0; i<a->nz; i++)
       printf(" %d",(unsigned int)((unsigned int*)(a->jj))[i]);
     printf("\n");
@@ -80,7 +80,7 @@ void test_formats(matrix_t* a) {
   print_matrix(b);
 
   int i,j,k,l,ret;
-  for(i=0;i<2;i++) { // two types of base: 0 or 1
+  for(i=0;i<2;i++) { // from two types of base: 0 or 1
     for(j=0; j < matrix_format_t__MAX; j++) { // storage formats
       enum matrix_format_t old_format = b->format;
       printf("%s -> %s (base %s -> %s)\n", enum2format[b->format].s, enum2format[j].s, enum2base[b->base].s, enum2base[i].s);
@@ -92,12 +92,15 @@ void test_formats(matrix_t* a) {
       }
       else {
         assert(ret == 0);
-	assert(b->base == (enum matrix_base_t) i);
-	assert(cmp_matrix(a,b) == 0);
         assert(b->format == (enum matrix_format_t) j);
+	if((b->format == DROW) || (b->format == DCOL))
+	  assert(b->base == FIRST_INDEX_ZERO);
+	else
+	  assert(b->base == (enum matrix_base_t) i);
+	assert(cmp_matrix(a,b) == 0);
       }
 
-      for(k=0;k<2;k++) {
+      for(k=0;k<2;k++) { // to base
 	for(l=1; l < matrix_format_t__MAX; l++) { // to all other storage formats
           matrix_t* c = copy_matrix(b);
           assert(c != NULL);
@@ -109,15 +112,18 @@ void test_formats(matrix_t* a) {
 	    assert(c->format == (enum matrix_format_t) j);
 	  }
 	  else {
-	    assert(ret == 0);
 	    print_matrix(b);
 	    print_matrix(c);
-	    assert(c->base == (enum matrix_base_t) k);
+	    assert(ret == 0);
+	    assert(c->format == (enum matrix_format_t) l);
+	    if((c->format == DROW) || (c->format == DCOL))
+	      assert(c->base == FIRST_INDEX_ZERO);
+	    else
+	      assert(c->base == (enum matrix_base_t) k);
 	    printf("    cmp_matrix(b,c) = %d\n",cmp_matrix(b,c));
 	    printf("    cmp_matrix(c,b) = %d\n",cmp_matrix(c,b));
             assert(cmp_matrix(b,c) == 0);
             assert(cmp_matrix(c,b) == 0);
-	    assert(c->format == (enum matrix_format_t) l);
 	  }
 
           free_matrix(c);

@@ -314,6 +314,8 @@ int cmp_matrix(matrix_t* a, matrix_t* b) {
 // TODO these currently use BeBOP sparse matrix stuff inside, to be replaced eventually!
 
 // --------------------------
+// NOTE: there is memory loss here -- I think its within BeBOP but its hard to see w/o removing it
+
 struct sparse_matrix_t* _bebop_input(matrix_t* m, enum sparse_matrix_storage_format_t f);
 struct sparse_matrix_t* _bebop_input(matrix_t* m, enum sparse_matrix_storage_format_t f) {
   struct sparse_matrix_t* A = malloc(sizeof(struct sparse_matrix_t));
@@ -404,60 +406,121 @@ void _bebop_destroy(struct sparse_matrix_t* A) {
 // CSC -> COO
 int _csc2coo(matrix_t* m);
 int _csc2coo(matrix_t* m) {
+  assert(m->format == SM_CSC);
+
+  // BeBOP only handles zero-based CSC matrices
+  const enum matrix_base_t old_base = m->base;
+  int ret;
+  ret = convert_matrix(m,m->format,FIRST_INDEX_ZERO);
+  assert(ret == 0); // should never fail
+
+  // store, ready for BeBOP
   struct sparse_matrix_t* A =_bebop_input(m, CSC);
 
-  int ierr = sparse_matrix_convert(A, COO); assert(ierr == 0);
+  int ierr = sparse_matrix_convert(A, COO);
+  assert(ierr == 0); // might fail on malloc?
 
+  // store new matrix
   struct coo_matrix_t* p = A->repr;
   m->format = SM_COO;
   m->ii = (unsigned int*) p->II;
   m->jj = (unsigned int*) p->JJ;
   m->dd = p->val;
 
+  // clean up after BeBOP
   _bebop_destroy(A);
+
+  // now convert back to appropriate base
+  ret = convert_matrix(m,m->format,old_base);
+  assert(ret == 0); // should never fail
+
   return 0;
 }
 
 // COO -> CSC
 int _coo2csc(matrix_t* m);
 int _coo2csc(matrix_t* m) {
+  assert(m->format == SM_COO);
+
+  // BeBOP only handles zero-based CSC matrices
+  const enum matrix_base_t old_base = m->base;
+  int ret;
+  ret = convert_matrix(m,m->format,FIRST_INDEX_ZERO);
+  assert(ret == 0); // should never fail
+
+  // store, ready for BeBOP
   struct sparse_matrix_t* A =_bebop_input(m, COO);
 
-  int ierr = sparse_matrix_convert(A, CSC); assert(ierr == 0);
+  int ierr = sparse_matrix_convert(A, CSC);
+  assert(ierr == 0); // could fail on malloc?
 
+  // store new matrix
   struct csc_matrix_t* p = A->repr;
   m->format = SM_CSC;
   m->ii = (unsigned int*) p->rowidx;
   m->jj = (unsigned int*) p->colptr;
   m->dd = p->values;
 
+  // clean up after BeBOP
   _bebop_destroy(A);
+
+  // now convert back to appropriate base
+  ret = convert_matrix(m,m->format,old_base);
+  assert(ret == 0); // should never fail
+
   return 0;
 }
 
 // CSR -> COO
 int _csr2coo(matrix_t* m);
 int _csr2coo(matrix_t* m) {
+  assert(m->format == SM_CSR);
+
+  // BeBOP only handles zero-based CSC matrices
+  const enum matrix_base_t old_base = m->base;
+  int ret;
+  ret = convert_matrix(m,m->format,FIRST_INDEX_ZERO);
+  assert(ret == 0); // should never fail
+
+  // store, ready for BeBOP
   struct sparse_matrix_t* A =_bebop_input(m, CSR);
 
-  int ierr = sparse_matrix_convert(A, COO); assert(ierr == 0);
+  int ierr = sparse_matrix_convert(A, COO);
+  assert(ierr == 0); // could fail on malloc?
 
+  // store new matrix
   struct coo_matrix_t* p = A->repr;
   m->format = SM_COO;
   m->ii = (unsigned int*) p->II;
   m->jj = (unsigned int*) p->JJ;
   m->dd = p->val;
 
+  // clean up after BeBOP
   _bebop_destroy(A);
+
+  // now convert back to appropriate base
+  ret = convert_matrix(m,m->format,old_base);
+  assert(ret == 0); // should never fail
+
   return 0;
 }
 
 // COO -> CSR
 int _coo2csr(matrix_t* m);
 int _coo2csr(matrix_t* m) {
+  assert(m->format == SM_COO);
+
+  // BeBOP only handles zero-based CSC matrices
+  const enum matrix_base_t old_base = m->base;
+  int ret;
+  ret = convert_matrix(m,m->format,FIRST_INDEX_ZERO);
+  assert(ret == 0); // should never fail
+
+  // store, ready for BeBOP
   struct sparse_matrix_t* A =_bebop_input(m, COO);
 
-  int ierr = sparse_matrix_convert(A, CSR); assert(ierr == 0);
+  int ierr = sparse_matrix_convert(A, CSR);
+  assert(ierr == 0); // could fail on malloc?
 
   struct csr_matrix_t* p = A->repr;
   m->format = SM_CSR;
@@ -465,13 +528,20 @@ int _coo2csr(matrix_t* m) {
   m->jj = (unsigned int*) p->colidx;
   m->dd = p->values;
 
+  // clean up after BeBOP
   _bebop_destroy(A);
+
+  // now convert back to appropriate base
+  ret = convert_matrix(m,m->format,old_base);
+  assert(ret ==0); // should never fail
+
   return 0;
 }
 
 // COO -> DROW
 int _coo2drow(matrix_t* m);
 int _coo2drow(matrix_t* m) {
+  assert(m->base == FIRST_INDEX_ZERO);
   const size_t dwidth = _data_width(m->data_type);
   void* d_new = calloc((m->m)*(m->n), dwidth);
   if(d_new == NULL)
@@ -484,11 +554,7 @@ int _coo2drow(matrix_t* m) {
     // find index in row-major order, given dwidth size entries
     // copy to the appropriate location in the dense array
     const void* src  = (char*) m->dd + i*dwidth;
-    void*       dest;
-    if(m->base == FIRST_INDEX_ZERO)
-      dest = (char*) d_new + ((m->ii[i] * cols) + m->jj[i])*dwidth;
-    else // FIRST_INDEX_ONE
-      dest = (char*) d_new + (((m->ii[i] -1) * cols) + (m->jj[i] -1))*dwidth;
+    void*       dest = (char*) d_new + ((m->ii[i] * cols) + m->jj[i])*dwidth;
     memcpy(dest, src, dwidth);
   }
   // rest of the entries in the array are zero from calloc()
@@ -656,6 +722,11 @@ int _dcol2drow(matrix_t* m) {
 // convert between formats: some conversions might take more than one step
 // non-zero means failure: -1 to/from INVALID, +1 malloc/realloc failed
 int convert_matrix(matrix_t* m, enum matrix_format_t f, enum matrix_base_t b) {
+  // convert to base 0 if going to dense format
+  if((f == DROW) || (f == DCOL))
+    b = FIRST_INDEX_ZERO;
+
+  // do base conversion
   if(m->base != b) {
     int i;
     switch(m->format) {
