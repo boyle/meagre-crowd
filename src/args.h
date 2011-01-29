@@ -21,7 +21,7 @@
 
 #include "config.h"
 #include <argp.h>
-#include "solver.h"
+#include "solvers.h"
 
 // command line options
 struct parse_args {

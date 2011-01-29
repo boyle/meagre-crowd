@@ -20,7 +20,7 @@
 #define _SOLVER_UMFPACK_H_
 
 #include "config.h"
-#include "solver.h"
+#include "solvers.h"
 #include "matrix.h"
 
 void solver_init_umfpack(solver_state_t* s);

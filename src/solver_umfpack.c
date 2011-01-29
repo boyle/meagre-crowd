@@ -17,7 +17,7 @@
  *     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "solver_umfpack.h"
-#include "solver.h"
+#include "solvers.h"
 #include "matrix.h"
 #include <umfpack.h>
 

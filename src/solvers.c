@@ -18,7 +18,7 @@
  */
 
 #include "config.h"
-#include "solver.h"
+#include "solvers.h"
 #include "perftimer.h"
 #include "matrix.h"
 

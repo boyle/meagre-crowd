@@ -35,11 +35,9 @@
 
 #include "args.h"
 #include "perftimer.h"
-#include "solver_mumps.h"
-#include "solver_umfpack.h"
 #include "file.h"
 #include "matrix.h"
-#include "solver.h"
+#include "solvers.h"
 
 // test result of matrix computations
 // returns: 1=match w/in precision, 0=non-matching

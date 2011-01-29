@@ -18,7 +18,7 @@
  */
 #include "config.h"
 #include "args.h"
-#include "solver.h"
+#include "solvers.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>

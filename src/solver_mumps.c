@@ -17,7 +17,7 @@
  *     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "solver_mumps.h"
-#include "solver.h"
+#include "solvers.h"
 #include "matrix.h"
 #include <dmumps_c.h>
 
