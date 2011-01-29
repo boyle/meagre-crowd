@@ -34,7 +34,7 @@ struct parse_args {
   unsigned int verbosity;
   unsigned int rep;
   int mpi_rank; // id
-  enum solver_t solver;
+  int solver;
 };
 
 int parse_args(int argc, char ** argv, struct parse_args* args);

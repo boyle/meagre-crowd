@@ -23,34 +23,40 @@
 #include "perftimer.h"
 #include "matrix.h"
 
+enum solvers_t { UMFPACK, MUMPS }; // TODO rm (obsolete)
+
 // --------------------------------------------
 // structures and enums
-enum solver_t { MUMPS, UMFPACK }; // TODO AUTO: heuristic
-
 typedef struct {
-  enum solver_t      solver;
+  int                solver;
   perftimer_t*       timer;
   void*              specific; // further solver-specific state
 } solver_state_t;
 
 
+
+// utility functions for user interface
+int lookup_solver_by_shortname(const char* s);
+const char* solver2str(const int solver);
+void printf_solvers(const unsigned int verbosity);
+
 // --------------------------------------------
 // can the preferred solver solve this problem?
 //   e.g. can the solver only handle Symmetric Postive Definite (SPD) matrices
 // returns: 1 yes, 0 no
-int solver_can_do(enum solver_t solver, matrix_t* A, matrix_t* b);
+int solver_can_do(const int solver, matrix_t* A, matrix_t* b);
 
 // select the most appropriate solver for this problem
 //  - is it small and thus should be solved single-threaded (single processor)
 //  - is it moderate and should be solved SMP (shared memory)
 //  - is it huge and should be solved MPI (distributed memory)
-enum solver_t select_solver(matrix_t* A, matrix_t* b);
+int select_solver(matrix_t* A, matrix_t* b);
 
 // --------------------------------------------
 // wrapper function: solve 'A x = b' for 'x'
 // calls initialize, analyze, factorize, evaluate, finalize
 // returns x, the solution
-void solver(const enum solver_t solver, matrix_t* A, matrix_t* b, matrix_t* x);
+void solver(const int solver, matrix_t* A, matrix_t* b, matrix_t* x);
 
 // wrapper function: solve 'A x = b' for 'x' w/o re-initializing solver
 // calls analyze, factorize, evaluate
@@ -60,7 +66,7 @@ void solver_solve(solver_state_t* state, matrix_t* A, matrix_t* b, matrix_t* x);
 
 // --------------------------------------------
 // initialize and finalize the solver state
-solver_state_t* solver_init(const enum solver_t solver, perftimer_t* timer);
+solver_state_t* solver_init(const int solver, perftimer_t* timer);
 void solver_finalize(solver_state_t* p);
 
 // evaluate the patterns in A, doesn't care about the actual values in the matrix (A->dd)

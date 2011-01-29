@@ -39,14 +39,12 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     // output controls
     case 't': args->timing_enabled++; break;
     case 'v': args->verbosity++; break;
+    case -2: printf_solvers(args->verbosity); exit(EXIT_SUCCESS); break; // available solvers
 
     // solvers
     case 's': {
-        if(strncmp(arg,"mumps",6)==0)
-          args->solver = MUMPS;
-        else if(strncmp(arg,"umfpack",8)==0)
-          args->solver = UMFPACK;
-        else {
+        args->solver = lookup_solver_by_shortname(arg);
+        if(args->solver < 0) {
           fprintf(stderr,"invalid solver (-s)");
           exit(EXIT_FAILURE);
         }
@@ -149,9 +147,6 @@ Limitations: currently only 'Matrix Market' format is supported (*.mm).\n\
   (The Rutherford/Harwell-Boeing format loader is broken. *.hb, *.rb)\n\
   (MatLab format *.mat is unsupported.)\n\
 \n\
-Solvers:\n\
-  umfpack, mumps\n\
-\n\
 Options:"
 ;
 // TODO automatically list off available solvers and their version info?
@@ -173,7 +168,8 @@ Options:"
       // -vv: more detail(?), -vvv: max debug
       {"timing",'t',0,0,"Show/increase timing information",21},
       {"repeat",'r',"N",0,"Repeat calculations N times",6},
-      {"solver",'s',"SOLVER",0,"Select SOLVER (mumps|umfpack)",5},
+      {"solver",'s',"SOLVER",0,"Select SOLVER",5},
+      {"list-solvers",-2,0,0,"List available SOLVERs (-vv for more details)",5},
       // TODO add note to man page: -t, -tt, -ttt for more detail
       // none: no output, -t: single-line (csv), -tt: chart, -ttt: greater detail
       { 0 } // null termintated list
