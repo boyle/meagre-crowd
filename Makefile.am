@@ -33,7 +33,9 @@ noinst_HEADERS = src/perftimer.h src/matrix.h src/args.h src/file.h src/solver_m
 # want these scripts installed in the end
 bin_SCRIPTS = launch_jobs collect_results
 # some random files we want to distribute with the package tar
-EXTRA_DIST = LICENSE COPYING COPYING.LESSER get_dependencies $(bin_SCRIPTS) tests/test.mm tests/test.hb tests/test.rb
+EXTRA_DIST = get_dependencies $(bin_SCRIPTS) \
+	     tests/test.mm tests/test.hb tests/test.rb \
+             ChangeLog README NEWS INSTALL LICENSE COPYING COPYING.LESSER
 
 # the tests
 BUILT_TESTS = tests/file tests/helloworld-mpi tests/helloworld-mumps tests/mumps-file tests/unit-perftimer tests/unit-matrix tests/hello-umfpack
@@ -51,6 +53,10 @@ maintainer-clean-local:
 	-rm -f COPYING COPYING.LESSER aclocal.m4 configure ChangeLog Makefile.in src/config.h.in*
 	-rm -rf build-aux .deps
 
+# regenerate the ChangeLog from git's history via ./autogen (updates configure, etc too)
+# don't fail if autogen doesn't exist though: its not in the .tar-ed releases
+dist-hook: $(top_srcdir)/autogen
+	[[ -x $(top_srcdir)/autogen ]] && $(top_srcdir)/autogen $(distdir) $(top_srcdir) || true
 
 ######
 ## vodoo incantations to get the test suite automation to build (autotest)
