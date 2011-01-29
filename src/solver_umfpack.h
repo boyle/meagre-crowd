@@ -20,7 +20,6 @@
 #define _SOLVER_UMFPACK_H_
 
 #include "config.h"
-#include <bebop/smc/sparse_matrix.h>
 #include "args.h"
 #include "perftimer.h"
 #include "matrix.h"

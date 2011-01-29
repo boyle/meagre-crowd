@@ -21,13 +21,7 @@
 
 #include "config.h"
 #include <argp.h>
-
-enum solver_types_t {
-  // MPI based solvers
-  MUMPS = 0,
-  // multithreaded solvers
-  // single threaded solvers
-  UMFPACK = 10 };
+#include "solver.h"
 
 // command line options
 struct parse_args {
@@ -40,7 +34,7 @@ struct parse_args {
   unsigned int verbosity;
   unsigned int rep;
   int mpi_rank; // id
-  enum solver_types_t solver;
+  enum solver_t solver;
 };
 
 int parse_args(int argc, char ** argv, struct parse_args* args);

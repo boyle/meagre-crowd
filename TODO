@@ -7,7 +7,7 @@ at any patches or discuss potential solutions.
 
 These are somewhat arranged in order of priority. Highest at the top.
 
- - Run valgrind. Find bad allocations and uninitialized variables.
+ - add solver abstraction layer
  - add input list option to launcher (what matrices to run)
  ?? are there any other stats we'd like to collect?
  - Add type tests: condition number, singularity, symmetric, hermitian, real, complex
@@ -16,13 +16,17 @@ These are somewhat arranged in order of priority. Highest at the top.
  - Look at KCachegrind, Callgrind for profiling.
  - for summary, when a failed test is encountered, add it to an summary.err file
    so its easy to see where those happened
- - add matrix handling (various formats)
- - add solver abstraction layer
+ - add internal matrix handling (CSR <-> COO <-> CSC conversions need implementing
+   and are currently using BeBOP as by wrapping it,
+   COO <-> DROW <-> DCOL are handled already)
 
+ - use astyle or something similar to tidy up code formatting
  - fix "inline" in matrix.c/h
  - add optimization: DROW <-> DCOL when they're a single vector short-circuit
+ - extend tests/unit-matrix.c to push things harder
 
 Fix memory leaks:
+ - Run valgrind. Find bad allocations and uninitialized variables.
  - there is a leak in one of the shared libraries atexit() - probably
    the BeBop sparse matrix loader library, maybe rewrite/extract the bits
    I need and clean it up, it seems to be only partially functional from my tests
