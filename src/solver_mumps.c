@@ -17,15 +17,13 @@
  *     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "solver_mumps.h"
-
+#include "solver.h"
+#include "matrix.h"
+#include <dmumps_c.h>
 
 #include <stdlib.h> // malloc, free
 #include <string.h> // memcpy
 #include <assert.h>
-
-#include <bebop/smc/sparse_matrix_ops.h>
-#include <bebop/smc/coo_matrix.h>
-#include <bebop/util/enumerations.h>
 
 
 // mumps job controls
@@ -35,13 +33,14 @@
 #define MUMPS_USE_COMM_WORLD -987654
 
 
-
-// Initialize a MUMPS instance. Use MPI_COMM_WORLD.
-// Note: only using A to determine matrix type
-DMUMPS_STRUC_C* solver_init_dmumps(struct parse_args* args, perftimer_t* timer, matrix_t* A) {
+// the functions called from the "solver" wrapper and defined in "solver_lookup.h"
+// TODO probably need to see an example matrix so we can choose appropriate options, etc for solver
+void solver_init_mumps(solver_state_t* s) {
   // initialize MUMPS instance
   DMUMPS_STRUC_C* id = calloc(1,sizeof(DMUMPS_STRUC_C)); // initialize to zero
   assert(id != NULL); // calloc failure
+  s->specific = id; // stored for future use
+
   id->job=JOB_INIT;
   id->par=1; // host involved in factorization/solve
   id->sym=0; // 0: general, 1: sym pos def, 2: sym (note: no hermitian support) // TODO support other matrix types
@@ -55,7 +54,7 @@ DMUMPS_STRUC_C* solver_init_dmumps(struct parse_args* args, perftimer_t* timer, 
   // set debug verbosity
   #define ICNTL(I) icntl[(I)-1] // macro s.t. indices match documentation
   // No outputs
-  if(args->verbosity < 3) { // no debug
+  if(s->verbosity < 3) { // no debug
     id->ICNTL(1)=-1; id->ICNTL(2)=-1; id->ICNTL(3)=-1; id->ICNTL(4)=0;
   }
   else { // debug
@@ -64,21 +63,41 @@ DMUMPS_STRUC_C* solver_init_dmumps(struct parse_args* args, perftimer_t* timer, 
     id->ICNTL(3)=6; // global output stream
     id->ICNTL(4)=4; // debug level 0:none, 1: err, 2: warn/stats 3:diagnostics, 4:parameters
   }
-  return id;
 }
 
-// if NULL, do nothing to A or b
-// TODO b can be sparse...
-void solver_data_prep_dmumps(DMUMPS_STRUC_C* id, matrix_t* A, matrix_t* b) {
-  if(A != NULL) {
-    // prepare the matrix
+void solver_finalize_mumps(solver_state_t* s) {
+  assert(s != NULL);
+  DMUMPS_STRUC_C* const id = s->specific;
+  assert(id != NULL);
+
+  id->job = JOB_END;
+  dmumps_c(id); // Terminate instance
+  assert(id->INFOG(1) == 0); // check it worked
+
+  free(id->rhs);
+  free(id);
+
+  s->specific = NULL;
+}
+
+void solver_analyze_mumps(solver_state_t* s, matrix_t* A) {
+  assert(s != NULL);
+  if(s->mpi_rank == 0)
+    assert(A != NULL);
+  else
+    assert(A == NULL);
+
+  DMUMPS_STRUC_C* const id = s->specific;
+
+  // load A's pattern for analysis (COO format)
+  if(s->mpi_rank == 0) { // only rank=0 needs the initial data
     int ierr = convert_matrix(A, SM_COO, FIRST_INDEX_ONE);
     assert(ierr == 0);
     assert(A->base == FIRST_INDEX_ONE); // index zero is the first entry
     assert(A->sym == SM_UNSYMMETRIC);
     assert(A->data_type == REAL_DOUBLE); // don't handle complex... yet TODO
+    assert(A->m == A->n); // square matrices only?
 
-    // TODO do soemthing with A.ownership, so we can tell bebop to clean itself up, but not have to copy the elements
     // TODO really we should just copy this to be CORRECT/TYPESAFE (not worth being clever...)
 
     // mumps: irn=row indices, jcn=column idices, a=values, rhs=right-hand side, n = matrix order (on-a-side?) nz=non-zeros?
@@ -86,29 +105,9 @@ void solver_data_prep_dmumps(DMUMPS_STRUC_C* id, matrix_t* A, matrix_t* b) {
     id->nz  = A->nz; // non-zeros
     id->irn = (int*) A->ii; // row    indices
     id->jcn = (int*) A->jj; // column indices
-    id->a   = A->dd;
   }
-
-  if(b != NULL) {
-    free(id->rhs); // no-op if NULL
-    id->rhs = malloc(id->n * sizeof(double));
-    assert(id->rhs != NULL); // malloc failure
-    int ret = convert_matrix(b, DROW, FIRST_INDEX_ZERO); // TODO MUMPS can handle sparse vectors
-    assert(ret == 0);
-    if(A != NULL)
-      assert(b->m == A->m);
-    assert(b->n == 1); // TOOD MUMPS can handle vectors...
-    assert(b->data_type == REAL_DOUBLE);
-    memcpy(id->rhs, b->dd, id->n * sizeof(double));
-  }
-}
-
-void solver_solve_dmumps(DMUMPS_STRUC_C* id, struct parse_args* args, perftimer_t* timer, matrix_t* ans) {
-  // TODO rm?  perftimer_inc(timer,"solver",-1);
-  // TODO rm?  perftimer_adjust_depth(timer,+1);
 
   // Call the MUMPS package.
-  perftimer_inc(timer,"analyze",-1);
   // ICNTL(22) != 0: out-of-core
   //   requires OOC_TMPDIR, OOC_PREFIX -> tmp location/prefix
   // ICNTL(14): memory relaxation
@@ -176,8 +175,21 @@ void solver_solve_dmumps(DMUMPS_STRUC_C* id, struct parse_args* args, perftimer_
   // INFO(17): min mem for out-of-core (max, sum in INFOG(26,27))
   //   set ICNTL(23) for explicit max mem, per-proc [MB]
   //   set ICNTL(14) to limit mem increases
+}
 
-  perftimer_inc(timer,"factorize",-1);
+void solver_factorize_mumps(solver_state_t* s, matrix_t* A) {
+  assert(s != NULL);
+  if(s->mpi_rank == 0)
+    assert(A != NULL);
+  else
+    assert(A == NULL);
+  DMUMPS_STRUC_C* const id = s->specific;
+
+  // load A's *data* for factorization
+  // Note: pattern must have remained the same
+  if(s->mpi_rank == 0)
+    id->a   = A->dd;
+  
   // requires id->A if ICNTL(5)=0 (assembled matrix)
   // requires id->A_ELT if ICNTL(5)=1 (elemental matrix)
   // if (ICNTL(5)=0 && ICNTL(18)!=0) (assembled matrix, distributed load) ???i
@@ -191,8 +203,32 @@ void solver_solve_dmumps(DMUMPS_STRUC_C* id, struct parse_args* args, perftimer_
   id->job=JOB_FACTORIZE;
   dmumps_c(id);
   assert(id->INFOG(1) == 0); // check it worked
+}
 
-  perftimer_inc(timer,"solve",-1);
+void solver_evaluate_mumps(solver_state_t* s, matrix_t* b, matrix_t* x) {
+  assert(s != NULL);
+  if(s->mpi_rank == 0) {
+    assert(b != NULL);
+    assert(x != NULL);
+  }
+  else {
+    assert(b == NULL);
+    assert(x == NULL);
+  }
+  DMUMPS_STRUC_C* const id = s->specific;
+
+  if(s->mpi_rank == 0) {
+    free(id->rhs); // no-op if NULL
+    id->rhs = malloc(id->n * sizeof(double));
+    assert(id->rhs != NULL); // malloc failure
+    int ret = convert_matrix(b, DROW, FIRST_INDEX_ZERO); // TODO MUMPS can handle sparse vectors
+    assert(ret == 0);
+    assert(b->m == id->n); // rows of b match columns of A
+    assert(b->n == 1); // TOOD MUMPS can handle vectors...
+    assert(b->data_type == REAL_DOUBLE);
+    memcpy(id->rhs, b->dd, id->n * sizeof(double));
+  }
+
   // solve Ax=b, AX=B OR A^t x=b, A^t X=B
   //   ICNTL(9)=1: A (default), 0: A^t
   // OR compute "null-space basis" if "null pivot row detection" was enabled
@@ -219,25 +255,16 @@ void solver_solve_dmumps(DMUMPS_STRUC_C* id, struct parse_args* args, perftimer_
   id->job=JOB_SOLVE;
   dmumps_c(id);
   assert(id->INFOG(1) == 0); // check it worked
-  perftimer_inc(timer,"done",-1);
 
   // put the answer in a nice formatted bundle
-  clear_matrix(ans);
-  ans->m = id->n;
-  ans->n = 1;
-  ans->format = DROW;
-  ans->data_type = REAL_DOUBLE;
-  ans->dd = malloc(id->n * sizeof(double));
-  assert(ans->dd != NULL);
-  memcpy(ans->dd, id->rhs, id->n * sizeof(double));
-}
-
-
-void solver_finalize_dmumps(DMUMPS_STRUC_C* id) {
-  id->job=JOB_END;
-  dmumps_c(id); // Terminate instance
-  assert(id->INFOG(1) == 0); // check it worked
-
-  free(id->rhs);
-  free(id);
+  if(s->mpi_rank == 0) {
+    clear_matrix(x);
+    x->m = id->n;
+    x->n = 1;
+    x->format = DROW;
+    x->data_type = REAL_DOUBLE;
+    x->dd = malloc(id->n * sizeof(double));
+    assert(x->dd != NULL);
+    memcpy(x->dd, id->rhs, id->n * sizeof(double));
+  }
 }

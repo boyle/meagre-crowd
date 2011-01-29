@@ -16,93 +16,114 @@
  *     You should have received a copy of the GNU Lesser General Public License
  *     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "config.h"
 #include "solver_umfpack.h"
-
+#include "solver.h"
+#include "matrix.h"
+#include <umfpack.h>
 
 #include <stdlib.h> // malloc, free
 #include <string.h> // memcpy
 #include <assert.h>
 
-#include <bebop/smc/sparse_matrix_ops.h>
-#include <bebop/smc/csc_matrix.h>
-#include <bebop/util/enumerations.h>
+typedef struct {
+  int Arows;
+  int Acols;
+  int* Aii; // these are pointers to existing data (DON'T free)
+  int* Ajj;
+  double* Add;
 
-#include <umfpack.h>
+  void* Symbolic;
+  void* Numeric;
+} solve_system_umfpack_t;
 
-// Initialize a MUMPS instance. Use MPI_COMM_WORLD.
-// Note: only using A to determine matrix type
-solve_system_umfpack_t* solver_init_umfpack(struct parse_args* args, perftimer_t* timer, matrix_t* A) {
-  return calloc(1,sizeof(solve_system_umfpack_t));
+void solver_init_umfpack(solver_state_t* s) {
+  assert(s != NULL);
+  s->specific = calloc(1,sizeof(solve_system_umfpack_t));
+  assert(s->specific != NULL);
 }
 
-// if NULL, do nothing to A or b
-// TODO b can be sparse...
-void solver_data_prep_umfpack(solve_system_umfpack_t* p, matrix_t* A, matrix_t* b) {
-  if(A != NULL) {
-    // prepare the matrix
-    int ierr = convert_matrix(A, SM_CSC, FIRST_INDEX_ZERO);
-    assert(ierr == 0);
-    assert(A->sym == SM_UNSYMMETRIC);
-    assert(A->data_type == REAL_DOUBLE); // don't handle complex... yet TODO
+void solver_analyze_umfpack(solver_state_t* s, matrix_t* A) {
+  assert(s != NULL);
+  assert(A != NULL);
+  solve_system_umfpack_t* const p = s->specific;
+  assert(p != NULL);
 
-    assert(A->m == A->n); // TODO can only handle square matrices at present (UMFPACK?)
-    p->m = p->n = A->m;
+  // prepare the matrix
+  int ierr = convert_matrix(A, SM_CSC, FIRST_INDEX_ZERO);
+  assert(ierr == 0);
+  assert(A->sym == SM_UNSYMMETRIC);
+  assert(A->data_type == REAL_DOUBLE); // don't handle complex... yet TODO
+  assert(A->m == A->n); // TODO can only handle square matrices at present (UMFPACK?)
 
-    // Compressed Column Format
-    p->Ap = (int*) A->jj; // start index for column n, column 0 = 0, column N+1 = nz
-    p->Ai = (int*) A->ii; // row indices
-    p->Ax = A->dd;
-    assert(p->Ap[0] == 0);
-    assert(p->Ap[p->n] == A->nz);
+  // Compressed Column Format
+  assert(A->jj[0] == 0);
+  assert(A->jj[A->n] == A->nz);
 
-    // allocate x
-    p->x = malloc(p->m * sizeof(double));
+  umfpack_di_symbolic(A->m, A->n, (int*) A->jj, (int*) A->ii, A->dd, &(p->Symbolic), NULL, NULL);
+}
+
+void solver_factorize_umfpack(solver_state_t* s, matrix_t* A) {
+  assert(s != NULL);
+  assert(A != NULL);
+  solve_system_umfpack_t* const p = s->specific;
+  assert(p != NULL);
+
+  // prepare the matrix
+  int ierr = convert_matrix(A, SM_CSC, FIRST_INDEX_ZERO);
+  assert(ierr == 0);
+  assert(A->sym == SM_UNSYMMETRIC);
+  assert(A->data_type == REAL_DOUBLE); // don't handle complex... yet TODO
+  assert(A->m == A->n); // TODO can only handle square matrices at present (UMFPACK?)
+
+  // saved for evaluation phase
+  p->Arows = A->m;
+  p->Acols = A->n;
+  p->Ajj = (int*) A->jj;
+  p->Aii = (int*) A->ii;
+  p->Add = A->dd;
+  umfpack_di_numeric(p->Ajj, p->Aii, p->Add, p->Symbolic, &(p->Numeric), NULL, NULL);
+}
+
+// TODO b can be sparse... ??
+// TODO can b be a matrix (vs a vector)?
+void solver_evaluate_umfpack(solver_state_t* s, matrix_t* b, matrix_t* x) {
+  assert(s != NULL);
+  assert(b != NULL);
+  assert(b != x); // TODO allow this form
+  solve_system_umfpack_t* const p = s->specific;
+  assert(p != NULL);
+
+  // and we have a valid 'x' and 'b'
+  int ierr = convert_matrix(b, DCOL, FIRST_INDEX_ZERO);
+  assert(ierr == 0);
+  assert(b->data_type == REAL_DOUBLE); // don't handle complex... yet TODO
+  assert(b->n == 1);
+  assert(b->m == p->Acols); // TODO move to wrapper level check?
+  assert(b->data_type == REAL_DOUBLE);
+
+  // allocate x, if required
+  if((x->format != DCOL) || (x->m != p->Arows) || (x->n != b->n)) {
+    clear_matrix(x);
+    x->format = DCOL;
+    x->data_type = b->data_type;
+    x->m = p->Arows;
+    x->n = b->n;
+    x->dd = malloc((x->m) * (x->n) * sizeof(double));
   }
 
-  if(b != NULL) {
-    free(p->b); // no-op if NULL
-    p->b = malloc(p->n * sizeof(double));
-    assert(p->b != NULL); // malloc failure
-    int ret = convert_matrix(b, DROW, FIRST_INDEX_ZERO);
-    assert(ret == 0);
-    if(A != NULL)
-      assert(b->m == A->m);
-    assert(b->n == 1); // TOOD MUMPS can handle vectors...
-    assert(b->data_type == REAL_DOUBLE);
-    memcpy(p->b, b->dd, p->n * sizeof(double));
+  umfpack_di_solve(UMFPACK_A, p->Ajj, p->Aii, p->Add, x->dd, b->dd, p->Numeric, NULL, NULL) ;
+}
+
+void solver_finalize_umfpack(solver_state_t* s) {
+  if(s == NULL)
+    return;
+
+  solve_system_umfpack_t* const p = s->specific;
+  
+  // release memory
+  if(p != NULL) {
+//    umfpack_di_free_numeric(p->Numeric);
+//    umfpack_di_free_symbolic(p->Symbolic);
   }
-}
-
-void solver_solve_umfpack(solve_system_umfpack_t* p, struct parse_args* args, perftimer_t* timer, matrix_t* ans) {
-  void *Symbolic, *Numeric;
-
-  perftimer_inc(timer,"analyze",-1);
-  umfpack_di_symbolic(p->m, p->n, p->Ap, p->Ai, p->Ax, &Symbolic, NULL, NULL);
-
-  perftimer_inc(timer,"factorize",-1);
-  umfpack_di_numeric(p->Ap, p->Ai, p->Ax, Symbolic, &Numeric, NULL, NULL);
-  umfpack_di_free_symbolic(&Symbolic); // done with Symbolic data
-
-  perftimer_inc(timer,"solve",-1);
-  umfpack_di_solve(UMFPACK_A, p->Ap, p->Ai, p->Ax, p->x, p->b, Numeric, NULL, NULL) ;
-  umfpack_di_free_numeric(&Numeric);
-
-  perftimer_inc(timer,"done",-1);
-
-  clear_matrix(ans);
-  ans->m = p->n;
-  ans->n = 1;
-  ans->format = DROW;
-  ans->data_type = REAL_DOUBLE;
-  ans->dd = malloc(p->n * sizeof(double));
-  assert(ans->dd != NULL);
-  memcpy(ans->dd, p->x, p->n * sizeof(double));
-}
-
-
-void solver_finalize_umfpack(solve_system_umfpack_t* p) {
-  free(p->x);
-  free(p->b);
   free(p);
 }

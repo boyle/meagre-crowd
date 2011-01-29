@@ -29,6 +29,8 @@ enum solvers_t { UMFPACK, MUMPS }; // TODO rm (obsolete)
 // structures and enums
 typedef struct {
   int                solver;
+  int                mpi_rank;
+  int                verbosity;
   perftimer_t*       timer;
   void*              specific; // further solver-specific state
 } solver_state_t;
@@ -56,7 +58,8 @@ int select_solver(matrix_t* A, matrix_t* b);
 // wrapper function: solve 'A x = b' for 'x'
 // calls initialize, analyze, factorize, evaluate, finalize
 // returns x, the solution
-void solver(const int solver, matrix_t* A, matrix_t* b, matrix_t* x);
+// TODO cleaner way of passing in MPI info, if required?
+void solver(const int solver, const int verbosity, const int mpi_rank, matrix_t* A, matrix_t* b, matrix_t* x);
 
 // wrapper function: solve 'A x = b' for 'x' w/o re-initializing solver
 // calls analyze, factorize, evaluate
@@ -66,7 +69,7 @@ void solver_solve(solver_state_t* state, matrix_t* A, matrix_t* b, matrix_t* x);
 
 // --------------------------------------------
 // initialize and finalize the solver state
-solver_state_t* solver_init(const int solver, perftimer_t* timer);
+solver_state_t* solver_init(const int solver, const int verbosity, const int mpi_rank, perftimer_t* timer);
 void solver_finalize(solver_state_t* p);
 
 // evaluate the patterns in A, doesn't care about the actual values in the matrix (A->dd)

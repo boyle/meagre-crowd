@@ -39,7 +39,7 @@
 #include "solver_umfpack.h"
 #include "file.h"
 #include "matrix.h"
-
+#include "solver.h"
 
 // test result of matrix computations
 // returns: 1=match w/in precision, 0=non-matching
@@ -261,56 +261,14 @@ int main(int argc, char ** argv) {
     //destroy_sparse_matrix (A); // TODO can't release it unless we're copying it...
   }
 
-  DMUMPS_STRUC_C* mumps_p = NULL;
-  solve_system_umfpack_t* umfpack_p = NULL;
-  switch(args->solver) {
-    case MUMPS:
-      mumps_p = solver_init_dmumps(args, timer, NULL); // TODO figure out passing arguments for initialization to all clients (re: A)
-      break;
-    case UMFPACK:
-      umfpack_p = solver_init_umfpack(args, timer, NULL); // TODO figure out passing arguments for initialization to all clients (re: A)
-      break;
-    default: assert(false); // should have caught unknown solver before now!
-  }
-
-  if(args->mpi_rank == 0) {
-    switch(args->solver) { // Note: b is set w/in the execution loop
-      case MUMPS:
-	solver_data_prep_dmumps(mumps_p, A, NULL);
-	break;
-      case UMFPACK:
-	solver_data_prep_umfpack(umfpack_p, A, NULL);
-	break;
-      default: assert(false); // should have caught unknown solver before now!
-    }
-  }
+  solver_state_t* state = solver_init(args->solver, args->verbosity, args->mpi_rank, timer);
 
   int r = 0;
   do {
     if(r != 0)
       perftimer_restart(&timer);
 
-    if(args->mpi_rank == 0) {
-      switch(args->solver) {
-        case MUMPS:
-          solver_data_prep_dmumps(mumps_p, NULL, b); // reset rhs = b
-          break;
-        case UMFPACK:
-          solver_data_prep_umfpack(umfpack_p, NULL, b); // reset rhs = b
-          break;
-        default: assert(false); // should have caught unknown solver before now!
-      }
-    }
-
-    switch(args->solver) {
-      case MUMPS:
-        solver_solve_dmumps(mumps_p, args, timer, rhs);
-        break;
-      case UMFPACK:
-        solver_solve_umfpack(umfpack_p, args, timer, rhs);
-        break;
-      default: assert(false); // should have caught unknown solver before now!
-    }
+    solver_solve(state, A, b, rhs); // TODO rhs -> x
 
     r++;
   } while (r < args->rep);
@@ -353,15 +311,7 @@ int main(int argc, char ** argv) {
     }
   }
 
-  switch(args->solver) {
-    case MUMPS:
-      solver_finalize_dmumps(mumps_p);
-      break;
-    case UMFPACK:
-      solver_finalize_umfpack(umfpack_p);
-      break;
-    default: assert(false); // should have caught unknown solver before now!
-  }
+  solver_finalize(state);
 
   // clean up matrices
   free_matrix(b);

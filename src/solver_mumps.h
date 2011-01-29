@@ -20,18 +20,13 @@
 #define _SOLVER_MUMPS_H_
 
 #include "config.h"
-#include <dmumps_c.h>
-#include "args.h"
-#include "perftimer.h"
+#include "solver.h"
 #include "matrix.h"
 
-
-DMUMPS_STRUC_C* solver_init_dmumps(struct parse_args* args, perftimer_t* timer, matrix_t* A);
-
-void solver_data_prep_dmumps(DMUMPS_STRUC_C* id, matrix_t* A, matrix_t* b);
-
-void solver_solve_dmumps(DMUMPS_STRUC_C* id, struct parse_args* args, perftimer_t* timer, matrix_t* ans);
-
-void solver_finalize_dmumps(DMUMPS_STRUC_C* id);
+void solver_init_mumps(solver_state_t* s);
+void solver_analyze_mumps(solver_state_t* s, matrix_t* A);
+void solver_factorize_mumps(solver_state_t* s, matrix_t* A);
+void solver_evaluate_mumps(solver_state_t* s, matrix_t* b, matrix_t* x);
+void solver_finalize_mumps(solver_state_t* s);
 
 #endif

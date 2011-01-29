@@ -20,26 +20,13 @@
 #define _SOLVER_UMFPACK_H_
 
 #include "config.h"
-#include "args.h"
-#include "perftimer.h"
+#include "solver.h"
 #include "matrix.h"
 
-typedef struct {
-  int m;
-  int n;
-  int* Ap;
-  int* Ai;
-  double* Ax;
-  double* b;
-  double* x;
-} solve_system_umfpack_t;
-
-solve_system_umfpack_t* solver_init_umfpack(struct parse_args* args, perftimer_t* timer, matrix_t* A);
-
-void solver_data_prep_umfpack(solve_system_umfpack_t* p, matrix_t* A, matrix_t* b);
-
-void solver_solve_umfpack(solve_system_umfpack_t* p, struct parse_args* args, perftimer_t* timer, matrix_t* ans);
-
-void solver_finalize_umfpack(solve_system_umfpack_t* p);
+void solver_init_umfpack(solver_state_t* s);
+void solver_analyze_umfpack(solver_state_t* s, matrix_t* A);
+void solver_factorize_umfpack(solver_state_t* s, matrix_t* A);
+void solver_evaluate_umfpack(solver_state_t* s, matrix_t* b, matrix_t* x);
+void solver_finalize_umfpack(solver_state_t* s);
 
 #endif

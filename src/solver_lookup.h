@@ -33,9 +33,11 @@ struct  solver_properties_t {
   // TODO find version from library rather than hard-coding it?
   char* license; // version info
   char* url;
+  void (*init)(solver_state_t* s);
   void (*analyze)(solver_state_t*, matrix_t*);
   void (*factorize)(solver_state_t*, matrix_t*);
   void (*evaluate)(solver_state_t*, matrix_t*, matrix_t*);
+  void (*finalize)(solver_state_t* s);
   unsigned int capabilities; // flags (needs 32-bits)
   char* references;
 };
@@ -50,7 +52,7 @@ struct  solver_properties_t {
 #define SOLVES_FORMAT_CSC  (1<<5)
 #define SOLVES_FORMAT_CSR  (1<<6)
 
-#define SOLVES_SQUARE                               (1<<7)
+#define SOLVES_SQUARE_ONLY                          (1<<7)
 
 #define SOLVES_UNSYMMETRIC                          (1<<8)
 #define SOLVES_SYMMETRIC_POSITIVE_DEFINITE_ONLY     (1<<9)
@@ -89,10 +91,14 @@ static const struct solver_properties_t solver_lookup[] = {
   { "umfpack", "UMFPACK", "Tim Davis et al", "University of Florida", "5.5.0", "GPL",
     "http://www.cise.ufl.edu/research/sparse/umfpack",
     // TODO 5.5.1 is available
-    NULL, NULL, NULL,
+    &solver_init_umfpack,
+    &solver_analyze_umfpack,
+    &solver_factorize_umfpack,
+    &solver_evaluate_umfpack,
+    &solver_finalize_umfpack,
     SOLVES_FORMAT_CSC | SOLVES_BASE_ZERO | SOLVES_UNSYMMETRIC |
     SOLVES_DATA_TYPE_REAL_DOUBLE |
-    SOLVES_SQUARE | // TODO is umfpack really restricted to square matrices?
+    SOLVES_SQUARE_ONLY | // TODO is umfpack really restricted to square matrices?
     SOLVES_RHS_DCOL | SOLVES_RHS_VECTOR_ONLY,
     // Note: Adjacent constant strings will be concatentated
     "    * A column pre-ordering strategy for the unsymmetric-pattern multifrontal method,\n"
@@ -110,9 +116,14 @@ static const struct solver_properties_t solver_lookup[] = {
 
   { "mumps", "MUMPS", "Patrick Amestoy et al", "Université de Toulouse, et. al", "4.9.2", "public domain",
     "http://graal.ens-lyon.fr/MUMPS",
-    NULL, NULL, NULL,
+    &solver_init_mumps,
+    &solver_analyze_mumps,
+    &solver_factorize_mumps,
+    &solver_evaluate_mumps,
+    &solver_finalize_mumps,
     SOLVES_FORMAT_COO | SOLVES_BASE_ONE | SOLVES_UNSYMMETRIC |
     SOLVES_DATA_TYPE_REAL_DOUBLE |
+    SOLVES_SQUARE_ONLY | // TODO is umfpack really restricted to square matrices?
     SOLVES_RHS_DCOL | SOLVES_RHS_VECTOR_ONLY,
     "    [1] P. R. Amestoy, I. S. Duff, J. Koster and J.-Y. L'Excellent,\n"
     "        A fully asynchronous multifrontal solver using distributed dynamic scheduling,\n"

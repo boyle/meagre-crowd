@@ -111,8 +111,8 @@ int select_solver(matrix_t* A, matrix_t* b) {
 // wrapper function: solve 'A x = b' for 'x'
 // calls initialize, analyze, factorize, evaluate, finalize
 // returns x, the solution
-void solver(const int solver, matrix_t* A, matrix_t* b, matrix_t* x) {
-  solver_state_t* s = solver_init(solver, NULL);
+void solver(const int solver, const int verbosity, const int mpi_rank, matrix_t* A, matrix_t* b, matrix_t* x) {
+  solver_state_t* s = solver_init(solver, verbosity, mpi_rank, NULL);
   assert(s != NULL); // malloc failure
   solver_analyze(s, A);
   solver_factorize(s, A);
@@ -132,20 +132,32 @@ void solver_solve(solver_state_t* s, matrix_t* A, matrix_t* b, matrix_t* x) {
 
 // --------------------------------------------
 // initialize and finalize the solver state
-solver_state_t* solver_init(const int solver, perftimer_t* timer) {
+solver_state_t* solver_init(const int solver, const int verbosity, const int mpi_rank, perftimer_t* timer) {
   solver_state_t* s = malloc(sizeof(solver_state_t));
   assert(s != NULL);
   
   // configure state
   s->solver = solver;
+  s->verbosity = verbosity;
+  s->mpi_rank = mpi_rank;
   s->timer = timer;
   s->specific = NULL;
+  if(_valid_solver(solver) && (solver_lookup[solver].init != NULL))
+    solver_lookup[solver].init(s);
 
   return s;
 }
 
 void solver_finalize(solver_state_t* s) {
-  free(s->specific);
+  assert(s != NULL);
+  // clean up (and deallocate "s->specific" if required)
+  const int solver = s->solver;
+  if(_valid_solver(solver) && (solver_lookup[solver].analyze != NULL))
+    solver_lookup[solver].finalize(s);
+
+  // make sure it won't get deallocated twice by mistake
+  s->specific = NULL;
+
   free(s);
 }
 
@@ -153,6 +165,7 @@ void solver_finalize(solver_state_t* s) {
 void solver_analyze(solver_state_t* s, matrix_t* A) {
   assert(s != NULL);
   assert(A != NULL);
+  perftimer_inc(s->timer,"analyze",-1);
   const int solver = s->solver;
   if(_valid_solver(solver) && (solver_lookup[solver].analyze != NULL))
     solver_lookup[solver].analyze(s, A);
@@ -163,6 +176,7 @@ void solver_analyze(solver_state_t* s, matrix_t* A) {
 void solver_factorize(solver_state_t* s, matrix_t* A) {
   assert(s != NULL);
   assert(A != NULL);
+  perftimer_inc(s->timer,"factorize",-1);
   const int solver = s->solver;
   if(_valid_solver(solver) && (solver_lookup[solver].factorize != NULL))
     solver_lookup[solver].factorize(s, A);
@@ -175,6 +189,7 @@ void solver_evaluate(solver_state_t* s, matrix_t* b, matrix_t* x) {
   assert(s != NULL);
   assert(b != NULL);
   assert(x != NULL);
+  perftimer_inc(s->timer,"evaluate",-1);
   const int solver = s->solver;
   if(_valid_solver(solver) && (solver_lookup[solver].evaluate != NULL)) {
     solver_lookup[solver].evaluate(s, b, x);
@@ -183,4 +198,5 @@ void solver_evaluate(solver_state_t* s, matrix_t* b, matrix_t* x) {
     clear_matrix(x);
     x->format = INVALID;
   }
+  perftimer_inc(s->timer,"done",-1);
 }
