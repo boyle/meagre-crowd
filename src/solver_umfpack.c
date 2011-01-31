@@ -38,7 +38,7 @@ typedef struct {
 
 void solver_init_umfpack( solver_state_t* s ) {
   assert( s != NULL );
-  s->specific = calloc( 1,sizeof( solve_system_umfpack_t ) );
+  s->specific = calloc( 1, sizeof( solve_system_umfpack_t ) );
   assert( s->specific != NULL );
 }
 

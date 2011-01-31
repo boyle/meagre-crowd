@@ -40,7 +40,7 @@ static inline int _valid_solver( const int solver ) {
 int lookup_solver_by_shortname( const char* shortname ) {
   assert( shortname != NULL );
   int i;
-  for ( i=0; i < SOLVER_INDEX_COUNT; i++ ) {
+  for ( i = 0; i < SOLVER_INDEX_COUNT; i++ ) {
     if ( strncmp( solver_lookup[i].shortname, shortname, SOLVER_SHORTNAME_MAX_LEN ) == 0 )
       return i;
   }
@@ -60,15 +60,15 @@ void printf_solvers( const unsigned int verbosity ) {
   // determine max shortname length so everything can be aligned nicely
   size_t max_shortname_len = 0;
   size_t l [SOLVER_INDEX_COUNT];
-  for ( i=0; i < SOLVER_INDEX_COUNT; i++ ) {
+  for ( i = 0; i < SOLVER_INDEX_COUNT; i++ ) {
     size_t ll = strlen( solver_lookup[i].shortname );
     l[i] = ll;
     if ( ll > max_shortname_len )
       max_shortname_len = ll;
   }
-  for ( i=0; i < SOLVER_INDEX_COUNT; i++ ) {
+  for ( i = 0; i < SOLVER_INDEX_COUNT; i++ ) {
     printf( "  %s", solver_lookup[i].shortname );
-    for ( j=0; j < max_shortname_len - l[i]; j++ )
+    for ( j = 0; j < max_shortname_len - l[i]; j++ )
       printf( " " );
     printf( "    %s %s (%s, %s)\n",
             solver_lookup[i].name,
@@ -76,14 +76,14 @@ void printf_solvers( const unsigned int verbosity ) {
             solver_lookup[i].author,
             solver_lookup[i].license );
     if ( verbosity >= 1 ) { // organization, references
-      for ( j=0; j < max_shortname_len; j++ )
+      for ( j = 0; j < max_shortname_len; j++ )
         printf( " " );
       printf( "      %s, %s\n",
               solver_lookup[i].organization,
               solver_lookup[i].url );
     }
     if ( verbosity >= 2 ) {
-      printf( "    references:\n%s\n\n",solver_lookup[i].references );
+      printf( "    references:\n%s\n\n", solver_lookup[i].references );
       // TODO capabilities
     }
   }
@@ -165,7 +165,7 @@ void solver_finalize( solver_state_t* s ) {
 void solver_analyze( solver_state_t* s, matrix_t* A ) {
   assert( s != NULL );
   assert( A != NULL );
-  perftimer_inc( s->timer,"analyze",-1 );
+  perftimer_inc( s->timer, "analyze", -1 );
   const int solver = s->solver;
   if ( _valid_solver( solver ) && ( solver_lookup[solver].analyze != NULL ) )
     solver_lookup[solver].analyze( s, A );
@@ -176,7 +176,7 @@ void solver_analyze( solver_state_t* s, matrix_t* A ) {
 void solver_factorize( solver_state_t* s, matrix_t* A ) {
   assert( s != NULL );
   assert( A != NULL );
-  perftimer_inc( s->timer,"factorize",-1 );
+  perftimer_inc( s->timer, "factorize", -1 );
   const int solver = s->solver;
   if ( _valid_solver( solver ) && ( solver_lookup[solver].factorize != NULL ) )
     solver_lookup[solver].factorize( s, A );
@@ -189,7 +189,7 @@ void solver_evaluate( solver_state_t* s, matrix_t* b, matrix_t* x ) {
   assert( s != NULL );
   assert( b != NULL );
   assert( x != NULL );
-  perftimer_inc( s->timer,"evaluate",-1 );
+  perftimer_inc( s->timer, "evaluate", -1 );
   const int solver = s->solver;
   if ( _valid_solver( solver ) && ( solver_lookup[solver].evaluate != NULL ) ) {
     solver_lookup[solver].evaluate( s, b, x );
@@ -198,5 +198,5 @@ void solver_evaluate( solver_state_t* s, matrix_t* b, matrix_t* x ) {
     clear_matrix( x );
     x->format = INVALID;
   }
-  perftimer_inc( s->timer,"done",-1 );
+  perftimer_inc( s->timer, "done", -1 );
 }

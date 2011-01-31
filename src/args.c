@@ -35,13 +35,13 @@ error_t parse_opt( int key, char *arg, struct argp_state *state ) {
       // help, etc
     case 'h':
     case'?':
-      argp_state_help( state,state->out_stream,ARGP_HELP_STD_HELP );
+      argp_state_help( state, state->out_stream, ARGP_HELP_STD_HELP );
       break; // help
     case -1:
-      argp_state_help( state,state->out_stream,ARGP_HELP_SHORT_USAGE | ARGP_HELP_EXIT_OK );
+      argp_state_help( state, state->out_stream, ARGP_HELP_SHORT_USAGE | ARGP_HELP_EXIT_OK );
       break; // usage
     case 'V':
-      printf( "%s\n",PACKAGE_STRING );
+      printf( "%s\n", PACKAGE_STRING );
       exit( EXIT_SUCCESS );
       break; // version
       // output controls
@@ -60,7 +60,7 @@ error_t parse_opt( int key, char *arg, struct argp_state *state ) {
     case 's': {
       args->solver = lookup_solver_by_shortname( arg );
       if ( args->solver < 0 ) {
-        fprintf( stderr,"invalid solver (-s)" );
+        fprintf( stderr, "invalid solver (-s)" );
         exit( EXIT_FAILURE );
       }
     }
@@ -68,7 +68,7 @@ error_t parse_opt( int key, char *arg, struct argp_state *state ) {
 
     case 'r': {
       int i = atoi( arg );
-      i = ( i < 0 )?0:i; // > 0
+      i = ( i < 0 ) ? 0 : i; // > 0
       args->rep = i;
     }
     break;
@@ -124,7 +124,7 @@ error_t parse_opt( int key, char *arg, struct argp_state *state ) {
 
     case 'o':
       args->output = arg;
-      if ( strncmp( args->output,"-",2 ) != 0 ) {
+      if ( strncmp( args->output, "-", 2 ) != 0 ) {
         FILE* f = fopen( args->output, "r" );
         if ( f != NULL ) {
           fclose( f );
@@ -168,23 +168,23 @@ Options:"
     // TODO describe fields..
     // "long", 'l', "value", flags, "desc", groupid
     static const struct argp_option opt[] = {
-      {"help", 'h',0,0,"Give this help list"},
-      {0,      '?',0,OPTION_ALIAS},
-      {"usage",-1, 0,0,"Show usage information",-1},
-      {"version",'V', 0,0,"Show version information",-1},
-      {"input", 'i',"FILE",0,"Input matrix from FILE (A)",10},
-      {"right-hand-side", 'b',"FILE",0,"RHS matrix from FILE (b)",11},
-      {"expected-answer",'e',"FILE",0,"Expected matrix as a FILE (x)",12},
-      {"precision",'p',"<float>",0,"Precision of comparison with expectation (a floating point number)",12},
-      {"output",'o',"FILE",0,"Output matrix to FILE (x) ('-' is stdout)",13},
-      {"verbose",'v',0,0,"Increase verbosity",20},
+      {"help", 'h', 0, 0, "Give this help list"},
+      {0,      '?', 0, OPTION_ALIAS},
+      {"usage", -1, 0, 0, "Show usage information", -1},
+      {"version", 'V', 0, 0, "Show version information", -1},
+      {"input", 'i', "FILE", 0, "Input matrix from FILE (A)", 10},
+      {"right-hand-side", 'b', "FILE", 0, "RHS matrix from FILE (b)", 11},
+      {"expected-answer", 'e', "FILE", 0, "Expected matrix as a FILE (x)", 12},
+      {"precision", 'p', "<float>", 0, "Precision of comparison with expectation (a floating point number)", 12},
+      {"output", 'o', "FILE", 0, "Output matrix to FILE (x) ('-' is stdout)", 13},
+      {"verbose", 'v', 0, 0, "Increase verbosity", 20},
       // TODO add note to man page: -v, -vv, -vvv, etc for more detail
       // none: no output, -v: matrix info & any available stats (i.e. cond. number),
       // -vv: more detail(?), -vvv: max debug
-      {"timing",'t',0,0,"Show/increase timing information",21},
-      {"repeat",'r',"N",0,"Repeat calculations N times",6},
-      {"solver",'s',"SOLVER",0,"Select SOLVER",5},
-      {"list-solvers",-2,0,0,"List available SOLVERs (-vv for more details)",5},
+      {"timing", 't', 0, 0, "Show/increase timing information", 21},
+      {"repeat", 'r', "N", 0, "Repeat calculations N times", 6},
+      {"solver", 's', "SOLVER", 0, "Select SOLVER", 5},
+      {"list-solvers", -2, 0, 0, "List available SOLVERs (-vv for more details)", 5},
       // TODO add note to man page: -t, -tt, -ttt for more detail
       // none: no output, -t: single-line (csv), -tt: chart, -ttt: greater detail
       { 0 } // null termintated list
@@ -192,7 +192,7 @@ Options:"
     // argp_option*, argp_parser, extra-usage line options, pre-help, // optional: argp_child, *help_filter, argp_domain
     const struct argp p = { opt, parse_opt, 0, doc};
     if ( argc == 1 ) { // there's no arguments, exit!
-      char *prog = strndup( argv[0],100 );
+      char *prog = strndup( argv[0], 100 );
       argp_help( &p, stderr, ARGP_HELP_SHORT_USAGE, basename( prog ) );
       free( prog );
       return EXIT_FAILURE; // so, exit for reals

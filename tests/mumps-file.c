@@ -36,7 +36,7 @@
 int results_match( const double * const expected, const double const * result, const int n, const double precision );
 int results_match( const double * const expected, const double const * result, const int n, const double precision ) {
   int i;
-  for ( i=0;i<n;i++ ) {
+  for ( i = 0;i < n;i++ ) {
     if (( result[i] < ( expected[i] - precision ) ) ||
         ( result[i] > ( expected[i] + precision ) ) ) {
       return 0;
@@ -65,10 +65,10 @@ int main( int argc, char ** argv ) {
   assert( ierr == 0 );
 
   /* Initialize a MUMPS instance. Use MPI_COMM_WORLD. */
-  id.job=JOB_INIT;
-  id.par=1;
-  id.sym=0;
-  id.comm_fortran=USE_COMM_WORLD;
+  id.job = JOB_INIT;
+  id.par = 1;
+  id.sym = 0;
+  id.comm_fortran = USE_COMM_WORLD;
   dmumps_c( &id );
   /* Define the problem on the host */
   if ( myid == 0 ) {
@@ -100,14 +100,14 @@ int main( int argc, char ** argv ) {
     // show what we got
     printf( "Input A is\n" );
     int i;
-    for ( i=0;i<id.nz;i++ ) {
-      printf( "  (%i,%i)=%.2f\n",id.irn[i],id.jcn[i],id.a[i] );
+    for ( i = 0;i < id.nz;i++ ) {
+      printf( "  (%i,%i)=%.2f\n", id.irn[i], id.jcn[i], id.a[i] );
     }
     // allocate an all-zeros right-hand side of A.m rows
     id.rhs = malloc( id.n * sizeof( double ) );
     assert( id.rhs != NULL );
     printf( "Right-hand side is\n" );
-    for ( i=0;i<id.n;i++ ) {
+    for ( i = 0;i < id.n;i++ ) {
       id.rhs[i] = i;
       printf( "  %.2f\n", id.rhs[i] );
     }
@@ -117,26 +117,26 @@ int main( int argc, char ** argv ) {
 #define ICNTL(I) icntl[(I)-1] /* macro s.t. indices match documentation */
   /* No outputs */
   if ( 1 ) { // no debug
-    id.ICNTL( 1 )=-1;
-    id.ICNTL( 2 )=-1;
-    id.ICNTL( 3 )=-1;
-    id.ICNTL( 4 )=0;
+    id.ICNTL( 1 ) = -1;
+    id.ICNTL( 2 ) = -1;
+    id.ICNTL( 3 ) = -1;
+    id.ICNTL( 4 ) = 0;
   }
   else { // debug
-    id.ICNTL( 1 )=6; // err output stream
-    id.ICNTL( 2 )=6; // warn/info output stream
-    id.ICNTL( 3 )=6; // global output stream
-    id.ICNTL( 4 )=4; // debug level 0:none, 1: err, 2: warn/stats 3:diagnostics, 4:parameters
+    id.ICNTL( 1 ) = 6; // err output stream
+    id.ICNTL( 2 ) = 6; // warn/info output stream
+    id.ICNTL( 3 ) = 6; // global output stream
+    id.ICNTL( 4 ) = 4; // debug level 0:none, 1: err, 2: warn/stats 3:diagnostics, 4:parameters
   }
   /* Call the MUMPS package. */
-  id.job=JOB_ALL;
+  id.job = JOB_ALL;
   dmumps_c( &id );
-  id.job=JOB_END;
+  id.job = JOB_END;
   dmumps_c( &id ); /* Terminate instance */
   if ( myid == 0 ) {
     printf( "Solution is\n" );
     int i;
-    for ( i=0;i<id.n;i++ ) {
+    for ( i = 0;i < id.n;i++ ) {
       printf( "  %.2f\n", id.rhs[i] );
       /* Octave says the answer should be
        * ans =
@@ -149,7 +149,7 @@ int main( int argc, char ** argv ) {
     }
     // test result
     const double const e[5] = {1.0, 0.434211, 0.25, -0.092105, 0.25};
-    if ( results_match( e,id.rhs,id.n,0.001 ) ) {
+    if ( results_match( e, id.rhs, id.n, 0.001 ) ) {
       retval = 0;
       printf( "PASS\n" );
     }

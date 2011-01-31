@@ -65,7 +65,7 @@ int results_match( matrix_t* expected_matrix, matrix_t* result_matrix, const dou
   const double* result = result_matrix->dd;
   const unsigned int n = result_matrix->m;
   int i;
-  for ( i=0;i<n;i++ ) {
+  for ( i = 0;i < n;i++ ) {
     if (( result[i] < ( expected[i] - precision ) ) ||
         ( result[i] > ( expected[i] + precision ) ) ) {
       return 0;
@@ -81,7 +81,7 @@ int main( int argc, char ** argv ) {
   const int extra_timing = 0; // allow extra timing: initialization, matrix load, etc.
 
   // handle command-line arguments
-  struct parse_args* args = calloc( 1,sizeof( struct parse_args ) );
+  struct parse_args* args = calloc( 1, sizeof( struct parse_args ) );
   // TODO should default to appropriate epsilon for solver, may need to be *2 or some larger value given numerical instability? should print out epsilon of solution in verbose mode
   args->expected_precision = 5e-15; // TODO was DBL_EPSILON=1.11e-16 but not stored with enough digits? // default to machine epsilon for 'double'
   assert( args != NULL ); // calloc failure
@@ -94,9 +94,9 @@ int main( int argc, char ** argv ) {
   // initialize MPI
   perftimer_t* timer = perftimer_malloc();
   if ( extra_timing && args->rep == 0 ) {
-    perftimer_inc( timer,"initialization",-1 );
-    perftimer_adjust_depth( timer,+1 );
-    perftimer_inc( timer,"MPI init",-1 );
+    perftimer_inc( timer, "initialization", -1 );
+    perftimer_adjust_depth( timer, + 1 );
+    perftimer_inc( timer, "MPI init", -1 );
   }
   ierr = MPI_Init( &argc, &argv );
   assert( ierr == 0 );
@@ -112,11 +112,11 @@ int main( int argc, char ** argv ) {
       break;
     default: ; // otherwise do nothing
   }
-  ierr = MPI_Comm_size( MPI_COMM_WORLD,&c_mpi );
+  ierr = MPI_Comm_size( MPI_COMM_WORLD, &c_mpi );
   assert( ierr == 0 );
   if ( single_threaded && c_mpi > 1 ) {
     if ( args->mpi_rank == 0 )
-      fprintf( stderr, "error: selected solver is single threaded, but launched with %d threads\n",c_mpi );
+      fprintf( stderr, "error: selected solver is single threaded, but launched with %d threads\n", c_mpi );
     ierr = MPI_Finalize();
     assert( ierr == 0 );
     return 10;
@@ -131,13 +131,13 @@ int main( int argc, char ** argv ) {
   if ( args->mpi_rank == 0 ) {
 
     if ( extra_timing && args->rep == 0 ) {
-      perftimer_adjust_depth( timer,-1 );
-      perftimer_inc( timer,"input",-1 );
-      perftimer_adjust_depth( timer,+1 );
+      perftimer_adjust_depth( timer, -1 );
+      perftimer_inc( timer, "input", -1 );
+      perftimer_adjust_depth( timer, + 1 );
     }
 
     if ( extra_timing && args->rep == 0 )
-      perftimer_inc( timer,"load",-1 );
+      perftimer_inc( timer, "load", -1 );
 
     if (( retval = load_matrix( args->input, A ) ) != 0 ) {
       return retval;
@@ -167,12 +167,12 @@ int main( int argc, char ** argv ) {
       b->n = 1;
       b->nz = m;
       b->format = DROW;
-      b->dd = malloc( m*sizeof( double ) );
+      b->dd = malloc( m * sizeof( double ) );
       b->data_type = REAL_DOUBLE;
       { // initialize right-hand-side (b)
         int i;
         double* d = b->dd;
-        for ( i=0;i<m;i++ ) {
+        for ( i = 0;i < m;i++ ) {
           *d = i;
           d++;
         }
@@ -193,8 +193,8 @@ int main( int argc, char ** argv ) {
 
 
     if ( extra_timing && args->rep == 0 ) {
-      perftimer_inc( timer,"solver",-1 );
-      perftimer_inc( timer,"rhs",-1 );
+      perftimer_inc( timer, "solver", -1 );
+      perftimer_inc( timer, "rhs", -1 );
     }
 
     // verbose output
@@ -274,13 +274,13 @@ int main( int argc, char ** argv ) {
               sym, location, type,
               b->m, b->n, b->nz,
               solver,
-              c_mpi, c_mpi==1?"":"s",c_omp,c_omp==1?"":"s" );
+              c_mpi, c_mpi == 1 ? "" : "s", c_omp, c_omp == 1 ? "" : "s" );
 
       if ( args->verbosity >= 2 ) {
         int i;
         assert( A->data_type == REAL_DOUBLE );
         double* v = A->dd;
-        for ( i=0; i < A->nz; i++ ) {
+        for ( i = 0; i < A->nz; i++ ) {
           printf( "  A(%i,%i)=%.2f\n", A->ii[i], A->jj[i], v[i] );
         }
       }
@@ -289,13 +289,13 @@ int main( int argc, char ** argv ) {
         int i;
         assert( b->data_type == REAL_DOUBLE );
         double* d = b->dd;
-        for ( i=0;i<b->m;i++ )
+        for ( i = 0;i < b->m;i++ )
           printf( "  b(%i)=%.2f\n", i, d[i] );
       }
     }
 
     if ( extra_timing && args->rep == 0 )
-      perftimer_adjust_depth( timer,-1 );
+      perftimer_adjust_depth( timer, -1 );
     //destroy_sparse_matrix (A); // TODO can't release it unless we're copying it...
   }
 
@@ -313,14 +313,14 @@ int main( int argc, char ** argv ) {
   while ( r < args->rep );
 
   if ( extra_timing && args->rep == 0 ) {
-    perftimer_inc( timer,"clean up",-1 );
-    perftimer_adjust_depth( timer,-1 );
-    perftimer_inc( timer,"output",-1 );
+    perftimer_inc( timer, "clean up", -1 );
+    perftimer_adjust_depth( timer, -1 );
+    perftimer_inc( timer, "output", -1 );
   }
 
   // test result?
   if (( args->mpi_rank == 0 ) && ( expected->format != INVALID ) ) {
-    perftimer_inc( timer,"test",-1 );
+    perftimer_inc( timer, "test", -1 );
     if ( results_match( expected, rhs, args->expected_precision ) ) {
       retval = 0;
       printf( "PASS\n" );
@@ -332,15 +332,15 @@ int main( int argc, char ** argv ) {
   }
 
   if (( args->mpi_rank == 0 ) && ( args->output != NULL ) ) {
-    if ( strncmp( args->output,"-",2 ) == 0 ) {
+    if ( strncmp( args->output, "-", 2 ) == 0 ) {
       int ret = convert_matrix( rhs, DROW, FIRST_INDEX_ZERO );
       assert( ret == 0 );
 
       int i;
       assert( rhs->data_type == REAL_DOUBLE );
       double* d = rhs->dd;
-      for ( i=0;i<rhs->m;i++ )
-        printf( "  x(%d)=%.2f\n",i,d[i] );
+      for ( i = 0;i < rhs->m;i++ )
+        printf( "  x(%d)=%.2f\n", i, d[i] );
     }
     else {
       // TODO test args->output to decide if its an acceptable filename before now
@@ -360,26 +360,26 @@ int main( int argc, char ** argv ) {
 
   // close down MPI
   if ( extra_timing && args->rep == 0 ) {
-    perftimer_inc( timer,"clean up",-1 );
-    perftimer_adjust_depth( timer,+1 );
+    perftimer_inc( timer, "clean up", -1 );
+    perftimer_adjust_depth( timer, + 1 );
 
-    perftimer_inc( timer,"MPI",-1 );
+    perftimer_inc( timer, "MPI", -1 );
   }
   ierr = MPI_Finalize();
   assert( ierr == 0 );
 
   // show timing info, if requested, to depth N
   if ( extra_timing && args->rep == 0 ) {
-    perftimer_adjust_depth( timer,-1 );
-    perftimer_inc( timer,"finished",-1 );
+    perftimer_adjust_depth( timer, -1 );
+    perftimer_inc( timer, "finished", -1 );
   }
   if ( args->mpi_rank == 0 ) {
     if ( args->timing_enabled == 1 ) {
-      perftimer_printf_csv_header( timer,2 );
-      perftimer_printf_csv_body( timer,2 );
+      perftimer_printf_csv_header( timer, 2 );
+      perftimer_printf_csv_body( timer, 2 );
     }
     else if ( args->timing_enabled != 0 ) {
-      perftimer_printf( timer,args->timing_enabled-2 );
+      perftimer_printf( timer, args->timing_enabled - 2 );
     }
   }
   perftimer_free( timer );

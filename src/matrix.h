@@ -25,7 +25,7 @@
 //#include <bebop/smc/sparse_matrix.h>
 
 // whether the first index is zero or one for sparse storage
-enum matrix_base_t { FIRST_INDEX_ZERO=0, FIRST_INDEX_ONE=1 };
+enum matrix_base_t { FIRST_INDEX_ZERO = 0, FIRST_INDEX_ONE = 1 };
 
 // matrix storage format, either row or column based
 // DROW/DCOL: dense storage, no sparse optimizations,
@@ -40,13 +40,13 @@ enum matrix_base_t { FIRST_INDEX_ZERO=0, FIRST_INDEX_ONE=1 };
 //   as appropriate and use 'COMPRESSED' in the 'format' field
 //   (CSC is COMPRESSED & COLUMN, CSR is COMPRESSED & ROW)
 // TODO: block storage formats BCOO, BCSR, JAD
-enum matrix_format_t { INVALID=0, DROW, DCOL, SM_COO, SM_CSC, SM_CSR }; // TODO remove SM prefixes (bebop conflict)
+enum matrix_format_t { INVALID = 0, DROW, DCOL, SM_COO, SM_CSC, SM_CSR }; // TODO remove SM prefixes (bebop conflict)
 
 // matrix symmetry
-enum matrix_symmetry_t { SM_UNSYMMETRIC=0, SM_SYMMETRIC, SM_SKEW_SYMMETRIC, SM_HERMITIAN }; //  TODO remove SM prefixes (bebop conflict)
+enum matrix_symmetry_t { SM_UNSYMMETRIC = 0, SM_SYMMETRIC, SM_SKEW_SYMMETRIC, SM_HERMITIAN }; //  TODO remove SM prefixes (bebop conflict)
 // and where the data is stored (upper or lower triangular)
 //   if !BOTH, then storage locations can be validated
-enum matrix_symmetric_storage_t { BOTH=0, UPPER_TRIANGULAR, LOWER_TRIANGULAR };
+enum matrix_symmetric_storage_t { BOTH = 0, UPPER_TRIANGULAR, LOWER_TRIANGULAR };
 
 // data type
 // REAL_SINGLE: C float, single-precision floating point number
@@ -54,7 +54,7 @@ enum matrix_symmetric_storage_t { BOTH=0, UPPER_TRIANGULAR, LOWER_TRIANGULAR };
 // COMPLEX_SINGLE: two C floats make a complex single-precision floating point number
 // COMPLEX_SINGLE: two C floats make a complex single-precision floating point number
 // PATTERN: no data (dd), pattern of non-zero entries is indicated by ii, jj
-enum matrix_data_type_t { SM_REAL=0, REAL_DOUBLE=0, REAL_SINGLE=1, SM_COMPLEX=2, COMPLEX_DOUBLE=2, COMPLEX_SINGLE=3, SM_PATTERN=4 };  //  TODO remove SM prefixes (bebop conflict)
+enum matrix_data_type_t { SM_REAL = 0, REAL_DOUBLE = 0, REAL_SINGLE = 1, SM_COMPLEX = 2, COMPLEX_DOUBLE = 2, COMPLEX_SINGLE = 3, SM_PATTERN = 4 };  //  TODO remove SM prefixes (bebop conflict)
 
 typedef struct matrix_t {
   size_t m; // rows

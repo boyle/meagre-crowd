@@ -37,16 +37,16 @@
 // TODO probably need to see an example matrix so we can choose appropriate options, etc for solver
 void solver_init_mumps( solver_state_t* s ) {
   // initialize MUMPS instance
-  DMUMPS_STRUC_C* id = calloc( 1,sizeof( DMUMPS_STRUC_C ) ); // initialize to zero
+  DMUMPS_STRUC_C* id = calloc( 1, sizeof( DMUMPS_STRUC_C ) ); // initialize to zero
   assert( id != NULL ); // calloc failure
   s->specific = id; // stored for future use
 
-  id->job=JOB_INIT;
-  id->par=1; // host involved in factorization/solve
-  id->sym=0; // 0: general, 1: sym pos def, 2: sym (note: no hermitian support) // TODO support other matrix types
+  id->job = JOB_INIT;
+  id->par = 1; // host involved in factorization/solve
+  id->sym = 0; // 0: general, 1: sym pos def, 2: sym (note: no hermitian support) // TODO support other matrix types
   // Note: if set to symmetric and matrix ISN'T, the redundant entries will be *summed*
   // TODO could convert the C communicator instead of using the fortran one (see MUMPS doc)
-  id->comm_fortran=MUMPS_USE_COMM_WORLD;
+  id->comm_fortran = MUMPS_USE_COMM_WORLD;
 #define INFOG(I) infog[(I)-1] // macro s.t. indices match documentation
   dmumps_c( id );
   assert( id->INFOG( 1 ) == 0 ); // check it worked
@@ -56,16 +56,16 @@ void solver_init_mumps( solver_state_t* s ) {
 #define ICNTL(I) icntl[(I)-1] // macro s.t. indices match documentation
   // No outputs
   if ( s->verbosity < 3 ) { // no debug
-    id->ICNTL( 1 )=-1;
-    id->ICNTL( 2 )=-1;
-    id->ICNTL( 3 )=-1;
-    id->ICNTL( 4 )=0;
+    id->ICNTL( 1 ) = -1;
+    id->ICNTL( 2 ) = -1;
+    id->ICNTL( 3 ) = -1;
+    id->ICNTL( 4 ) = 0;
   }
   else { // debug
-    id->ICNTL( 1 )=6; // err output stream
-    id->ICNTL( 2 )=6; // warn/info output stream
-    id->ICNTL( 3 )=6; // global output stream
-    id->ICNTL( 4 )=4; // debug level 0:none, 1: err, 2: warn/stats 3:diagnostics, 4:parameters
+    id->ICNTL( 1 ) = 6; // err output stream
+    id->ICNTL( 2 ) = 6; // warn/info output stream
+    id->ICNTL( 3 ) = 6; // global output stream
+    id->ICNTL( 4 ) = 4; // debug level 0:none, 1: err, 2: warn/stats 3:diagnostics, 4:parameters
   }
 }
 
@@ -169,7 +169,7 @@ void solver_analyze_mumps( solver_state_t* s, matrix_t* A ) {
   //       ... sets SCHUR_MLOC, SCHUR_NLOC
   // id->WRITE_PROBLEM: store distributed in matrix market format
 #define JOB_ANALYSE 1
-  id->job=JOB_ANALYSE;
+  id->job = JOB_ANALYSE;
   dmumps_c( id );
   if ( id->INFOG( 1 ) != 0 ) fprintf( stderr, "warning: analysis failed\n" );
   assert( id->INFOG( 1 ) == 0 ); // check it worked
@@ -204,7 +204,7 @@ void solver_factorize_mumps( solver_state_t* s, matrix_t* A ) {
   //   requires id->COLSCA, ROWSCA
   // ICNTL(19)=2,3 requires SCHUR_LLD, SCHUR
 #define JOB_FACTORIZE 2
-  id->job=JOB_FACTORIZE;
+  id->job = JOB_FACTORIZE;
   dmumps_c( id );
   assert( id->INFOG( 1 ) == 0 ); // check it worked
 }
@@ -256,7 +256,7 @@ void solver_evaluate_mumps( solver_state_t* s, matrix_t* b, matrix_t* x ) {
   // id->LRHS >= NRHS, =leading dimension of RHS (optional)
   //
 #define JOB_SOLVE 3
-  id->job=JOB_SOLVE;
+  id->job = JOB_SOLVE;
   dmumps_c( id );
   assert( id->INFOG( 1 ) == 0 ); // check it worked
 

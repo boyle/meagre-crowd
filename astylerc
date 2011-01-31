@@ -6,3 +6,7 @@
 --convert-tabs
 --indent=spaces=2
 --brackets=attach
+--pad=oper
+#--break-blocks
+#--align-pointer=name
+#--lineend=linux

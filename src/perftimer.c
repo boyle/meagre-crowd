@@ -102,20 +102,20 @@ int perftimer_inc( perftimer_t* h, char const*const s, const size_t n ) {
   }
 
   // fill in the structure
-  if ( gettimeofday( &( ptr->now ),NULL ) != 0 )
+  if ( gettimeofday( &( ptr->now ), NULL ) != 0 )
     warn( "failed to store time" ); // shouldn't be any reason to fail?
   ptr->depth = h->current_depth;
   ptr->next = NULL;
   { // safe string copy
     // this initial counting is a bit inefficient but worth it for the safety
-    size_t nn = strnlen( s,n );
+    size_t nn = strnlen( s, n );
     if ( nn == 0 ) { // no string
       ptr->desc = NULL;
     }
     else { // copy the string in, make sure its null terminated (safety first)
       // TODO use strndup instead?
-      ptr->desc = malloc(( nn+1 )*sizeof( char ) ); // need an extra char for '\0'
-      strncpy( ptr->desc,s,nn );
+      ptr->desc = malloc(( nn + 1 ) * sizeof( char ) ); // need an extra char for '\0'
+      strncpy( ptr->desc, s, nn );
       ptr->desc[nn] = '\0'; // make sure the string is null terminated
     }
   }
@@ -155,12 +155,12 @@ size_t perftimer_printlen( perftimer_t const * const h, const unsigned int d ) {
     if (( ptr->desc != NULL ) && ( ptr->depth <= d ) )
       // we know that all ptr->desc are zero terminated: we copied them
       // need to leave lots of room for calculated time
-      c += strlen( ptr->desc ) +60;
+      c += strlen( ptr->desc ) + 60;
     // TODO test for overflow on 'c += ...'
     ptr = ptr->next;
   }
 
-  return c+60-1; // extra padding for total
+  return c + 60 - 1; // extra padding for total
 }
 
 
@@ -200,19 +200,19 @@ static unsigned int _max_links( perftimer_t const * h ) {
 // and it only averages across entries that match
 int perftimer_snprintf( perftimer_t const * const h, char* s, const size_t n, const unsigned int d ) {
   s[0] = '\0'; // string starts empty
-  if (( h==NULL ) || ( h->head == NULL ) ) // nothing to show
+  if (( h == NULL ) || ( h->head == NULL ) ) // nothing to show
     return 0;
 
   unsigned int m_max = _max_links( h ); // longest number of links
   // create list of times
-  double* t = calloc( m_max,sizeof( double ) );
-  unsigned int * r = calloc( m_max,sizeof( unsigned int ) ); // how many went into this count
+  double* t = calloc( m_max, sizeof( double ) );
+  unsigned int * r = calloc( m_max, sizeof( unsigned int ) ); // how many went into this count
   perftimer_t const * hs = h;
   perftimer_tic_t const * ptr = h->head;
   while ( hs != NULL ) {
     ptr = hs->head;
     unsigned int i; // current link
-    for ( i=0;i<m_max && ( ptr != NULL ) && ( ptr->next != NULL );i++ ) {
+    for ( i = 0;i < m_max && ( ptr != NULL ) && ( ptr->next != NULL );i++ ) {
       perftimer_tic_t const * stop = ptr->next;
       while (( stop->next != NULL ) && ( stop->depth > ptr->depth ) ) {
         stop = stop->next;
@@ -241,33 +241,33 @@ int perftimer_snprintf( perftimer_t const * const h, char* s, const size_t n, co
     if (( ptr->desc != NULL ) && ( ptr->depth <= d ) ) {
       { // indent as appropriate for this depth
         int j;
-        for ( j=0;j<ptr->depth;j++ )
+        for ( j = 0;j < ptr->depth;j++ )
           strcat( s, "  " );
       }
-      strncat( s, ptr->desc, n-1 );
+      strncat( s, ptr->desc, n - 1 );
       if ( t[i] > 0.0 ) {
         if ( r[i] > 1 )
-          snprintf( tmp,nw,":\t%0.3fms (av. %0.3fms in %d rounds)\n",
+          snprintf( tmp, nw, ":\t%0.3fms (av. %0.3fms in %d rounds)\n",
                     t[i]*1e3,
-                    t[i]/(( double )r[i] )*1e3,
+                    t[i] / (( double )r[i] )*1e3,
                     r[i] );
         else
-          snprintf( tmp,nw,":\t%0.3fms\n",t[i]*1e3 );
+          snprintf( tmp, nw, ":\t%0.3fms\n", t[i]*1e3 );
       }
       else {
-        snprintf( tmp,nw,"\n" );
+        snprintf( tmp, nw, "\n" );
       }
-      strncat( s, tmp, n-1 );
+      strncat( s, tmp, n - 1 );
     }
     ptr = ptr->next;
     i++;
   }
-  snprintf( tmp,nw,"total:\t%0.3fms",perftimer_wall( h )*1e3 );
-  strncat( s,tmp,n-1 );
+  snprintf( tmp, nw, "total:\t%0.3fms", perftimer_wall( h )*1e3 );
+  strncat( s, tmp, n - 1 );
   unsigned int rnds = perftimer_rounds( h ); // rounds
   if ( rnds > 1 ) {
-    snprintf( tmp,nw," (av. %0.3fms in %d rounds)",perftimer_wall_av( h )*1e3,rnds );
-    strncat( s,tmp,n-1 );
+    snprintf( tmp, nw, " (av. %0.3fms in %d rounds)", perftimer_wall_av( h )*1e3, rnds );
+    strncat( s, tmp, n - 1 );
   }
   // make the string safe: zero terminate it
   s[n-1] = '\0'; // Note: man claims strncat appends \0 always, but it doesn't
@@ -276,7 +276,7 @@ int perftimer_snprintf( perftimer_t const * const h, char* s, const size_t n, co
   free( r );
 
   // this should come out to the same size as perftimer_printlen()
-  return strnlen( s,n ); // total bytes produced
+  return strnlen( s, n ); // total bytes produced
 }
 
 
@@ -293,7 +293,7 @@ int perftimer_snprintf( perftimer_t const * const h, char* s, const size_t n, co
 // and it only averages across entries that match
 int perftimer_snprintf_csv_header( perftimer_t const * const h, char* s, const size_t n, const unsigned int d ) {
   s[0] = '\0'; // string starts empty
-  if (( h==NULL ) || ( h->head == NULL ) ) // nothing to show
+  if (( h == NULL ) || ( h->head == NULL ) ) // nothing to show
     return 0;
 
   // count desc
@@ -306,27 +306,27 @@ int perftimer_snprintf_csv_header( perftimer_t const * const h, char* s, const s
   while ( ptr->next != NULL ) {
     if (( ptr->desc != NULL ) && ( ptr->depth <= d ) ) {
       if ( !first ) // comma, except first number
-        strncat( s, ", ", n-1 );
+        strncat( s, ", ", n - 1 );
       first = 0;
-      strncat( s, ptr->desc, n-1 );
+      strncat( s, ptr->desc, n - 1 );
     }
     ptr = ptr->next;
     i++;
   }
   if ( !first ) // comma, except first number
-    strncat( s, ", ", n-1 );
+    strncat( s, ", ", n - 1 );
   first = 0;
-  snprintf( tmp,nw,"total (ms)" );
-  strncat( s,tmp,n-1 );
+  snprintf( tmp, nw, "total (ms)" );
+  strncat( s, tmp, n - 1 );
   if ( perftimer_rounds( h ) > 1 ) {
-    snprintf( tmp,nw,", rounds" );
-    strncat( s,tmp,n-1 );
+    snprintf( tmp, nw, ", rounds" );
+    strncat( s, tmp, n - 1 );
   }
   // make the string safe: zero terminate it
   s[n-1] = '\0'; // Note: man claims strncat appends \0 always, but it doesn't
 
   // this is definately not the predicted length
-  return strnlen( s,n ); // total bytes produced
+  return strnlen( s, n ); // total bytes produced
 }
 
 
@@ -343,19 +343,19 @@ int perftimer_snprintf_csv_header( perftimer_t const * const h, char* s, const s
 // and it only averages across entries that match
 int perftimer_snprintf_csv_body( perftimer_t const * const h, char* s, const size_t n, const unsigned int d ) {
   s[0] = '\0'; // string starts empty
-  if (( h==NULL ) || ( h->head == NULL ) ) // nothing to show
+  if (( h == NULL ) || ( h->head == NULL ) ) // nothing to show
     return 0;
 
   unsigned int m_max = _max_links( h ); // longest number of links
   // create list of times
-  double* t = calloc( m_max,sizeof( double ) );
-  unsigned int * r = calloc( m_max,sizeof( unsigned int ) ); // how many went into this count
+  double* t = calloc( m_max, sizeof( double ) );
+  unsigned int * r = calloc( m_max, sizeof( unsigned int ) ); // how many went into this count
   perftimer_t const * hs = h;
   perftimer_tic_t const * ptr = h->head;
   while ( hs != NULL ) {
     ptr = hs->head;
     unsigned int i; // current link
-    for ( i=0;i<m_max && ( ptr != NULL ) && ( ptr->next != NULL );i++ ) {
+    for ( i = 0;i < m_max && ( ptr != NULL ) && ( ptr->next != NULL );i++ ) {
       perftimer_tic_t const * stop = ptr->next;
       while (( stop->next != NULL ) && ( stop->depth > ptr->depth ) ) {
         stop = stop->next;
@@ -382,23 +382,23 @@ int perftimer_snprintf_csv_body( perftimer_t const * const h, char* s, const siz
   while ( ptr->next != NULL ) {
     if (( ptr->desc != NULL ) && ( ptr->depth <= d ) ) {
       if ( !first ) // comma, except first number
-        strncat( s, ", ", n-1 );
+        strncat( s, ", ", n - 1 );
       first = 0;
-      snprintf( tmp,nw,"%0.3f", t[i]/(( double )r[i] )*1e3 );
-      strncat( s, tmp, n-1 );
+      snprintf( tmp, nw, "%0.3f", t[i] / (( double )r[i] )*1e3 );
+      strncat( s, tmp, n - 1 );
     }
     ptr = ptr->next;
     i++;
   }
   if ( !first ) // comma, except first number
-    strncat( s, ", ", n-1 );
+    strncat( s, ", ", n - 1 );
   first = 0;
-  snprintf( tmp,nw,"%0.3f",perftimer_wall_av( h )*1e3 );
-  strncat( s,tmp,n-1 );
+  snprintf( tmp, nw, "%0.3f", perftimer_wall_av( h )*1e3 );
+  strncat( s, tmp, n - 1 );
   unsigned int rnds = perftimer_rounds( h ); // rounds
   if ( rnds > 1 ) {
-    snprintf( tmp,nw,", %d",rnds );
-    strncat( s,tmp,n-1 );
+    snprintf( tmp, nw, ", %d", rnds );
+    strncat( s, tmp, n - 1 );
   }
   // make the string safe: zero terminate it
   s[n-1] = '\0'; // Note: man claims strncat appends \0 always, but it doesn't
@@ -407,7 +407,7 @@ int perftimer_snprintf_csv_body( perftimer_t const * const h, char* s, const siz
   free( r );
 
   // this won't come out to the expected length
-  return strnlen( s,n ); // total bytes produced
+  return strnlen( s, n ); // total bytes produced
 }
 
 
@@ -417,36 +417,36 @@ int perftimer_snprintf_csv_body( perftimer_t const * const h, char* s, const siz
 // d: max depth, 0:unlimited
 // out: printed to stdout (printf)
 void perftimer_printf( perftimer_t const * const h, const unsigned int d ) {
-  size_t n = perftimer_printlen( h,d );
+  size_t n = perftimer_printlen( h, d );
   if ( n == 0 ) // nothing to do
     return;
-  char* s = malloc( n*sizeof( char ) );
-  perftimer_snprintf( h,s,n,d );
-  printf( "%s\n",s );
+  char* s = malloc( n * sizeof( char ) );
+  perftimer_snprintf( h, s, n, d );
+  printf( "%s\n", s );
   free( s );
   return;
 }
 
 // TODO refactor common code w/ perftimer_printf
 void perftimer_printf_csv_header( perftimer_t const * const h, const unsigned int d ) {
-  size_t n = perftimer_printlen( h,d ); // actual size will be smaller but that's okay
+  size_t n = perftimer_printlen( h, d ); // actual size will be smaller but that's okay
   if ( n == 0 ) // nothing to do
     return;
-  char* s = malloc( n*sizeof( char ) );
-  perftimer_snprintf_csv_header( h,s,n,d );
-  printf( "%s\n",s );
+  char* s = malloc( n * sizeof( char ) );
+  perftimer_snprintf_csv_header( h, s, n, d );
+  printf( "%s\n", s );
   free( s );
   return;
 }
 
 // TODO refactor common code w/ perftimer_printf
 void perftimer_printf_csv_body( perftimer_t const * const h, const unsigned int d ) {
-  size_t n = perftimer_printlen( h,d ); // actual size will be smaller but that's okay
+  size_t n = perftimer_printlen( h, d ); // actual size will be smaller but that's okay
   if ( n == 0 ) // nothing to do
     return;
-  char* s = malloc( n*sizeof( char ) );
-  perftimer_snprintf_csv_body( h,s,n,d );
-  printf( "%s\n",s );
+  char* s = malloc( n * sizeof( char ) );
+  perftimer_snprintf_csv_body( h, s, n, d );
+  printf( "%s\n", s );
   free( s );
   return;
 }
@@ -461,7 +461,7 @@ double perftimer_wall( perftimer_t const * const h ) {
     hh = hh->old;
   if ( h == NULL ) // || hh == null
     return 0.0;
-  return _calc_perftimer_diff( hh->head,h->tail );
+  return _calc_perftimer_diff( hh->head, h->tail );
 }
 // average over all runs
 double perftimer_wall_av( perftimer_t const * h ) {
@@ -472,7 +472,7 @@ double perftimer_wall_av( perftimer_t const * h ) {
   if ( runs == 0 )
     runs = 1; // avoid div by zero
   while ( h != NULL ) {
-    sum += _calc_perftimer_diff( h->head,h->tail );
+    sum += _calc_perftimer_diff( h->head, h->tail );
     h = h->old;
   }
   return sum / runs;

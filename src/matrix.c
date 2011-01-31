@@ -101,11 +101,11 @@ matrix_t* copy_matrix( matrix_t* m ) {
 
     size_t n; // entries to copy
     if (( m->format == DROW ) || ( m->format == DCOL ) )
-      n = ( m->m )*( m->n ); // rows*cols entries
+      n = ( m->m ) * ( m->n ); // rows*cols entries
     else
       n = m->nz;
 
-    ret->dd = malloc( n*dwidth ); // nz entries
+    ret->dd = malloc( n * dwidth ); // nz entries
 
     // malloc failed
     if ( ret->dd == NULL ) {
@@ -121,14 +121,14 @@ matrix_t* copy_matrix( matrix_t* m ) {
 
   switch ( m->format ) {
     case SM_COO:
-      ret->ii = malloc(( m->nz )*sizeof( unsigned int ) );
+      ret->ii = malloc(( m->nz ) * sizeof( unsigned int ) );
       if ( ret->ii == NULL ) { // malloc failed
         free( ret->dd );
         free( ret );
         return NULL;
       }
       memcpy( ret->ii, m->ii, ( m->nz )*sizeof( unsigned int ) ); // memcpy(*dest,*src,n)
-      ret->jj = malloc(( m->n )*sizeof( unsigned int ) );
+      ret->jj = malloc(( m->n ) * sizeof( unsigned int ) );
       if ( ret->jj == NULL ) { // malloc failed
         free( ret->ii );
         free( ret->dd );
@@ -139,14 +139,14 @@ matrix_t* copy_matrix( matrix_t* m ) {
       break;
 
     case SM_CSR:
-      ret->ii = malloc(( m->m+1 )*sizeof( unsigned int ) );
+      ret->ii = malloc(( m->m + 1 ) * sizeof( unsigned int ) );
       if ( ret->ii == NULL ) { // malloc failed
         free( ret->dd );
         free( ret );
         return NULL;
       }
-      memcpy( ret->ii, m->ii, ( m->m+1 )*sizeof( unsigned int ) ); // memcpy(*dest,*src,n)
-      ret->jj = malloc(( m->nz )*sizeof( unsigned int ) );
+      memcpy( ret->ii, m->ii, ( m->m + 1 )*sizeof( unsigned int ) ); // memcpy(*dest,*src,n)
+      ret->jj = malloc(( m->nz ) * sizeof( unsigned int ) );
       if ( ret->jj == NULL ) { // malloc failed
         free( ret->ii );
         free( ret->dd );
@@ -157,14 +157,14 @@ matrix_t* copy_matrix( matrix_t* m ) {
       break;
 
     case SM_CSC:
-      ret->jj = malloc(( m->n+1 )*sizeof( unsigned int ) );
+      ret->jj = malloc(( m->n + 1 ) * sizeof( unsigned int ) );
       if ( ret->jj == NULL ) { // malloc failed
         free( ret->dd );
         free( ret );
         return NULL;
       }
-      memcpy( ret->jj, m->jj, ( m->n+1 )*sizeof( unsigned int ) ); // memcpy(*dest,*src,n)
-      ret->ii = malloc(( m->nz )*sizeof( unsigned int ) );
+      memcpy( ret->jj, m->jj, ( m->n + 1 )*sizeof( unsigned int ) ); // memcpy(*dest,*src,n)
+      ret->ii = malloc(( m->nz ) * sizeof( unsigned int ) );
       if ( ret->ii == NULL ) { // malloc failed
         free( ret->jj );
         free( ret->dd );
@@ -225,7 +225,7 @@ int cmp_matrix( matrix_t* a, matrix_t* b ) {
   }
 
   if ( a->nz != bb->nz ) {
-    printf( "a->nz=%zd  bb->nz=%zd\n",a->nz, bb->nz );
+    printf( "a->nz=%zd  bb->nz=%zd\n", a->nz, bb->nz );
     if ( copied )
       free_matrix( bb );
     return -7;
@@ -249,11 +249,11 @@ int cmp_matrix( matrix_t* a, matrix_t* b ) {
       break;
     case SM_CSC:
       iilen = a->nz;
-      jjlen = a->n+1;
+      jjlen = a->n + 1;
       ddlen = dwidth * a->nz;
       break;
     case SM_CSR:
-      iilen = a->m+1;
+      iilen = a->m + 1;
       jjlen = a->nz;
       ddlen = dwidth * a->nz;
       break;
@@ -295,7 +295,7 @@ int cmp_matrix( matrix_t* a, matrix_t* b ) {
         double* d_old = a->dd;
         double* d_new = bb->dd;
         int i;
-        for ( i=0; i < a->nz; i++ ) {
+        for ( i = 0; i < a->nz; i++ ) {
           if (( *d_old < *d_new - tol ) || ( *d_old > *d_new + tol ) ) { // if !zero store, otherwise skip
             ret = -1;
             break;
@@ -358,7 +358,7 @@ struct sparse_matrix_t* _bebop_input( matrix_t* m, enum sparse_matrix_storage_fo
   switch ( f ) {
     case CSC: {
       A->format = CSC;
-      struct csc_matrix_t* p = calloc( 1,sizeof( struct csc_matrix_t ) );
+      struct csc_matrix_t* p = calloc( 1, sizeof( struct csc_matrix_t ) );
       A->repr = p;
       p->m = m->m;
       p->n = m->n;
@@ -373,7 +373,7 @@ struct sparse_matrix_t* _bebop_input( matrix_t* m, enum sparse_matrix_storage_fo
     }
     case CSR: {
       A->format = CSR;
-      struct csr_matrix_t* p = calloc( 1,sizeof( struct csr_matrix_t ) );
+      struct csr_matrix_t* p = calloc( 1, sizeof( struct csr_matrix_t ) );
       A->repr = p;
       p->m = m->m;
       p->n = m->n;
@@ -388,7 +388,7 @@ struct sparse_matrix_t* _bebop_input( matrix_t* m, enum sparse_matrix_storage_fo
     }
     case COO: {
       A->format = COO;
-      struct coo_matrix_t* p = calloc( 1,sizeof( struct coo_matrix_t ) );
+      struct coo_matrix_t* p = calloc( 1, sizeof( struct coo_matrix_t ) );
       A->repr = p;
       p->m = m->m;
       p->n = m->n;
@@ -429,11 +429,11 @@ int _csc2coo( matrix_t* m ) {
   // BeBOP only handles zero-based CSC matrices
   const enum matrix_base_t old_base = m->base;
   int ret;
-  ret = convert_matrix( m,m->format,FIRST_INDEX_ZERO );
+  ret = convert_matrix( m, m->format, FIRST_INDEX_ZERO );
   assert( ret == 0 ); // should never fail
 
   // store, ready for BeBOP
-  struct sparse_matrix_t* A =_bebop_input( m, CSC );
+  struct sparse_matrix_t* A = _bebop_input( m, CSC );
 
   int ierr = sparse_matrix_convert( A, COO );
   assert( ierr == 0 ); // might fail on malloc?
@@ -449,7 +449,7 @@ int _csc2coo( matrix_t* m ) {
   _bebop_destroy( A );
 
   // now convert back to appropriate base
-  ret = convert_matrix( m,m->format,old_base );
+  ret = convert_matrix( m, m->format, old_base );
   assert( ret == 0 ); // should never fail
 
   return 0;
@@ -463,11 +463,11 @@ int _coo2csc( matrix_t* m ) {
   // BeBOP only handles zero-based CSC matrices
   const enum matrix_base_t old_base = m->base;
   int ret;
-  ret = convert_matrix( m,m->format,FIRST_INDEX_ZERO );
+  ret = convert_matrix( m, m->format, FIRST_INDEX_ZERO );
   assert( ret == 0 ); // should never fail
 
   // store, ready for BeBOP
-  struct sparse_matrix_t* A =_bebop_input( m, COO );
+  struct sparse_matrix_t* A = _bebop_input( m, COO );
 
   int ierr = sparse_matrix_convert( A, CSC );
   assert( ierr == 0 ); // could fail on malloc?
@@ -483,7 +483,7 @@ int _coo2csc( matrix_t* m ) {
   _bebop_destroy( A );
 
   // now convert back to appropriate base
-  ret = convert_matrix( m,m->format,old_base );
+  ret = convert_matrix( m, m->format, old_base );
   assert( ret == 0 ); // should never fail
 
   return 0;
@@ -497,11 +497,11 @@ int _csr2coo( matrix_t* m ) {
   // BeBOP only handles zero-based CSC matrices
   const enum matrix_base_t old_base = m->base;
   int ret;
-  ret = convert_matrix( m,m->format,FIRST_INDEX_ZERO );
+  ret = convert_matrix( m, m->format, FIRST_INDEX_ZERO );
   assert( ret == 0 ); // should never fail
 
   // store, ready for BeBOP
-  struct sparse_matrix_t* A =_bebop_input( m, CSR );
+  struct sparse_matrix_t* A = _bebop_input( m, CSR );
 
   int ierr = sparse_matrix_convert( A, COO );
   assert( ierr == 0 ); // could fail on malloc?
@@ -517,7 +517,7 @@ int _csr2coo( matrix_t* m ) {
   _bebop_destroy( A );
 
   // now convert back to appropriate base
-  ret = convert_matrix( m,m->format,old_base );
+  ret = convert_matrix( m, m->format, old_base );
   assert( ret == 0 ); // should never fail
 
   return 0;
@@ -531,11 +531,11 @@ int _coo2csr( matrix_t* m ) {
   // BeBOP only handles zero-based CSC matrices
   const enum matrix_base_t old_base = m->base;
   int ret;
-  ret = convert_matrix( m,m->format,FIRST_INDEX_ZERO );
+  ret = convert_matrix( m, m->format, FIRST_INDEX_ZERO );
   assert( ret == 0 ); // should never fail
 
   // store, ready for BeBOP
-  struct sparse_matrix_t* A =_bebop_input( m, COO );
+  struct sparse_matrix_t* A = _bebop_input( m, COO );
 
   int ierr = sparse_matrix_convert( A, CSR );
   assert( ierr == 0 ); // could fail on malloc?
@@ -550,8 +550,8 @@ int _coo2csr( matrix_t* m ) {
   _bebop_destroy( A );
 
   // now convert back to appropriate base
-  ret = convert_matrix( m,m->format,old_base );
-  assert( ret ==0 ); // should never fail
+  ret = convert_matrix( m, m->format, old_base );
+  assert( ret == 0 ); // should never fail
 
   return 0;
 }
@@ -561,18 +561,18 @@ int _coo2drow( matrix_t* m );
 int _coo2drow( matrix_t* m ) {
   assert( m->base == FIRST_INDEX_ZERO );
   const size_t dwidth = _data_width( m->data_type );
-  void* d_new = calloc(( m->m )*( m->n ), dwidth );
+  void* d_new = calloc(( m->m ) * ( m->n ), dwidth );
   if ( d_new == NULL )
     return -1; // malloc failure
 
   // convert from COO to DROW
   int i;
   const unsigned int cols = m->n;
-  for ( i=0; i < m->nz; i++ ) {
+  for ( i = 0; i < m->nz; i++ ) {
     // find index in row-major order, given dwidth size entries
     // copy to the appropriate location in the dense array
-    const void* src  = ( char* ) m->dd + i*dwidth;
-    void*       dest = ( char* ) d_new + (( m->ii[i] * cols ) + m->jj[i] )*dwidth;
+    const void* src  = ( char* ) m->dd + i * dwidth;
+    void*       dest = ( char* ) d_new + (( m->ii[i] * cols ) + m->jj[i] ) * dwidth;
     memcpy( dest, src, dwidth );
   }
   // rest of the entries in the array are zero from calloc()
@@ -600,10 +600,10 @@ int _drow2coo( matrix_t* m, const enum matrix_base_t b ) {
 
   // allocate maximum size, then realloc later to reduce to the appropriate size ptr
   // data (dd) is already maximum size
-  m->ii = malloc(( m->m )*( m->n )*sizeof( unsigned int ) );
+  m->ii = malloc(( m->m ) * ( m->n ) * sizeof( unsigned int ) );
   if ( m->ii == NULL )
     return -1;
-  m->jj = malloc(( m->m )*( m->n )*sizeof( unsigned int ) );
+  m->jj = malloc(( m->m ) * ( m->n ) * sizeof( unsigned int ) );
   if ( m->jj == NULL ) {
     free( m->ii );
     return -1;
@@ -621,8 +621,8 @@ int _drow2coo( matrix_t* m, const enum matrix_base_t b ) {
     case REAL_DOUBLE: {
       double* d_old = m->dd;
       double* d_new = m->dd;
-      for ( i=0; i<rows; i++ ) { // (i initialized already)
-        for ( j=0; j<cols; j++ ) { // (j initialized already)
+      for ( i = 0; i < rows; i++ ) { // (i initialized already)
+        for ( j = 0; j < cols; j++ ) { // (j initialized already)
           // index = (i*cols + j); // row-major indexing
           if (( *d_old < 0.0 - tol ) || ( *d_old > 0.0 + tol ) ) { // if !zero store, otherwise skip
             // store, if not the same address
@@ -630,8 +630,8 @@ int _drow2coo( matrix_t* m, const enum matrix_base_t b ) {
               memcpy( d_new, d_old, dwidth ); // memcpy(dest,src,size)
 
             if ( b == FIRST_INDEX_ONE ) {// then loop variables have to be +1
-              *i_new = i +1;
-              *j_new = j +1;
+              *i_new = i + 1;
+              *j_new = j + 1;
             }
             else { // FIRST_INDEX_ZERO
               *i_new = i;
@@ -660,13 +660,13 @@ int _drow2coo( matrix_t* m, const enum matrix_base_t b ) {
   // resize ptr arrays to the correct size, now that
   // we know exactly how many non-zero entries there are
   // -- if these fail we still have the original ptr
-  void* p = realloc( m->ii, m->nz*sizeof( unsigned int ) );
+  void* p = realloc( m->ii, m->nz * sizeof( unsigned int ) );
   if ( p != NULL )
     m->ii = p;
-  p = realloc( m->jj, m->nz*sizeof( unsigned int ) );
+  p = realloc( m->jj, m->nz * sizeof( unsigned int ) );
   if ( p != NULL )
     m->jj = p;
-  p = realloc( m->dd, m->nz*dwidth );
+  p = realloc( m->dd, m->nz * dwidth );
   if ( p != NULL )
     m->dd = p;
 
@@ -680,7 +680,7 @@ int _drow2coo( matrix_t* m, const enum matrix_base_t b ) {
 // DROW -> DCOL
 int _drow2dcol( matrix_t* m );
 int _drow2dcol( matrix_t* m ) {
-  void* d_new = malloc(( m->m )*( m->n )*_data_width( m->data_type ) );
+  void* d_new = malloc(( m->m ) * ( m->n ) * _data_width( m->data_type ) );
   if ( d_new == NULL )
     return -1; // malloc failure
 
@@ -693,10 +693,10 @@ int _drow2dcol( matrix_t* m ) {
   const unsigned int rows = m->m;
   const unsigned int cols = m->n;
   const size_t dwidth = _data_width( m->data_type );
-  for ( i=0; i < rows; i++ ) {
-    for ( j=0; j < cols; j++ ) {
-      const void* src = ( char* )d_old + ( i*cols + j )*dwidth;
-      void*       dest = ( char* )d_new + ( j*rows + i )*dwidth;
+  for ( i = 0; i < rows; i++ ) {
+    for ( j = 0; j < cols; j++ ) {
+      const void* src = ( char* )d_old + ( i * cols + j ) * dwidth;
+      void*       dest = ( char* )d_new + ( j * rows + i ) * dwidth;
       memcpy( dest, src, dwidth );
     }
   }
@@ -712,7 +712,7 @@ int _drow2dcol( matrix_t* m ) {
 // DCOL -> DROW
 int _dcol2drow( matrix_t* m );
 int _dcol2drow( matrix_t* m ) {
-  void* d_new = malloc(( m->m )*( m->n )*_data_width( m->data_type ) );
+  void* d_new = malloc(( m->m ) * ( m->n ) * _data_width( m->data_type ) );
   if ( d_new == NULL )
     return -1; // malloc failure
 
@@ -723,10 +723,10 @@ int _dcol2drow( matrix_t* m ) {
   const unsigned int cols = m->n;
   const size_t dwidth = _data_width( m->data_type );
   // TODO common code: only swapping roll of i,j and indexing between _dcol2drow and _drow2dcol
-  for ( i=0; i < cols; i++ ) {
-    for ( j=0; j < rows; j++ ) {
-      const void* src = ( char* )d_old + ( i*rows + j )*dwidth;
-      void*       dest =( char* )d_new + ( j*cols + i )*dwidth;
+  for ( i = 0; i < cols; i++ ) {
+    for ( j = 0; j < rows; j++ ) {
+      const void* src = ( char* )d_old + ( i * rows + j ) * dwidth;
+      void*       dest = ( char* )d_new + ( j * cols + i ) * dwidth;
       memcpy( dest, src, dwidth );
     }
   }
@@ -758,13 +758,13 @@ int convert_matrix( matrix_t* m, enum matrix_format_t f, enum matrix_base_t b ) 
         break; // nothing needs doing
       case SM_COO: // adjust row and col
         if ( b == FIRST_INDEX_ZERO ) {
-          for ( i=0;i<m->nz;i++ ) {
+          for ( i = 0;i < m->nz;i++ ) {
             m->ii[i]--;
             m->jj[i]--;
           }
         }
         else { // FIRST_INDEX_ONE
-          for ( i=0;i<m->nz;i++ ) {
+          for ( i = 0;i < m->nz;i++ ) {
             m->ii[i]++;
             m->jj[i]++;
           }
@@ -772,24 +772,24 @@ int convert_matrix( matrix_t* m, enum matrix_format_t f, enum matrix_base_t b ) 
         break;
       case SM_CSC: // adjust col
         if ( b == FIRST_INDEX_ZERO ) {
-          for ( i=0;i<m->nz;i++ ) {
+          for ( i = 0;i < m->nz;i++ ) {
             m->ii[i]--;
           }
         }
         else { // FIRST_INDEX_ONE
-          for ( i=0;i<m->nz;i++ ) {
+          for ( i = 0;i < m->nz;i++ ) {
             m->ii[i]++;
           }
         }
         break;
       case SM_CSR: // adjust row
         if ( b == FIRST_INDEX_ZERO ) {
-          for ( i=0;i<m->nz;i++ ) {
+          for ( i = 0;i < m->nz;i++ ) {
             m->jj[i]--;
           }
         }
         else { // FIRST_INDEX_ONE
-          for ( i=0;i<m->nz;i++ ) {
+          for ( i = 0;i < m->nz;i++ ) {
             m->jj[i]++;
           }
         }

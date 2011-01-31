@@ -37,7 +37,7 @@ static int _identify_format_from_extension( char* n, enum sparse_matrix_file_for
 int load_matrix( char* n, matrix_t* AA ) {
   assert( AA != NULL );
   if ( n == NULL ) {
-    fprintf( stderr,"input error: No input specified (-i)\n" );
+    fprintf( stderr, "input error: No input specified (-i)\n" );
     return 1; // failure
   }
 
@@ -48,7 +48,7 @@ int load_matrix( char* n, matrix_t* AA ) {
 
   struct sparse_matrix_t* A = load_sparse_matrix( ext, n );
   if ( A == NULL ) {
-    fprintf( stderr,"input error: Failed to load matrix\n" );
+    fprintf( stderr, "input error: Failed to load matrix\n" );
     return 1;
   }
   int ierr = sparse_matrix_convert( A, COO );
@@ -84,7 +84,7 @@ int load_matrix( char* n, matrix_t* AA ) {
 // returns 0: success, 1: failure
 int save_matrix( matrix_t* AA, char* n ) {
   if ( n == NULL ) {
-    fprintf( stderr,"output error: No output specified (-o)\n" );
+    fprintf( stderr, "output error: No output specified (-o)\n" );
     return 1; // failure
   }
 
@@ -135,42 +135,42 @@ inline unsigned int matrix_rows( const matrix_t* const A ) {
 // Note: static -- only visible w/in this file
 static int _identify_format_from_extension( char* n, enum sparse_matrix_file_format_t* ext, int is_input ) {
 
-  size_t s = strnlen( n,100 );
+  size_t s = strnlen( n, 100 );
   char *e = n + s - 3;
   // strcmp returned match
-  if (( s > 3 ) && ( strncmp( e,".mm",100 ) == 0 ) ) {
+  if (( s > 3 ) && ( strncmp( e, ".mm", 100 ) == 0 ) ) {
     *ext = MATRIX_MARKET;
     return 0; // success
   }
-  else if (( s>3 ) && ( strncmp( e,".hb",100 ) == 0 ) ) {
+  else if (( s > 3 ) && ( strncmp( e, ".hb", 100 ) == 0 ) ) {
     *ext = HARWELL_BOEING;
     if ( is_input )
-      fprintf( stderr,"input error: Sorry Harwell-Boeing reader is broken\n" );
+      fprintf( stderr, "input error: Sorry Harwell-Boeing reader is broken\n" );
     else
-      fprintf( stderr,"output error: Sorry Harwell-Boeing writer is broken\n" );
+      fprintf( stderr, "output error: Sorry Harwell-Boeing writer is broken\n" );
     return 1; // failure
   }
-  else if (( s > 3 ) && ( strncmp( e,".rb",100 ) == 0 ) ) {
+  else if (( s > 3 ) && ( strncmp( e, ".rb", 100 ) == 0 ) ) {
     *ext = HARWELL_BOEING;
     if ( is_input )
-      fprintf( stderr,"input error: Sorry Rutherford-Boeing reader is broken\n" );
+      fprintf( stderr, "input error: Sorry Rutherford-Boeing reader is broken\n" );
     else
-      fprintf( stderr,"output error: Sorry Rutherford-Boeing writer is broken\n" );
+      fprintf( stderr, "output error: Sorry Rutherford-Boeing writer is broken\n" );
     return 1; // failure
   }
-  else if (( s > 4 ) && ( strncmp( e-1,".mat",100 ) == 0 ) ) {
+  else if (( s > 4 ) && ( strncmp( e - 1, ".mat", 100 ) == 0 ) ) {
     *ext = MATLAB;
     if ( is_input )
-      fprintf( stderr,"input error: Sorry Matlab reader is broken\n" );
+      fprintf( stderr, "input error: Sorry Matlab reader is broken\n" );
     else
-      fprintf( stderr,"error: Sorry Matlab writer is broken\n" );
+      fprintf( stderr, "error: Sorry Matlab writer is broken\n" );
     return 1; // failure
   } // TODO test if the matlab reader is actually busted
   else {
     if ( is_input )
-      fprintf( stderr,"input error: Unrecognized file extension\n" );
+      fprintf( stderr, "input error: Unrecognized file extension\n" );
     else
-      fprintf( stderr,"output error: Unrecognized file extension\n" );
+      fprintf( stderr, "output error: Unrecognized file extension\n" );
     return 1; // failure
   }
 }
