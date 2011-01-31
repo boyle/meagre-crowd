@@ -27,7 +27,7 @@
 #define JOB_INIT -1
 #define JOB_END -2
 #define USE_COMM_WORLD -987654
-int main(int argc, char ** argv) {
+int main( int argc, char ** argv ) {
   DMUMPS_STRUC_C id;
   int n = 2;
   int nz = 2;
@@ -37,30 +37,41 @@ int main(int argc, char ** argv) {
   double rhs[2];
   int myid, ierr;
 
-  ierr = MPI_Init(&argc, &argv);
-  ierr = MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+  ierr = MPI_Init( &argc, &argv );
+  ierr = MPI_Comm_rank( MPI_COMM_WORLD, &myid );
   /* Define A and rhs */
   rhs[0]=1.0;
   rhs[1]=4.0;
   a[0]=1.0;
   a[1]=2.0;
   /* Initialize a MUMPS instance. Use MPI_COMM_WORLD. */
-  id.job=JOB_INIT; id.par=1; id.sym=0;id.comm_fortran=USE_COMM_WORLD;
-  dmumps_c(&id);
+  id.job=JOB_INIT;
+  id.par=1;
+  id.sym=0;
+  id.comm_fortran=USE_COMM_WORLD;
+  dmumps_c( &id );
   /* Define the problem on the host */
-  if (myid == 0) {
-    id.n = n; id.nz =nz; id.irn=irn; id.jcn=jcn;
-    id.a = a; id.rhs = rhs;
+  if ( myid == 0 ) {
+    id.n = n;
+    id.nz =nz;
+    id.irn=irn;
+    id.jcn=jcn;
+    id.a = a;
+    id.rhs = rhs;
   }
-  #define ICNTL(I) icntl[(I)-1] /* macro s.t. indices match documentation */
+#define ICNTL(I) icntl[(I)-1] /* macro s.t. indices match documentation */
   /* No outputs */
-  id.ICNTL(1)=-1; id.ICNTL(2)=-1; id.ICNTL(3)=-1; id.ICNTL(4)=0;
+  id.ICNTL( 1 )=-1;
+  id.ICNTL( 2 )=-1;
+  id.ICNTL( 3 )=-1;
+  id.ICNTL( 4 )=0;
   /* Call the MUMPS package. */
   id.job=6;
-  dmumps_c(&id);
-  id.job=JOB_END; dmumps_c(&id); /* Terminate instance */
-  if (myid == 0) {
-    printf("Solution is ( %.2f; %.2f ): %s\n", rhs[0],rhs[1], ((rhs[0] == a[0]) && (rhs[1] == a[1]))?"PASS":"FAIL");
+  dmumps_c( &id );
+  id.job=JOB_END;
+  dmumps_c( &id ); /* Terminate instance */
+  if ( myid == 0 ) {
+    printf( "Solution is ( %.2f; %.2f ): %s\n", rhs[0],rhs[1], (( rhs[0] == a[0] ) && ( rhs[1] == a[1] ) )?"PASS":"FAIL" );
   }
   ierr = MPI_Finalize();
   return 0;

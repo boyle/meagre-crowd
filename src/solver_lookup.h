@@ -33,11 +33,11 @@ struct  solver_properties_t {
   // TODO find version from library rather than hard-coding it?
   char* license; // version info
   char* url;
-  void (*init)(solver_state_t* s);
-  void (*analyze)(solver_state_t*, matrix_t*);
-  void (*factorize)(solver_state_t*, matrix_t*);
-  void (*evaluate)(solver_state_t*, matrix_t*, matrix_t*);
-  void (*finalize)(solver_state_t* s);
+  void ( *init )( solver_state_t* s );
+  void ( *analyze )( solver_state_t*, matrix_t* );
+  void ( *factorize )( solver_state_t*, matrix_t* );
+  void ( *evaluate )( solver_state_t*, matrix_t*, matrix_t* );
+  void ( *finalize )( solver_state_t* s );
   unsigned int capabilities; // flags (needs 32-bits)
   char* references;
 };
@@ -58,7 +58,7 @@ struct  solver_properties_t {
 #define SOLVES_SYMMETRIC_POSITIVE_DEFINITE_ONLY     (1<<9)
 #define SOLVES_SYMMETRIC_UPPER_TRIANGULAR           (1<<10)
 #define SOLVES_SYMMETRIC_LOWER_TRIANGULAR           (1<<11)
-#define SOLVES_SYMMETRIC                            (SOLVES_SYMMETRIC_UPPER_TRIANGULAR | SOLVES_SYMMETRIC_LOWER_TRIANGULAR) 
+#define SOLVES_SYMMETRIC                            (SOLVES_SYMMETRIC_UPPER_TRIANGULAR | SOLVES_SYMMETRIC_LOWER_TRIANGULAR)
 #define SOLVES_SKEW_SYMMETRIC_UPPER_TRIANGULAR      (1<<12)
 #define SOLVES_SKEW_SYMMETRIC_LOWER_TRIANGULAR      (1<<13)
 #define SOLVES_SKEW_SYMMETRIC                       (SOLVES_SKEW_SYMMETRIC_UPPER_TRIANGULAR | SOLVES_SKEW_SYMMETRIC_LOWER_TRIANGULAR)

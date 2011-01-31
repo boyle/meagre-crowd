@@ -28,62 +28,62 @@
 
 #include "solver_lookup.h"
 
-static inline int _valid_solver(const int solver);
-static inline int _valid_solver(const int solver) {
-  if((solver >= 0) && (solver < SOLVER_INDEX_COUNT))
+static inline int _valid_solver( const int solver );
+static inline int _valid_solver( const int solver ) {
+  if (( solver >= 0 ) && ( solver < SOLVER_INDEX_COUNT ) )
     return 1;
   else
     return 0;
 }
 
 // lookup functions
-int lookup_solver_by_shortname(const char* shortname) {
-  assert(shortname != NULL);
+int lookup_solver_by_shortname( const char* shortname ) {
+  assert( shortname != NULL );
   int i;
-  for(i=0; i < SOLVER_INDEX_COUNT; i++) {
-    if(strncmp(solver_lookup[i].shortname, shortname, SOLVER_SHORTNAME_MAX_LEN) == 0)
+  for ( i=0; i < SOLVER_INDEX_COUNT; i++ ) {
+    if ( strncmp( solver_lookup[i].shortname, shortname, SOLVER_SHORTNAME_MAX_LEN ) == 0 )
       return i;
   }
   return -1;
 }
 
-const char* solver2str(const int solver) {
-  if(_valid_solver(solver))
+const char* solver2str( const int solver ) {
+  if ( _valid_solver( solver ) )
     return solver_lookup[solver].name;
   else
     return "<invalid>";
 }
 
-void printf_solvers(const unsigned int verbosity) {
-  printf("Available solvers:\n");
+void printf_solvers( const unsigned int verbosity ) {
+  printf( "Available solvers:\n" );
   int i, j;
   // determine max shortname length so everything can be aligned nicely
   size_t max_shortname_len = 0;
   size_t l [SOLVER_INDEX_COUNT];
-  for(i=0; i < SOLVER_INDEX_COUNT; i++) {
-    size_t ll = strlen(solver_lookup[i].shortname);
+  for ( i=0; i < SOLVER_INDEX_COUNT; i++ ) {
+    size_t ll = strlen( solver_lookup[i].shortname );
     l[i] = ll;
-    if(ll > max_shortname_len)
+    if ( ll > max_shortname_len )
       max_shortname_len = ll;
   }
-  for(i=0; i < SOLVER_INDEX_COUNT; i++) {
-    printf("  %s", solver_lookup[i].shortname);
-    for(j=0; j < max_shortname_len - l[i]; j++)
-      printf(" ");
-    printf("    %s %s (%s, %s)\n",
-      solver_lookup[i].name,
-      solver_lookup[i].version,
-      solver_lookup[i].author,
-      solver_lookup[i].license);
-    if(verbosity >= 1) { // organization, references
-      for(j=0; j < max_shortname_len; j++)
-        printf(" ");
-      printf("      %s, %s\n",
-        solver_lookup[i].organization,
-        solver_lookup[i].url);
+  for ( i=0; i < SOLVER_INDEX_COUNT; i++ ) {
+    printf( "  %s", solver_lookup[i].shortname );
+    for ( j=0; j < max_shortname_len - l[i]; j++ )
+      printf( " " );
+    printf( "    %s %s (%s, %s)\n",
+            solver_lookup[i].name,
+            solver_lookup[i].version,
+            solver_lookup[i].author,
+            solver_lookup[i].license );
+    if ( verbosity >= 1 ) { // organization, references
+      for ( j=0; j < max_shortname_len; j++ )
+        printf( " " );
+      printf( "      %s, %s\n",
+              solver_lookup[i].organization,
+              solver_lookup[i].url );
     }
-    if(verbosity >= 2) {
-      printf("    references:\n%s\n\n",solver_lookup[i].references);
+    if ( verbosity >= 2 ) {
+      printf( "    references:\n%s\n\n",solver_lookup[i].references );
       // TODO capabilities
     }
   }
@@ -95,7 +95,7 @@ void printf_solvers(const unsigned int verbosity) {
 // can the preferred solver solve this problem?
 //   e.g. can the solver only handle Symmetric Postive Definite (SPD) matrices
 // returns: 1 yes, 0 no
-int solver_can_do(const int solver, matrix_t* A, matrix_t* b) {
+int solver_can_do( const int solver, matrix_t* A, matrix_t* b ) {
   return 1; // TODO something more clever, like a real answer
 }
 
@@ -103,7 +103,7 @@ int solver_can_do(const int solver, matrix_t* A, matrix_t* b) {
 //  - is it small and thus should be solved single-threaded (single processor)
 //  - is it moderate and should be solved SMP (shared memory)
 //  - is it huge and should be solved MPI (distributed memory)
-int select_solver(matrix_t* A, matrix_t* b) {
+int select_solver( matrix_t* A, matrix_t* b ) {
   return UMFPACK; // TODO something clever
 }
 
@@ -111,92 +111,92 @@ int select_solver(matrix_t* A, matrix_t* b) {
 // wrapper function: solve 'A x = b' for 'x'
 // calls initialize, analyze, factorize, evaluate, finalize
 // returns x, the solution
-void solver(const int solver, const int verbosity, const int mpi_rank, matrix_t* A, matrix_t* b, matrix_t* x) {
-  solver_state_t* s = solver_init(solver, verbosity, mpi_rank, NULL);
-  assert(s != NULL); // malloc failure
-  solver_analyze(s, A);
-  solver_factorize(s, A);
-  solver_evaluate(s, b, x);
-  solver_finalize(s);
+void solver( const int solver, const int verbosity, const int mpi_rank, matrix_t* A, matrix_t* b, matrix_t* x ) {
+  solver_state_t* s = solver_init( solver, verbosity, mpi_rank, NULL );
+  assert( s != NULL ); // malloc failure
+  solver_analyze( s, A );
+  solver_factorize( s, A );
+  solver_evaluate( s, b, x );
+  solver_finalize( s );
 }
 
 // wrapper function: solve 'A x = b' for 'x' w/o re-initializing solver
 // calls analyze, factorize, evaluate
 // must call initialize before and finalize after when all done
 // returns x, the solution
-void solver_solve(solver_state_t* s, matrix_t* A, matrix_t* b, matrix_t* x) {
-  solver_analyze(s, A);
-  solver_factorize(s, A);
-  solver_evaluate(s, b, x);
+void solver_solve( solver_state_t* s, matrix_t* A, matrix_t* b, matrix_t* x ) {
+  solver_analyze( s, A );
+  solver_factorize( s, A );
+  solver_evaluate( s, b, x );
 }
 
 // --------------------------------------------
 // initialize and finalize the solver state
-solver_state_t* solver_init(const int solver, const int verbosity, const int mpi_rank, perftimer_t* timer) {
-  solver_state_t* s = malloc(sizeof(solver_state_t));
-  assert(s != NULL);
-  
+solver_state_t* solver_init( const int solver, const int verbosity, const int mpi_rank, perftimer_t* timer ) {
+  solver_state_t* s = malloc( sizeof( solver_state_t ) );
+  assert( s != NULL );
+
   // configure state
   s->solver = solver;
   s->verbosity = verbosity;
   s->mpi_rank = mpi_rank;
   s->timer = timer;
   s->specific = NULL;
-  if(_valid_solver(solver) && (solver_lookup[solver].init != NULL))
-    solver_lookup[solver].init(s);
+  if ( _valid_solver( solver ) && ( solver_lookup[solver].init != NULL ) )
+    solver_lookup[solver].init( s );
 
   return s;
 }
 
-void solver_finalize(solver_state_t* s) {
-  assert(s != NULL);
+void solver_finalize( solver_state_t* s ) {
+  assert( s != NULL );
   // clean up (and deallocate "s->specific" if required)
   const int solver = s->solver;
-  if(_valid_solver(solver) && (solver_lookup[solver].analyze != NULL))
-    solver_lookup[solver].finalize(s);
+  if ( _valid_solver( solver ) && ( solver_lookup[solver].analyze != NULL ) )
+    solver_lookup[solver].finalize( s );
 
   // make sure it won't get deallocated twice by mistake
   s->specific = NULL;
 
-  free(s);
+  free( s );
 }
 
 // evaluate the patterns in A, doesn't care about the actual values in the matrix (A->dd)
-void solver_analyze(solver_state_t* s, matrix_t* A) {
-  assert(s != NULL);
-  assert(A != NULL);
-  perftimer_inc(s->timer,"analyze",-1);
+void solver_analyze( solver_state_t* s, matrix_t* A ) {
+  assert( s != NULL );
+  assert( A != NULL );
+  perftimer_inc( s->timer,"analyze",-1 );
   const int solver = s->solver;
-  if(_valid_solver(solver) && (solver_lookup[solver].analyze != NULL))
-    solver_lookup[solver].analyze(s, A);
+  if ( _valid_solver( solver ) && ( solver_lookup[solver].analyze != NULL ) )
+    solver_lookup[solver].analyze( s, A );
 }
 
 
 // factorize the matrix A, A must have the same pattern of non-zeros at that used in the solver_analyze stage
-void solver_factorize(solver_state_t* s, matrix_t* A) {
-  assert(s != NULL);
-  assert(A != NULL);
-  perftimer_inc(s->timer,"factorize",-1);
+void solver_factorize( solver_state_t* s, matrix_t* A ) {
+  assert( s != NULL );
+  assert( A != NULL );
+  perftimer_inc( s->timer,"factorize",-1 );
   const int solver = s->solver;
-  if(_valid_solver(solver) && (solver_lookup[solver].factorize != NULL))
-    solver_lookup[solver].factorize(s, A);
+  if ( _valid_solver( solver ) && ( solver_lookup[solver].factorize != NULL ) )
+    solver_lookup[solver].factorize( s, A );
 }
 
 
 // solve the matrix 'A' for right-hand side 'b'
 // returns 'x', the solution
-void solver_evaluate(solver_state_t* s, matrix_t* b, matrix_t* x) {
-  assert(s != NULL);
-  assert(b != NULL);
-  assert(x != NULL);
-  perftimer_inc(s->timer,"evaluate",-1);
+void solver_evaluate( solver_state_t* s, matrix_t* b, matrix_t* x ) {
+  assert( s != NULL );
+  assert( b != NULL );
+  assert( x != NULL );
+  perftimer_inc( s->timer,"evaluate",-1 );
   const int solver = s->solver;
-  if(_valid_solver(solver) && (solver_lookup[solver].evaluate != NULL)) {
-    solver_lookup[solver].evaluate(s, b, x);
+  if ( _valid_solver( solver ) && ( solver_lookup[solver].evaluate != NULL ) ) {
+    solver_lookup[solver].evaluate( s, b, x );
   }
   else {
-    clear_matrix(x);
+    clear_matrix( x );
     x->format = INVALID;
   }
-  perftimer_inc(s->timer,"done",-1);
+  perftimer_inc( s->timer,"done",-1 );
 }

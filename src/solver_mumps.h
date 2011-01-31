@@ -23,10 +23,10 @@
 #include "solvers.h"
 #include "matrix.h"
 
-void solver_init_mumps(solver_state_t* s);
-void solver_analyze_mumps(solver_state_t* s, matrix_t* A);
-void solver_factorize_mumps(solver_state_t* s, matrix_t* A);
-void solver_evaluate_mumps(solver_state_t* s, matrix_t* b, matrix_t* x);
-void solver_finalize_mumps(solver_state_t* s);
+void solver_init_mumps( solver_state_t* s );
+void solver_analyze_mumps( solver_state_t* s, matrix_t* A );
+void solver_factorize_mumps( solver_state_t* s, matrix_t* A );
+void solver_evaluate_mumps( solver_state_t* s, matrix_t* b, matrix_t* x );
+void solver_finalize_mumps( solver_state_t* s );
 
 #endif

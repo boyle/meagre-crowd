@@ -37,6 +37,6 @@ struct parse_args {
   int solver;
 };
 
-int parse_args(int argc, char ** argv, struct parse_args* args);
+int parse_args( int argc, char ** argv, struct parse_args* args );
 
 #endif

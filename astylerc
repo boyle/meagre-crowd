@@ -1,0 +1,8 @@
+-y
+--indent-switches
+--indent-preprocessor
+--pad=paren-in
+--unpad=paren
+--convert-tabs
+--indent=spaces=2
+--brackets=attach

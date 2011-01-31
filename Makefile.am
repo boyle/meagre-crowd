@@ -61,6 +61,11 @@ maintainer-clean-local:
 dist-hook: $(top_srcdir)/autogen
 	[[ -x $(top_srcdir)/autogen ]] && $(top_srcdir)/autogen $(distdir) $(top_srcdir) || true
 
+
+# apply astyle to source files
+style:
+	astyle --suffix=none --options=./astylerc {src,tests}/*.{c,h}
+
 ######
 ## vodoo incantations to get the test suite automation to build (autotest)
 
@@ -130,11 +135,14 @@ help:
 	@echo "Useful make targets: make [target]"
 	@echo "  <none> == all"
 	@echo "  all              - build software"
+	@echo "  check            - run testsuite"
 	@echo "  install"
 	@echo "  uninstall"
 	@echo "  clean            - remove built files"
+	@echo "For developers:"
 	@echo "  distclean        - clean to distributed state"
-	@echo "  maintainer-clean - delete all generated files"
-	@echo "  check            - run testsuite"
+	@echo "  maintainer-clean - delete all generated files, requires ./autogen to rebuild"
 	@echo "  dist             - create a .tar.gz for distribution"
 	@echo "  distcheck        - .tar, then untar in new dir and test"
+	@echo "  tags             - generate ctags for editing source files"
+	@echo "  style            - run astyle on source files to tidy formatting"

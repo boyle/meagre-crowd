@@ -35,10 +35,10 @@
 
 // the functions called from the "solver" wrapper and defined in "solver_lookup.h"
 // TODO probably need to see an example matrix so we can choose appropriate options, etc for solver
-void solver_init_mumps(solver_state_t* s) {
+void solver_init_mumps( solver_state_t* s ) {
   // initialize MUMPS instance
-  DMUMPS_STRUC_C* id = calloc(1,sizeof(DMUMPS_STRUC_C)); // initialize to zero
-  assert(id != NULL); // calloc failure
+  DMUMPS_STRUC_C* id = calloc( 1,sizeof( DMUMPS_STRUC_C ) ); // initialize to zero
+  assert( id != NULL ); // calloc failure
   s->specific = id; // stored for future use
 
   id->job=JOB_INIT;
@@ -47,64 +47,68 @@ void solver_init_mumps(solver_state_t* s) {
   // Note: if set to symmetric and matrix ISN'T, the redundant entries will be *summed*
   // TODO could convert the C communicator instead of using the fortran one (see MUMPS doc)
   id->comm_fortran=MUMPS_USE_COMM_WORLD;
-  #define INFOG(I) infog[(I)-1] // macro s.t. indices match documentation
-  dmumps_c(id);  assert(id->INFOG(1) == 0); // check it worked
+#define INFOG(I) infog[(I)-1] // macro s.t. indices match documentation
+  dmumps_c( id );
+  assert( id->INFOG( 1 ) == 0 ); // check it worked
   // clears the rest of the unused values
 
   // set debug verbosity
-  #define ICNTL(I) icntl[(I)-1] // macro s.t. indices match documentation
+#define ICNTL(I) icntl[(I)-1] // macro s.t. indices match documentation
   // No outputs
-  if(s->verbosity < 3) { // no debug
-    id->ICNTL(1)=-1; id->ICNTL(2)=-1; id->ICNTL(3)=-1; id->ICNTL(4)=0;
+  if ( s->verbosity < 3 ) { // no debug
+    id->ICNTL( 1 )=-1;
+    id->ICNTL( 2 )=-1;
+    id->ICNTL( 3 )=-1;
+    id->ICNTL( 4 )=0;
   }
   else { // debug
-    id->ICNTL(1)=6; // err output stream
-    id->ICNTL(2)=6; // warn/info output stream
-    id->ICNTL(3)=6; // global output stream
-    id->ICNTL(4)=4; // debug level 0:none, 1: err, 2: warn/stats 3:diagnostics, 4:parameters
+    id->ICNTL( 1 )=6; // err output stream
+    id->ICNTL( 2 )=6; // warn/info output stream
+    id->ICNTL( 3 )=6; // global output stream
+    id->ICNTL( 4 )=4; // debug level 0:none, 1: err, 2: warn/stats 3:diagnostics, 4:parameters
   }
 }
 
-void solver_finalize_mumps(solver_state_t* s) {
-  assert(s != NULL);
+void solver_finalize_mumps( solver_state_t* s ) {
+  assert( s != NULL );
   DMUMPS_STRUC_C* const id = s->specific;
-  assert(id != NULL);
+  assert( id != NULL );
 
   id->job = JOB_END;
-  dmumps_c(id); // Terminate instance
-  assert(id->INFOG(1) == 0); // check it worked
+  dmumps_c( id ); // Terminate instance
+  assert( id->INFOG( 1 ) == 0 ); // check it worked
 
-  free(id->rhs);
-  free(id);
+  free( id->rhs );
+  free( id );
 
   s->specific = NULL;
 }
 
-void solver_analyze_mumps(solver_state_t* s, matrix_t* A) {
-  assert(s != NULL);
-  if(s->mpi_rank == 0)
-    assert(A != NULL);
+void solver_analyze_mumps( solver_state_t* s, matrix_t* A ) {
+  assert( s != NULL );
+  if ( s->mpi_rank == 0 )
+    assert( A != NULL );
   else
-    assert(A == NULL);
+    assert( A == NULL );
 
   DMUMPS_STRUC_C* const id = s->specific;
 
   // load A's pattern for analysis (COO format)
-  if(s->mpi_rank == 0) { // only rank=0 needs the initial data
-    int ierr = convert_matrix(A, SM_COO, FIRST_INDEX_ONE);
-    assert(ierr == 0);
-    assert(A->base == FIRST_INDEX_ONE); // index zero is the first entry
-    assert(A->sym == SM_UNSYMMETRIC);
-    assert(A->data_type == REAL_DOUBLE); // don't handle complex... yet TODO
-    assert(A->m == A->n); // square matrices only?
+  if ( s->mpi_rank == 0 ) { // only rank=0 needs the initial data
+    int ierr = convert_matrix( A, SM_COO, FIRST_INDEX_ONE );
+    assert( ierr == 0 );
+    assert( A->base == FIRST_INDEX_ONE ); // index zero is the first entry
+    assert( A->sym == SM_UNSYMMETRIC );
+    assert( A->data_type == REAL_DOUBLE ); // don't handle complex... yet TODO
+    assert( A->m == A->n ); // square matrices only?
 
     // TODO really we should just copy this to be CORRECT/TYPESAFE (not worth being clever...)
 
     // mumps: irn=row indices, jcn=column idices, a=values, rhs=right-hand side, n = matrix order (on-a-side?) nz=non-zeros?
     id->n   = A->m; // A.m: rows, A.n: columns
     id->nz  = A->nz; // non-zeros
-    id->irn = (int*) A->ii; // row    indices
-    id->jcn = (int*) A->jj; // column indices
+    id->irn = ( int* ) A->ii; // row    indices
+    id->jcn = ( int* ) A->jj; // column indices
   }
 
   // Call the MUMPS package.
@@ -164,11 +168,11 @@ void solver_analyze_mumps(solver_state_t* s, matrix_t* A) {
   //       ICNTL(19)=2,3 requires id->NPROW, NPCOL, MBLOCK, NBLOCK - processing conf
   //       ... sets SCHUR_MLOC, SCHUR_NLOC
   // id->WRITE_PROBLEM: store distributed in matrix market format
-  #define JOB_ANALYSE 1
+#define JOB_ANALYSE 1
   id->job=JOB_ANALYSE;
-  dmumps_c(id);
-  if(id->INFOG(1) != 0) fprintf(stderr, "warning: analysis failed\n");
-  assert(id->INFOG(1) == 0); // check it worked
+  dmumps_c( id );
+  if ( id->INFOG( 1 ) != 0 ) fprintf( stderr, "warning: analysis failed\n" );
+  assert( id->INFOG( 1 ) == 0 ); // check it worked
 
   // available info:
   // INFO(15)/INFOG(16/17): min/max/sum-over-all-cpus mem requried [in megabytes]
@@ -177,19 +181,19 @@ void solver_analyze_mumps(solver_state_t* s, matrix_t* A) {
   //   set ICNTL(14) to limit mem increases
 }
 
-void solver_factorize_mumps(solver_state_t* s, matrix_t* A) {
-  assert(s != NULL);
-  if(s->mpi_rank == 0)
-    assert(A != NULL);
+void solver_factorize_mumps( solver_state_t* s, matrix_t* A ) {
+  assert( s != NULL );
+  if ( s->mpi_rank == 0 )
+    assert( A != NULL );
   else
-    assert(A == NULL);
+    assert( A == NULL );
   DMUMPS_STRUC_C* const id = s->specific;
 
   // load A's *data* for factorization
   // Note: pattern must have remained the same
-  if(s->mpi_rank == 0)
+  if ( s->mpi_rank == 0 )
     id->a   = A->dd;
-  
+
   // requires id->A if ICNTL(5)=0 (assembled matrix)
   // requires id->A_ELT if ICNTL(5)=1 (elemental matrix)
   // if (ICNTL(5)=0 && ICNTL(18)!=0) (assembled matrix, distributed load) ???i
@@ -199,34 +203,34 @@ void solver_factorize_mumps(solver_state_t* s, matrix_t* A) {
   // ICNTL(8)!=0 --> user supplied row/column scaling
   //   requires id->COLSCA, ROWSCA
   // ICNTL(19)=2,3 requires SCHUR_LLD, SCHUR
-  #define JOB_FACTORIZE 2
+#define JOB_FACTORIZE 2
   id->job=JOB_FACTORIZE;
-  dmumps_c(id);
-  assert(id->INFOG(1) == 0); // check it worked
+  dmumps_c( id );
+  assert( id->INFOG( 1 ) == 0 ); // check it worked
 }
 
-void solver_evaluate_mumps(solver_state_t* s, matrix_t* b, matrix_t* x) {
-  assert(s != NULL);
-  if(s->mpi_rank == 0) {
-    assert(b != NULL);
-    assert(x != NULL);
+void solver_evaluate_mumps( solver_state_t* s, matrix_t* b, matrix_t* x ) {
+  assert( s != NULL );
+  if ( s->mpi_rank == 0 ) {
+    assert( b != NULL );
+    assert( x != NULL );
   }
   else {
-    assert(b == NULL);
-    assert(x == NULL);
+    assert( b == NULL );
+    assert( x == NULL );
   }
   DMUMPS_STRUC_C* const id = s->specific;
 
-  if(s->mpi_rank == 0) {
-    free(id->rhs); // no-op if NULL
-    id->rhs = malloc(id->n * sizeof(double));
-    assert(id->rhs != NULL); // malloc failure
-    int ret = convert_matrix(b, DROW, FIRST_INDEX_ZERO); // TODO MUMPS can handle sparse vectors
-    assert(ret == 0);
-    assert(b->m == id->n); // rows of b match columns of A
-    assert(b->n == 1); // TOOD MUMPS can handle vectors...
-    assert(b->data_type == REAL_DOUBLE);
-    memcpy(id->rhs, b->dd, id->n * sizeof(double));
+  if ( s->mpi_rank == 0 ) {
+    free( id->rhs ); // no-op if NULL
+    id->rhs = malloc( id->n * sizeof( double ) );
+    assert( id->rhs != NULL ); // malloc failure
+    int ret = convert_matrix( b, DROW, FIRST_INDEX_ZERO ); // TODO MUMPS can handle sparse vectors
+    assert( ret == 0 );
+    assert( b->m == id->n ); // rows of b match columns of A
+    assert( b->n == 1 ); // TOOD MUMPS can handle vectors...
+    assert( b->data_type == REAL_DOUBLE );
+    memcpy( id->rhs, b->dd, id->n * sizeof( double ) );
   }
 
   // solve Ax=b, AX=B OR A^t x=b, A^t X=B
@@ -251,20 +255,20 @@ void solver_evaluate_mumps(solver_state_t* s, matrix_t* b, matrix_t* x) {
   // id->NRHS is number of rhs (optional), >1 disables itr refinement, err analysis
   // id->LRHS >= NRHS, =leading dimension of RHS (optional)
   //
-  #define JOB_SOLVE 3
+#define JOB_SOLVE 3
   id->job=JOB_SOLVE;
-  dmumps_c(id);
-  assert(id->INFOG(1) == 0); // check it worked
+  dmumps_c( id );
+  assert( id->INFOG( 1 ) == 0 ); // check it worked
 
   // put the answer in a nice formatted bundle
-  if(s->mpi_rank == 0) {
-    clear_matrix(x);
+  if ( s->mpi_rank == 0 ) {
+    clear_matrix( x );
     x->m = id->n;
     x->n = 1;
     x->format = DROW;
     x->data_type = REAL_DOUBLE;
-    x->dd = malloc(id->n * sizeof(double));
-    assert(x->dd != NULL);
-    memcpy(x->dd, id->rhs, id->n * sizeof(double));
+    x->dd = malloc( id->n * sizeof( double ) );
+    assert( x->dd != NULL );
+    memcpy( x->dd, id->rhs, id->n * sizeof( double ) );
   }
 }

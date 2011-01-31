@@ -20,17 +20,17 @@
 #define _FILE_H_
 
 #include "config.h"
-#include "matrix.h" 
+#include "matrix.h"
 
 // load a matrix from file "n" into matrix A
 // returns 0: success, 1: failure
-int load_matrix(char* n, matrix_t* A);
+int load_matrix( char* n, matrix_t* A );
 
 // save a matrix into file "n" from matrix A
 // returns 0: success, 1: failure
-int save_matrix(matrix_t* A, char* n);
+int save_matrix( matrix_t* A, char* n );
 
 // returns number of rows in matrix A
-inline unsigned int matrix_rows(const matrix_t* const A);
+inline unsigned int matrix_rows( const matrix_t* const A );
 
 #endif

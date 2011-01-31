@@ -84,21 +84,21 @@ typedef struct matrix_t {
 
 // helper functionis to deallocate the components of a matrix_t or the whole thing, assuming it was malloc-ed
 matrix_t* malloc_matrix();
-void free_matrix(matrix_t* m);
-void clear_matrix(matrix_t* m);
+void free_matrix( matrix_t* m );
+void clear_matrix( matrix_t* m );
 // TODO const correctness
-matrix_t* copy_matrix(matrix_t* m); // deep copy
+matrix_t* copy_matrix( matrix_t* m ); // deep copy
 // compare matrices
 // returns: zero on match
 // TODO const correctness
-int cmp_matrix(matrix_t* a, matrix_t* b);
+int cmp_matrix( matrix_t* a, matrix_t* b );
 // convert matrix to a new format
 // returns: non-zero on failure
-int convert_matrix(matrix_t* m, enum matrix_format_t f, enum matrix_base_t b);
+int convert_matrix( matrix_t* m, enum matrix_format_t f, enum matrix_base_t b );
 
 // check the matrix isn't malformed
 // returns: 0: okay, <0=problem found
 // TODO const correctness
-int validate_matrix(matrix_t* m);
+int validate_matrix( matrix_t* m );
 
 #endif

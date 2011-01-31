@@ -28,93 +28,108 @@
 const char* argp_program_version = PACKAGE_STRING;
 const char* argp_program_bug_address = PACKAGE_BUGREPORT;
 
-error_t parse_opt(int key, char *arg, struct argp_state *state);
-error_t parse_opt(int key, char *arg, struct argp_state *state) {
+error_t parse_opt( int key, char *arg, struct argp_state *state );
+error_t parse_opt( int key, char *arg, struct argp_state *state ) {
   struct parse_args *args = state->input;
-  switch (key) {
-    // help, etc
-    case 'h': case'?': argp_state_help(state,state->out_stream,ARGP_HELP_STD_HELP); break; // help
-    case -1: argp_state_help(state,state->out_stream,ARGP_HELP_SHORT_USAGE | ARGP_HELP_EXIT_OK); break; // usage
-    case 'V': printf("%s\n",PACKAGE_STRING); exit(EXIT_SUCCESS); break; // version
-    // output controls
-    case 't': args->timing_enabled++; break;
-    case 'v': args->verbosity++; break;
-    case -2: printf_solvers(args->verbosity); exit(EXIT_SUCCESS); break; // available solvers
-
-    // solvers
-    case 's': {
-        args->solver = lookup_solver_by_shortname(arg);
-        if(args->solver < 0) {
-          fprintf(stderr,"invalid solver (-s)");
-          exit(EXIT_FAILURE);
-        }
-      }
+  switch ( key ) {
+      // help, etc
+    case 'h':
+    case'?':
+      argp_state_help( state,state->out_stream,ARGP_HELP_STD_HELP );
+      break; // help
+    case -1:
+      argp_state_help( state,state->out_stream,ARGP_HELP_SHORT_USAGE | ARGP_HELP_EXIT_OK );
+      break; // usage
+    case 'V':
+      printf( "%s\n",PACKAGE_STRING );
+      exit( EXIT_SUCCESS );
+      break; // version
+      // output controls
+    case 't':
+      args->timing_enabled++;
       break;
+    case 'v':
+      args->verbosity++;
+      break;
+    case -2:
+      printf_solvers( args->verbosity );
+      exit( EXIT_SUCCESS );
+      break; // available solvers
+
+      // solvers
+    case 's': {
+      args->solver = lookup_solver_by_shortname( arg );
+      if ( args->solver < 0 ) {
+        fprintf( stderr,"invalid solver (-s)" );
+        exit( EXIT_FAILURE );
+      }
+    }
+    break;
 
     case 'r': {
-        int i = atoi(arg);
-        i = (i < 0)?0:i; // > 0
-        args->rep = i;
-      }
-      break;
+      int i = atoi( arg );
+      i = ( i < 0 )?0:i; // > 0
+      args->rep = i;
+    }
+    break;
     // file I/O
     case 'i':
       args->input = arg;
       {
-	FILE* f = fopen(args->input, "r");
-	if(f == NULL) {
-	  perror("input error");
-	  exit(EXIT_FAILURE);
-	}
-	fclose(f);
+        FILE* f = fopen( args->input, "r" );
+        if ( f == NULL ) {
+          perror( "input error" );
+          exit( EXIT_FAILURE );
+        }
+        fclose( f );
       }
       break;
 
     case 'b':
       args->rhs = arg;
       {
-	FILE* f = fopen(args->rhs, "r");
-	if(f == NULL) {
-	  perror("right-hand-side error");
-	  exit(EXIT_FAILURE);
-	}
-	fclose(f);
+        FILE* f = fopen( args->rhs, "r" );
+        if ( f == NULL ) {
+          perror( "right-hand-side error" );
+          exit( EXIT_FAILURE );
+        }
+        fclose( f );
       }
       break;
 
     case 'e':
       args->expected = arg;
       { // TODO refactor this file test: _file_exists(char* file, exists, char* err);
-        FILE* f = fopen(args->expected, "r");
-        if(f == NULL) {
-          perror("expected-output error");
-          exit(EXIT_FAILURE);
+        FILE* f = fopen( args->expected, "r" );
+        if ( f == NULL ) {
+          perror( "expected-output error" );
+          exit( EXIT_FAILURE );
         }
-        fclose(f);
+        fclose( f );
       }
       break;
 
     case 'p': {
-        int err = sscanf(arg, "%lf", &(args->expected_precision)); // convert string -> double
-        if(err != 1) {
-          fprintf(stderr, "bad precision (non-floating point number)\n");
-          exit(EXIT_FAILURE);
-        }
-        if(args->expected_precision < 0) {
-          fprintf(stderr, "precision must be non-negative\n");
-          exit(EXIT_FAILURE);
-        }
+      int err = sscanf( arg, "%lf", &( args->expected_precision ) ); // convert string -> double
+      if ( err != 1 ) {
+        fprintf( stderr, "bad precision (non-floating point number)\n" );
+        exit( EXIT_FAILURE );
       }
-      break;
+      if ( args->expected_precision < 0 ) {
+        fprintf( stderr, "precision must be non-negative\n" );
+        exit( EXIT_FAILURE );
+      }
+    }
+    break;
 
     case 'o':
       args->output = arg;
-      if(strncmp(args->output,"-",2) != 0) {
-        FILE* f = fopen(args->output, "r");
-        if(f != NULL) {
-          fclose(f);
-          perror("output error: file exists");
-          exit(EXIT_FAILURE);
+      if ( strncmp( args->output,"-",2 ) != 0 ) {
+        FILE* f = fopen( args->output, "r" );
+        if ( f != NULL ) {
+          fclose( f );
+          perror( "output error: file exists" );
+          exit( EXIT_FAILURE );
         }
       }
       break;
@@ -126,7 +141,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
 }
 
 
-int parse_args(int argc, char ** argv, struct parse_args* args) {
+int parse_args( int argc, char ** argv, struct parse_args* args ) {
 
   // parse command line
   {
@@ -148,7 +163,7 @@ Limitations: currently only 'Matrix Market' format is supported (*.mm).\n\
   (MatLab format *.mat is unsupported.)\n\
 \n\
 Options:"
-;
+                        ;
 // TODO automatically list off available solvers and their version info?
     // TODO describe fields..
     // "long", 'l', "value", flags, "desc", groupid
@@ -176,14 +191,14 @@ Options:"
     };
     // argp_option*, argp_parser, extra-usage line options, pre-help, // optional: argp_child, *help_filter, argp_domain
     const struct argp p = { opt, parse_opt, 0, doc};
-    if(argc == 1) { // there's no arguments, exit!
-      char *prog = strndup(argv[0],100);
-      argp_help(&p, stderr, ARGP_HELP_SHORT_USAGE, basename(prog));
-      free(prog);
+    if ( argc == 1 ) { // there's no arguments, exit!
+      char *prog = strndup( argv[0],100 );
+      argp_help( &p, stderr, ARGP_HELP_SHORT_USAGE, basename( prog ) );
+      free( prog );
       return EXIT_FAILURE; // so, exit for reals
     }
     // error_t argp_parse (argp*, argc, **argv, unsigned flags, int *arg_index, void *input)
-    argp_parse(&p, argc, argv, ARGP_NO_HELP, 0, args);
+    argp_parse( &p, argc, argv, ARGP_NO_HELP, 0, args );
   }
 
   return EXIT_SUCCESS;
