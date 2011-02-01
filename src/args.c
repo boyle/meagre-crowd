@@ -60,7 +60,7 @@ error_t parse_opt( int key, char *arg, struct argp_state *state ) {
     case 's': {
       args->solver = lookup_solver_by_shortname( arg );
       if ( args->solver < 0 ) {
-        fprintf( stderr, "invalid solver (-s)" );
+        fprintf( stderr, "invalid solver (-s)\n" );
         exit( EXIT_FAILURE );
       }
     }
