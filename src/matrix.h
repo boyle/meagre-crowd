@@ -103,6 +103,9 @@ int cmp_matrix( matrix_t* a, matrix_t* b );
 // convert matrix to a new format
 // returns: non-zero on failure
 int convert_matrix( matrix_t* m, enum matrix_format_t f, enum matrix_base_t b );
+int convert_matrix_symmetry( matrix_t* m, enum matrix_symmetric_storage_t loc );
+int detect_matrix_symmetry( matrix_t* m );
+
 
 // check the matrix isn't malformed
 // returns: 0: okay, <0=problem found

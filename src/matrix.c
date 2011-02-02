@@ -32,6 +32,88 @@
 #include <bebop/smc/csr_matrix.h>
 #include <bebop/smc/csc_matrix.h>
 
+static inline int _realloc_arrays( matrix_t* m, size_t nz );
+
+// sort by i=0: row, i=1: column
+struct _qsort_coo_data_double {
+  unsigned int ii;
+  unsigned int jj;
+  double       dd;
+} _qsort_coo_data_double;
+
+static void _qsort_coo( matrix_t* m, int i );
+static int _qsort_coo_cmp_rows_cols( const void* a, const void* b );
+static int _qsort_coo_cmp_cols_rows( const void* a, const void* b );
+
+// TODO this is quick, dirty and cheap.. can be much improved and maybe avoid the two extra copies for SPEED
+static void _qsort_coo( matrix_t* m, int x ) {
+  assert( m->format = SM_COO );
+  assert( m->data_type == REAL_DOUBLE );
+
+  struct _qsort_coo_data_double* data = malloc(( m->nz ) * sizeof( _qsort_coo_data_double ) );
+  assert( data != NULL );
+
+  int i;
+  for ( i = 0;i < m->nz;i++ ) {
+    ( data[i] ).ii = m->ii[i];
+    ( data[i] ).jj = m->jj[i];
+    ( data[i] ).dd = (( double* )m->dd )[i];
+  }
+
+  if ( x == 0 )
+    qsort( data, m->nz, sizeof( struct _qsort_coo_data_double ), &_qsort_coo_cmp_rows_cols );
+  else
+    qsort( data, m->nz, sizeof( struct _qsort_coo_data_double ), &_qsort_coo_cmp_cols_rows );
+
+  for ( i = 0;i < m->nz;i++ ) {
+    m->ii[i] = data[i].ii;
+    m->jj[i] = data[i].jj;
+    (( double* )m->dd )[i] = data[i].dd;
+  }
+
+  free( data );
+}
+
+static int _qsort_coo_cmp_rows_cols( const void* a, const void* b ) {
+  const struct _qsort_coo_data_double* aa = a;
+  const struct _qsort_coo_data_double* bb = b;
+  if (( *aa ).ii < ( *bb ).ii ) {
+    return -1;
+  }
+  else if (( *aa ).ii > ( *bb ).ii ) {
+    return + 1;
+  }
+  else {
+    if (( *aa ).jj < ( *bb ).jj )
+      return -1;
+    else if (( *aa ).jj > ( *bb ).jj )
+      return + 1;
+    else
+      return 0;
+  }
+}
+
+static int _qsort_coo_cmp_cols_rows( const void* a, const void* b ) {
+  const struct _qsort_coo_data_double* aa = a;
+  const struct _qsort_coo_data_double* bb = b;
+  if (( *aa ).jj < ( *bb ).jj ) {
+    return -1;
+  }
+  else if (( *aa ).jj > ( *bb ).jj ) {
+    return + 1;
+  }
+  else {
+    if (( *aa ).ii < ( *bb ).ii )
+      return -1;
+    else if (( *aa ).ii > ( *bb ).ii )
+      return + 1;
+    else
+      return 0;
+  }
+}
+
+
+
 inline matrix_t* malloc_matrix() {
   matrix_t* m = malloc( sizeof( matrix_t ) );
   // make this safe to free_matrix() whatever comes out of this
@@ -196,7 +278,7 @@ int cmp_matrix( matrix_t* a, matrix_t* b ) {
   // if empty, then don't compare further
   if (( a->format == INVALID ) && ( b->format == INVALID ) )
     return 0; // matching
-  else if (( a->format == INVALID ) && ( b->format == INVALID ) )
+  else if (( a->format == INVALID ) || ( b->format == INVALID ) )
     return -1; // not matching
 
   // do sizes/types match?
@@ -205,11 +287,17 @@ int cmp_matrix( matrix_t* a, matrix_t* b ) {
     return -2;
 
   // TODO deal with symmetry issues (sym, location)
+  // can't match if symmetry type doesn't match...
+  // unless its an undetected symmetric matrix (unsymmetric only)
+  if (( a->sym != b->sym ) && ( b->sym != SM_UNSYMMETRIC ) )
+    return -3;
 
   // convert them to matching formats if required
   matrix_t* bb;
   int copied;
-  if (( a->format != b->format ) || ( a->base != b->base ) ) {
+  if (( a->format != b->format ) || ( a->base != b->base ) ||
+      (( a->sym != b->sym ) && ( b->sym == SM_UNSYMMETRIC ) ) || // maybe b is symmetric?
+      (( a->sym == b->sym ) && ( b->sym != SM_UNSYMMETRIC ) && ( a->location != b->location ) ) ) {
     copied = 1;
     bb = copy_matrix( b );
     assert( bb != NULL );
@@ -224,8 +312,16 @@ int cmp_matrix( matrix_t* a, matrix_t* b ) {
     bb = b;
   }
 
+  // try detecting symmetry
+  if (( a->sym != bb->sym ) && ( bb->sym == SM_UNSYMMETRIC ) )
+    assert( detect_matrix_symmetry( bb ) == 0 );
+
+  // if there is symmetry, make sure its in the same format
+  if (( a->sym == bb->sym ) && ( bb->sym != SM_UNSYMMETRIC ) )
+    assert( convert_matrix_symmetry( bb, a->location ) == 0 );
+
+
   if ( a->nz != bb->nz ) {
-    printf( "a->nz=%zd  bb->nz=%zd\n", a->nz, bb->nz );
     if ( copied )
       free_matrix( bb );
     return -7;
@@ -246,6 +342,9 @@ int cmp_matrix( matrix_t* a, matrix_t* b ) {
     case SM_COO:
       iilen = jjlen = a->nz;
       ddlen = dwidth * a->nz;
+      // TODO this is a hack... really need to sort both matrices for all data types except DROW/DCOL! (need to copy both a and b...)
+      _qsort_coo( a, 0 ); // TODO rm
+      _qsort_coo( bb, 0 ); // TODO rm
       break;
     case SM_CSC:
       iilen = a->nz;
@@ -480,8 +579,8 @@ int _coo2csc( matrix_t* m ) {
   m->dd = p->values;
 
   // stupid BeBOP doesn't allocate the last value for CSC
-  assert(m->jj[m->n] == m->nz);
-  assert(m->jj[0] == 0);
+  assert( m->jj[m->n] == m->nz );
+  assert( m->jj[0] == 0 );
 
   // clean up after BeBOP
   _bebop_destroy( A );
@@ -621,7 +720,7 @@ int _drow2coo( matrix_t* m, const enum matrix_base_t b ) {
   unsigned int* j_new = m->jj;
   int i, j;
 
-  m->nz = 0;
+  int nz = 0;
   switch ( m->data_type ) {
     case REAL_DOUBLE: {
       double* d_old = m->dd;
@@ -646,7 +745,7 @@ int _drow2coo( matrix_t* m, const enum matrix_base_t b ) {
             d_new++;
             i_new++;
             j_new++;
-            m->nz++; // update the entry count
+            nz++; // update the entry count
           }
           d_old++;
         }
@@ -665,16 +764,7 @@ int _drow2coo( matrix_t* m, const enum matrix_base_t b ) {
   // resize ptr arrays to the correct size, now that
   // we know exactly how many non-zero entries there are
   // -- if these fail we still have the original ptr
-  void* p = realloc( m->ii, m->nz * sizeof( unsigned int ) );
-  if ( p != NULL )
-    m->ii = p;
-  p = realloc( m->jj, m->nz * sizeof( unsigned int ) );
-  if ( p != NULL )
-    m->jj = p;
-  p = realloc( m->dd, m->nz * dwidth );
-  if ( p != NULL )
-    m->dd = p;
-
+  _realloc_arrays( m, nz );
   m->format = SM_COO;
   m->base = b;
 
@@ -925,6 +1015,282 @@ int convert_matrix( matrix_t* m, enum matrix_format_t f, enum matrix_base_t b ) 
   return -8;
 }
 
+// swap upper-to-lower triangular and vice-versa
+static inline void _symmetry_swap( matrix_t* m );
+static inline void _symmetry_swap( matrix_t* m ) {
+  assert( m->format == SM_COO );
+  assert( m->sym = SM_SYMMETRIC );
+  assert( m->location != BOTH );
+
+  // swap ii and jj (rows and column indices)
+  // an item at (1,2) is moved to (2,1) -- the other side of the triangle
+  void *const t = m->ii;
+  m->ii = m->jj;
+  m->jj = t;
+
+  // update matrix info
+  if ( m->location == UPPER_TRIANGULAR )
+    m->location = LOWER_TRIANGULAR;
+  else // LOWER_TRIANGULAR
+    m->location = UPPER_TRIANGULAR;
+}
+
+
+// duplicate data
+// returns non-zero on malloc failure
+static inline int _symmetry_both( matrix_t* m );
+static inline int _symmetry_both( matrix_t* m ) {
+  assert( m->format == SM_COO );
+  assert( m->sym = SM_SYMMETRIC );
+  assert( m->location != BOTH );
+
+  const size_t dwidth = _data_width( m->data_type );
+  const size_t nz_old = m->nz;
+  if ( _realloc_arrays( m, nz_old*2 ) != 0 )
+    return -1;
+
+  assert( m->nz == nz_old*2 );
+
+  // duplicate data
+  // append the converse indices, duplicate the data
+  // reverse ii and jj in the copied portions, appended to the old data
+  memcpy( m->ii + nz_old, m->jj, nz_old*sizeof( unsigned int ) );
+  memcpy( m->jj + nz_old, m->ii, nz_old*sizeof( unsigned int ) );
+  memcpy( m->dd + nz_old * dwidth, m->dd, nz_old*dwidth );
+
+
+  // update ptrs
+  m->location = BOTH;
+  // TODO clean this up!
+  // TODO -- better to strip out entries on the diagonal as we go! (doing it the current way means copying the data multiple times
+  // but now we might have duplicate entries if there were any on the diagonal
+  // so remove anything on the diagonal that occurs in the second set of arrays
+  int del = 0;
+  int i;
+  for ( i = nz_old;i < m->nz; i++ ) {
+    if ( m->ii[i] == m->jj[i] ) { // on the diagonal
+      del++; // deleting the i-th entry
+      if ( i + 1 != m->nz ) { // unless its the last entry
+        memcpy( m->ii + i, m->ii + ( i + 1 ), ( m->nz - i - 1 )*sizeof( unsigned int ) );
+        memcpy( m->jj + i, m->jj + ( i + 1 ), ( m->nz - i - 1 )*sizeof( unsigned int ) );
+        memcpy( m->dd + i * dwidth, m->dd + ( i + 1 ) * dwidth, ( m->nz - i - 1 )*dwidth );
+      }
+    }
+  }
+  _realloc_arrays( m, m->nz - del );
+  // ignore return value .. we're shrinking the arrays and if the realloc fails we can continue on
+  return 0;
+}
+
+
+static inline int _realloc_arrays( matrix_t* m, size_t nz ) {
+  if ( nz == m->nz )
+    return 0;
+
+  const size_t dwidth = _data_width( m->data_type );
+  // resize arrays
+  unsigned int* ii_new = realloc( m->ii, nz * sizeof( unsigned int ) );
+  unsigned int* jj_new = realloc( m->jj, nz * sizeof( unsigned int ) );
+  void* dd_new         = realloc( m->dd, nz * dwidth );
+
+  // udpate ptrs
+  if (( ii_new != NULL ) && ( jj_new != NULL ) && ( dd_new != NULL ) ) {
+    m->ii = ii_new;
+    m->jj = jj_new;
+    m->dd = dd_new;
+    m->nz = nz;
+    return 0;
+  }
+  else {
+    // if the update shrank the arrays, its safe to ignore the failed realloc
+    if ( m->nz > nz )
+      m->nz = nz;
+    return -1;
+  }
+}
+
+
+// search for duplicate matrix entries
+// combine the duplicates by adding
+static inline void _coo_merge_duplicate_entries( matrix_t* m );
+static inline void _coo_merge_duplicate_entries( matrix_t* m ) {
+  assert( m->format == SM_COO );
+  const size_t dwidth = _data_width( m->data_type );
+  int del = 0;
+  // expensive: this is O(log(n))?
+  int i, j;
+  assert( m->data_type == REAL_DOUBLE ); // TODO other data types
+  double* d = ( double* ) m->dd;
+  for ( i = 0;i < m->nz; i++ ) {
+    for ( j = i + 1;i < m->nz; j++ ) {
+      if (( m->ii[i] == m->ii[j] ) && ( m->jj[i] == m->jj[j] ) ) {
+        // combine the duplicate entries (addition)
+        d[i] = d[i] + d[j];
+
+        del++; // deleting the j-th entry
+        if ( j + 1 != m->nz ) { // unless its the last entry
+          memcpy( m->ii + j, m->ii + ( j + 1 ), ( m->nz - j - 1 )*sizeof( unsigned int ) );
+          memcpy( m->jj + j, m->jj + ( j + 1 ), ( m->nz - j - 1 )*sizeof( unsigned int ) );
+          memcpy( m->dd + j * dwidth, m->dd + ( j + 1 ) * dwidth, ( m->nz - j - 1 )*dwidth );
+        }
+      }
+    }
+  }
+  _realloc_arrays( m, m->nz - del );
+}
+
+
+// convert from symmetry BOTH -> LOWER_TRIANGULAR
+// note that realloc might fail but we can carry on: no failure cases
+static inline void _symmetry_lower( matrix_t* m );
+static inline void _symmetry_lower( matrix_t* m ) {
+  assert( m->format == SM_COO );
+  assert( m->sym == SM_SYMMETRIC );
+  assert( m->location == BOTH );
+
+  // remove redundant entries in the upper triangle
+  const size_t dwidth = _data_width( m->data_type );
+  size_t nz = 0;
+  int i;
+  for ( i = 0;i < m->nz; i++ ) {
+    if ( m->ii[i] >= m->jj[i] ) { // if row is >= column (lower triangle), keep this entry
+      if ( i != nz ) { // don't need to copy if its staying at the current location
+        memcpy( m->ii + nz , m->ii + i, sizeof( unsigned int ) );
+        memcpy( m->jj + nz , m->jj + i, sizeof( unsigned int ) );
+        memcpy( m->dd + nz * dwidth, m->dd + i * dwidth, dwidth );
+      }
+      nz++;
+    }
+  }
+  _realloc_arrays( m, nz );
+  m->location = LOWER_TRIANGULAR;
+}
+
+int convert_matrix_symmetry( matrix_t* m, enum matrix_symmetric_storage_t loc ) {
+  assert( m->sym == SM_SYMMETRIC );
+
+  // short circuit if no work to do
+  //if(m->location == loc)
+  //  return 0;
+
+  int ret;
+  const enum matrix_format_t old_format = m->format;
+
+  // convert to COO format
+  // TODO handle other formats directly (changing formats is expensive)?
+  if (( ret = convert_matrix( m, SM_COO, m->base ) ) != 0 )
+    return ret;
+
+  int ret1 = 0;
+  switch ( m->location ) {
+    case BOTH:
+      switch ( loc ) {
+        case BOTH: // nothing to do
+          break;
+        case UPPER_TRIANGULAR:
+          _symmetry_lower( m );
+          _symmetry_swap( m );
+          break;
+        case LOWER_TRIANGULAR:
+          _symmetry_lower( m );
+          break;
+      }
+      break;
+    case UPPER_TRIANGULAR:
+      switch ( loc ) {
+        case BOTH:
+          ret1 = _symmetry_both( m );
+          break;
+        case UPPER_TRIANGULAR:
+          break; // nothing to do
+        case LOWER_TRIANGULAR:
+          _symmetry_swap( m );
+          break;
+      }
+      break;
+    case LOWER_TRIANGULAR:
+      switch ( loc ) {
+        case BOTH:
+          ret1 = _symmetry_both( m );
+          break;
+        case UPPER_TRIANGULAR:
+          _symmetry_swap( m );
+          break;
+        case LOWER_TRIANGULAR:
+          break; // nothing to do
+      }
+      break;
+  }
+
+  // return to original format
+  ret = convert_matrix( m, old_format, m->base );
+  return ( ret || ret1 );
+}
+
+// non-zero indicates failure (malloc)
+int detect_matrix_symmetry( matrix_t* m ) {
+  // if the matrix isn't currently unsymmetric, then
+  // its already been decided that the matrix is symmetric
+  if ( m->sym != SM_UNSYMMETRIC )
+    return 0;
+
+  const enum matrix_format_t old_format = m->format;
+  int ret;
+
+  // convert to COO format
+  // TODO handle other formats directly (changing formats is expensive)
+  if (( ret = convert_matrix( m, SM_COO, m->base ) ) != 0 )
+    return ret;
+
+  const double tol = 1e-15; // TODO use limits.h machine precision -- different tolerances for patterns
+  int pattern_is_symmetric = 1;
+  int i, j;
+  // TODO handle other data formats
+  assert( m->data_type == REAL_DOUBLE );
+  double * const dd = m->dd;
+  // TODO if entries were sorted this could be made more efficient
+  // TODO need to ensure there are no entries for the same location? or does this matter? (probably, since these should be added together first)
+  // TODO need to check for hermitian, skew symetric too
+  // TODO only need to check half the entries?
+  // loop over all entries, stop if we find a single unsymmetric entry
+  // yuck: O(n^2) currently
+  // TODO _coo_merge_duplicate_entries(m);
+  for ( i = 0;i < m->nz && pattern_is_symmetric; i++ ) {
+    // ignore entries on the diagonal
+    if ( m->ii[i] != m->jj[i] ) {
+      int match = 0;
+      // then look for a corresponding entry on the other side of the matrix
+      for ( j = 0; j < m->nz && !match; j++ ) { // stop when we find a match
+        if (( i != j ) && // not the same entry
+            ( m->ii[i] == m->jj[j] ) && // indices are flipped (diagonal symmetry
+            ( m->jj[i] == m->ii[j] ) ) {
+          // found a matching entry: potential match
+          if (( dd[i] < dd[j] + tol ) && // and data matches within machine precision
+              ( dd[i] > dd[j] - tol ) ) {
+            match = 1;
+          }
+          else { // data doesn't match.. we can quit now!
+            pattern_is_symmetric = 0; // done searching!
+            match = 1; // just so we can break out of here
+          }
+        }
+      }
+      if ( !match )
+        pattern_is_symmetric = 0;
+    }
+  }
+
+  if ( pattern_is_symmetric ) {
+    m->sym = SM_SYMMETRIC;
+    m->location = BOTH;
+  }
+
+  // return to original format
+  ret = convert_matrix( m, old_format, m->base );
+  return ret;
+}
+
+
 // test matrix
 // returns zero on pass
 //   -1: bad size
@@ -983,10 +1349,10 @@ int validate_matrix( matrix_t* m ) {
 }
 
 void printf_matrix( char const *const pre, matrix_t* m ) {
-  assert(m != NULL);
+  assert( m != NULL );
 
   matrix_t *const  c = m; // TODO copy_matrix( m );
-  assert(c != NULL);
+  assert( c != NULL );
   convert_matrix( c, SM_COO, FIRST_INDEX_ZERO ); // TODO return value?
 
   int i;

@@ -49,18 +49,21 @@ const struct enum2base_t enum2base[] = { {FIRST_INDEX_ZERO, "zero"},
 
 void print_matrix( matrix_t* a );
 void test_formats( matrix_t* a );
+void test_symmetry( matrix_t* a );
 void test_basic();
-void build_test_matrix( matrix_t** m, int i);
+void build_test_matrix( matrix_t** m, int i );
 
 
 void print_matrix( matrix_t* a ) {
-  printf( "    %zux%zu (nz:%zu) %s%s%s%s %s\n",
+  printf( "    %zux%zu (nz:%zu) %s%s%s%s %s %s%d\n",
           a->m, a->n, a->nz,
           enum2format[a->format].s,
           ( a->dd == NULL ) ? " !dd" : "",
           ( a->ii == NULL ) ? " !ii" : "",
           ( a->jj == NULL ) ? " !jj" : "",
-          ( a->base == FIRST_INDEX_ZERO ) ? "base0" : "base1" );
+          ( a->base == FIRST_INDEX_ZERO ) ? "base0" : "base1",
+          ( a->sym == SM_UNSYMMETRIC ) ? "unsym" : "sym",
+          ( a->location ) );
   if ( a->format == SM_COO && a->data_type == REAL_DOUBLE ) {
     printf( "      dd:" );
     int i;
@@ -78,6 +81,49 @@ void print_matrix( matrix_t* a ) {
   }
 }
 
+void test_symmetry( matrix_t* a ) {
+  printf( "symmetry test\n" );
+  assert( a->sym == SM_SYMMETRIC );
+  matrix_t* b = copy_matrix( a );
+  assert( b != NULL );
+  assert( validate_matrix( a ) == 0 );
+  assert( validate_matrix( b ) == 0 );
+  print_matrix( b );
+
+  // de-symmetrize the matrix and check it gets detected correctly
+  assert( a->sym == SM_SYMMETRIC );
+  assert( convert_matrix_symmetry( a, BOTH ) == 0 );
+  a->sym = SM_UNSYMMETRIC;
+  print_matrix( a );
+  assert( detect_matrix_symmetry( a ) == 0 );
+  print_matrix( a );
+  printf( "cmp_matrix(b[orig],a(just-detected))=%d\n", cmp_matrix( b, a ) );
+  assert( cmp_matrix( b, a ) == 0 );
+  print_matrix( a );
+
+  // try all conversions
+  int i, j;
+  for ( i = 0; i < 3; i++ ) {
+    for ( j = 0;j < 3; j++ ) {
+
+      printf( "  %d -> %d\n", i, j );
+
+      assert( convert_matrix_symmetry( a, i ) == 0 );
+      assert( a->sym == SM_SYMMETRIC );
+      assert( a->location == i );
+
+      assert( convert_matrix_symmetry( a, j ) == 0 );
+      assert( a->sym == SM_SYMMETRIC );
+      assert( a->location == j );
+
+      print_matrix( a );
+
+      assert( cmp_matrix( b, a ) == 0 );
+    }
+  }
+
+  free_matrix( b );
+}
 
 void test_formats( matrix_t* a ) {
   matrix_t* b = copy_matrix( a );
@@ -166,9 +212,12 @@ void test_basic() {
   matrix_t* c = NULL;
 
   // try converting between all types
-  build_test_matrix(&c, 0);
+  build_test_matrix( &c, 0 );
   test_formats( c );
 
+
+  build_test_matrix( &c, 1 );
+  test_symmetry( c );
 
   // TODO do some cmp_matrix's that are supposed to fail in different ways
 
@@ -176,13 +225,17 @@ void test_basic() {
   free_matrix( c );
 }
 
-void build_test_matrix( matrix_t** m, int i) {
-  assert(m != NULL);
-  free_matrix(*m);
+void build_test_matrix( matrix_t** m, int i ) {
+  assert( m != NULL );
+  free_matrix( *m );
   *m = malloc_matrix();
   assert( *m != NULL );
   matrix_t *const c = *m;
-  switch(i) {
+  *c = ( matrix_t ) {
+    0
+  };
+
+  switch ( i ) {
     case 0:
       // unsymmetric matrix
       c->m = 8;
@@ -192,26 +245,52 @@ void build_test_matrix( matrix_t** m, int i) {
       c->format = SM_COO;
       // TODO try other symmetries/locations
       c->data_type = REAL_DOUBLE; // TODO try other data types
-      c->dd = malloc( sizeof( double ) * ( c->nz ) );
-      c->ii = malloc( sizeof( unsigned int ) * ( c->nz ) );
-      c->jj = malloc( sizeof( unsigned int ) * ( c->nz ) );
+      c->dd = calloc( c->nz, sizeof( double ) );
+      c->ii = calloc( c->nz, sizeof( unsigned int ) );
+      c->jj = calloc( c->nz, sizeof( unsigned int ) );
       assert( c->dd != NULL );
       assert( c->ii != NULL );
       assert( c->jj != NULL );
       {
-	int i;
-	double* d = c->dd;
-	for ( i = 0;i < c->nz; i++ ) {
-	  d[i] = ( double ) i + 10.0;
-	  c->ii[i] = i * 2;
-	  c->jj[i] = i + 4;
-	}
-	assert( validate_matrix( c ) == 0 );
+        int i;
+        double* d = c->dd;
+        for ( i = 0;i < c->nz; i++ ) {
+          d[i] = ( double ) i + 10.0;
+          c->ii[i] = i * 2;
+          c->jj[i] = i + 4;
+        }
       }
       break;
+
+    case 1:
+      c->m = 4;
+      c->n = 4;
+      c->nz = 2;
+      c->base = FIRST_INDEX_ZERO;
+      c->format = SM_COO;
+      c->data_type = REAL_DOUBLE;
+      c->dd = calloc( c->nz, sizeof( double ) );
+      c->ii = calloc( c->nz, sizeof( unsigned int ) );
+      c->jj = calloc( c->nz, sizeof( unsigned int ) );
+      assert( c->dd != NULL );
+      assert( c->ii != NULL );
+      assert( c->jj != NULL );
+      double* d = c->dd;
+      d[0] = 1.0;
+      d[1] = 2.0;
+      c->ii[0] = 1;
+      c->jj[0] = 1;
+      c->ii[0] = 2;
+      c->jj[0] = 3;
+      c->sym = SM_SYMMETRIC;
+      c->location = UPPER_TRIANGULAR;
+      break;
+
     default:
-      assert(0); // bad i
+      assert( 0 ); // bad i
   }
+  printf( "  generated test matrix %d\n", i );
+  assert( validate_matrix( c ) == 0 );
 }
 
 int main( int argc, char **argv ) {

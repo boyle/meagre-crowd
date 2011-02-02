@@ -45,7 +45,7 @@ void solver_init_cholmod( solver_state_t* s ) {
 static inline void _matrix2cholmodsparse( matrix_t* A, cholmod_sparse* B );
 static inline void _matrix2cholmodsparse( matrix_t* A, cholmod_sparse* B )  {
   // check we're starting with a sane matrix
-  assert(validate_matrix(A) == 0);
+  assert( validate_matrix( A ) == 0 );
 
   // prepare the matrix
   int ierr = convert_matrix( A, SM_CSC, FIRST_INDEX_ZERO );
@@ -114,7 +114,7 @@ static inline void _cholmodsparse2matrix( cholmod_sparse* B, matrix_t* A )  {
 
   A->m = B->nrow;
   A->n = B->ncol;
-  A->nz = ((int*) B->p)[B->ncol];
+  A->nz = (( int* ) B->p )[B->ncol];
   // TODO B->nzmax;
 
   A->jj = B->p; // column pointers
@@ -164,7 +164,7 @@ static inline void _cholmodsparse2matrix( cholmod_sparse* B, matrix_t* A )  {
   // TODO currently, don't care re: B->sorted == FALSE/TRUE
   assert( B->packed == 1 ); // TODO nz is ignored
 
-  assert(validate_matrix(A) == 0);
+  assert( validate_matrix( A ) == 0 );
 }
 
 static inline void _matrix2cholmoddense( matrix_t* A, cholmod_dense* B );
@@ -280,7 +280,7 @@ void solver_evaluate_cholmod( solver_state_t* s, matrix_t* b, matrix_t* x ) {
   assert( s != NULL );
   assert( b != NULL );
   assert( b != x ); // TODO allow this form
-  convert_matrix(b, DCOL, 0); // TODO rm (see below)
+  convert_matrix( b, DCOL, 0 ); // TODO rm (see below)
   if ( b->format == DCOL || b->format == DROW )
     _solver_evaluate_cholmod_dense( s, b, x );
   else

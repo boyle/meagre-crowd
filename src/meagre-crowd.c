@@ -165,7 +165,7 @@ int main( int argc, char ** argv ) {
     if (( retval = load_matrix( args->input, A ) ) != 0 ) {
       return retval;
     }
-    assert(validate_matrix(A) == 0);
+    assert( validate_matrix( A ) == 0 );
     m = matrix_rows( A );
     // TODO load a rhs from the --input matrix file
 
@@ -185,7 +185,9 @@ int main( int argc, char ** argv ) {
     }
     else {
       assert( b != NULL ); // malloc failure
-      *b = ( matrix_t ) {0};
+      *b = ( matrix_t ) {
+        0
+      };
       b->m = m;
       b->n = 1;
       b->nz = m;
@@ -201,7 +203,7 @@ int main( int argc, char ** argv ) {
         }
       }
     }
-    assert(validate_matrix(b) == 0);
+    assert( validate_matrix( b ) == 0 );
 
     if ( args->expected != NULL ) {
       // TODO refactor: this is a cut and paste of the loader for 'b'
@@ -214,7 +216,7 @@ int main( int argc, char ** argv ) {
       // convert from COO vector to dense format vector
       // TODO this is redundant, since it needs to be done in the solver ... do it there, remove this later
       convert_matrix( b, DCOL, FIRST_INDEX_ZERO );
-      assert(validate_matrix(expected) == 0);
+      assert( validate_matrix( expected ) == 0 );
     }
 
 
