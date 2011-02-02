@@ -99,12 +99,25 @@ int solver_can_do( const int solver, matrix_t* A, matrix_t* b ) {
   return 1; // TODO something more clever, like a real answer
 }
 
+inline int solver_uses_mpi( const int solver ) {
+  return (( solver_lookup[solver].multicore & SOLVER_CAN_USE_MPI ) != 0 );
+}
+inline int solver_requires_mpi( const int solver ) {
+  return (( solver_lookup[solver].multicore & SOLVER_REQUIRES_MPI ) != 0 );
+}
+inline int solver_uses_omp( const int solver ) {
+  return (( solver_lookup[solver].multicore & SOLVER_CAN_USE_OMP ) != 0 );
+}
+inline int solver_requires_omp( const int solver ) {
+  return (( solver_lookup[solver].multicore & SOLVER_REQUIRES_OMP ) != 0 );
+}
+
 // select the most appropriate solver for this problem
 //  - is it small and thus should be solved single-threaded (single processor)
 //  - is it moderate and should be solved SMP (shared memory)
 //  - is it huge and should be solved MPI (distributed memory)
 int select_solver( matrix_t* A, matrix_t* b ) {
-  return UMFPACK; // TODO something clever
+  return 0; // TODO something clever
 }
 
 // --------------------------------------------

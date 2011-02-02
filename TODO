@@ -7,7 +7,6 @@ at any patches or discuss potential solutions.
 
 These are somewhat arranged in order of priority. Highest at the top.
 
- - add solver abstraction layer
  - add input list option to launcher (what matrices to run)
  ?? are there any other stats we'd like to collect?
  - Add type tests: condition number, singularity, symmetric, hermitian, real, complex
@@ -20,7 +19,18 @@ These are somewhat arranged in order of priority. Highest at the top.
    and are currently using BeBOP as by wrapping it,
    COO <-> DROW <-> DCOL are handled already)
 
- - use astyle or something similar to tidy up code formatting
+ - make -v work with --list-solvers in any option order (execute after processing args)
+ - better cores/threads output (indicate if MPI and/or openMP are being used, give non-zero number of threads/cores)
+
+ - add tests mpirun -n 2 for MPI solvers (mumps is broken!)
+ - add tests for single-threaded only solvers (clean error message)
+ - add tests for symmetric solvers
+ - add tests for symmetric positive definite solvers
+ - add tests for 'mpirun -n N' with various error messages: only one error message should be printed
+ - add tests for matrix conversion: use validate_matrix
+ - add tests for copy_matrix -- seems to be broken
+   - then re-instate copy_matrix in printf_matrix
+
  - fix "inline" in matrix.c/h
  - add optimization: DROW <-> DCOL when they're a single vector short-circuit
  - extend tests/unit-matrix.c to push things harder

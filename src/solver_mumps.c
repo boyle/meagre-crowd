@@ -265,6 +265,7 @@ void solver_evaluate_mumps( solver_state_t* s, matrix_t* b, matrix_t* x ) {
     clear_matrix( x );
     x->m = id->n;
     x->n = 1;
+    x->nz = x->m * x->n;
     x->format = DROW;
     x->data_type = REAL_DOUBLE;
     x->dd = malloc( id->n * sizeof( double ) );

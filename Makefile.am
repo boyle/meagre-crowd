@@ -26,12 +26,13 @@ meagre_crowd_SOURCES = src/meagre-crowd.c \
     src/perftimer.c src/matrix.c src/args.c src/file.c \
     src/solvers.c \
     src/solver_mumps.c \
-    src/solver_umfpack.c
+    src/solver_umfpack.c \
+    src/solver_cholmod.c
 
 # header files that need to be distributed but not installed
 noinst_HEADERS = src/perftimer.h src/matrix.h src/args.h src/file.h \
                  src/solvers.h src/solver_lookup.h \
-		 src/solver_mumps.h src/solver_umfpack.h
+		 src/solver_mumps.h src/solver_umfpack.h src/solver_cholmod.h
 
 # want these scripts installed in the end
 bin_SCRIPTS = launch_jobs collect_results

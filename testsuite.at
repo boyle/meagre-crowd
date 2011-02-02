@@ -133,6 +133,17 @@ AT_CHECK(AT_PACKAGE_NAME -V,,AT_PACKAGE_NAME[ ]AT_PACKAGE_VERSION[
 ])
 AT_CLEANUP
 
+AT_SETUP(--list-solvers)
+AT_KEYWORDS([version])
+AT_CHECK(AT_PACKAGE_NAME --list-solvers,0,ignore)
+AT_CHECK(AT_PACKAGE_NAME -v --list-solvers,0,ignore)
+AT_CHECK(AT_PACKAGE_NAME -vv --list-solvers,0,ignore)
+AT_CHECK(AT_PACKAGE_NAME -vvv --list-solvers,0,ignore)
+AT_CHECK(AT_PACKAGE_NAME --list-solvers -v,0,ignore)
+AT_CHECK(AT_PACKAGE_NAME --list-solvers -vv,0,ignore)
+AT_CHECK(AT_PACKAGE_NAME --list-solvers -vvv,0,ignore)
+AT_CLEANUP
+
 
 AT_SETUP([--input])
 AT_KEYWORDS([func])
@@ -282,4 +293,6 @@ AT_CLEANUP
 
 MC_SOLVERS([umfpack])
 MC_SOLVERS([mumps])
+dnl Note: cholmod is symmetric positive definite matrices ONLY
+dnl MC_SOLVERS([cholmod])
 

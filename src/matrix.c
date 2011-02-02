@@ -479,6 +479,10 @@ int _coo2csc( matrix_t* m ) {
   m->jj = ( unsigned int* ) p->colptr;
   m->dd = p->values;
 
+  // stupid BeBOP doesn't allocate the last value for CSC
+  assert(m->jj[m->n] == m->nz);
+  assert(m->jj[0] == 0);
+
   // clean up after BeBOP
   _bebop_destroy( A );
 
@@ -559,6 +563,7 @@ int _coo2csr( matrix_t* m ) {
 // COO -> DROW
 int _coo2drow( matrix_t* m );
 int _coo2drow( matrix_t* m ) {
+  assert( m->format == SM_COO );
   assert( m->base == FIRST_INDEX_ZERO );
   const size_t dwidth = _data_width( m->data_type );
   void* d_new = calloc(( m->m ) * ( m->n ), dwidth );
@@ -594,7 +599,7 @@ int _coo2drow( matrix_t* m ) {
 // DROW -> COO
 int _drow2coo( matrix_t* m, const enum matrix_base_t b );
 int _drow2coo( matrix_t* m, const enum matrix_base_t b ) {
-  assert( m != NULL );
+  assert( m->format == DROW );
   const double tol = 1e-15; // tolerance: what to approximate as zero when converting // TODO use machine epsilon*2?
   const size_t dwidth = _data_width( m->data_type );
 
@@ -680,6 +685,7 @@ int _drow2coo( matrix_t* m, const enum matrix_base_t b ) {
 // DROW -> DCOL
 int _drow2dcol( matrix_t* m );
 int _drow2dcol( matrix_t* m ) {
+  assert( m->format == DROW );
   void* d_new = malloc(( m->m ) * ( m->n ) * _data_width( m->data_type ) );
   if ( d_new == NULL )
     return -1; // malloc failure
@@ -712,6 +718,7 @@ int _drow2dcol( matrix_t* m ) {
 // DCOL -> DROW
 int _dcol2drow( matrix_t* m );
 int _dcol2drow( matrix_t* m ) {
+  assert( m->format == DCOL );
   void* d_new = malloc(( m->m ) * ( m->n ) * _data_width( m->data_type ) );
   if ( d_new == NULL )
     return -1; // malloc failure
@@ -931,6 +938,9 @@ int validate_matrix( matrix_t* m ) {
   if ((( m->m == 0 ) || ( m->n == 0 ) ) && ( m->format != INVALID ) ) // empty matrix
     return -1;
 
+  if ((( m->format == DROW ) || ( m->format == DCOL ) ) && ( m->nz != m->m * m->n ) )
+    return -1;
+
   // empty matrices don't need to be validated further
   // but if its empty it aught to match the descriptor: no ptrs, no size
   if ( m->format == INVALID ) { // empty matrix
@@ -955,9 +965,9 @@ int validate_matrix( matrix_t* m ) {
     return -2;
 
   // if CSC/CSR, then nz must match expected value in first & last element of m->ii/jj
-  if (( m->format == SM_CSR ) && (( m->ii )[m->m+1] != m->nz ) )
+  if (( m->format == SM_CSR ) && (( m->ii )[m->m] != m->nz ) )
     return -3;
-  if (( m->format == SM_CSC ) && (( m->jj )[m->n+1] != m->nz ) )
+  if (( m->format == SM_CSC ) && (( m->jj )[m->n] != m->nz ) )
     return -3;
   if (( m->format == SM_CSR ) && (( m->ii )[0] != 0 ) )
     return -4;
@@ -970,4 +980,26 @@ int validate_matrix( matrix_t* m ) {
 
   // all is okay
   return 0;
+}
+
+void printf_matrix( char const *const pre, matrix_t* m ) {
+  assert(m != NULL);
+
+  matrix_t *const  c = m; // TODO copy_matrix( m );
+  assert(c != NULL);
+  convert_matrix( c, SM_COO, FIRST_INDEX_ZERO ); // TODO return value?
+
+  int i;
+  assert( c->data_type == REAL_DOUBLE );
+  double* v = c->dd;
+  if ( c->n == 1 ) { // if its a vector
+    for ( i = 0; i < c->nz; i++ )
+      printf( "%s(%i)=%.2f\n", pre, c->ii[i], v[i] );
+  }
+  else { // its a matrix
+    for ( i = 0; i < c->nz; i++ )
+      printf( "%s(%i,%i)=%.2f\n", pre, c->ii[i], c->jj[i], v[i] );
+  }
+
+  //TODO free_matrix( c );
 }

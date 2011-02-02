@@ -76,7 +76,7 @@ int results_match( matrix_t* expected_matrix, matrix_t* result_matrix, const dou
 
 
 int main( int argc, char ** argv ) {
-  int ierr, retval;
+  int retval;
   const int false = 0;
   const int extra_timing = 0; // allow extra timing: initialization, matrix load, etc.
 
@@ -98,26 +98,49 @@ int main( int argc, char ** argv ) {
     perftimer_adjust_depth( timer, + 1 );
     perftimer_inc( timer, "MPI init", -1 );
   }
-  ierr = MPI_Init( &argc, &argv );
-  assert( ierr == 0 );
-  ierr = MPI_Comm_rank( MPI_COMM_WORLD, &( args->mpi_rank ) );
-  assert( ierr == 0 );
 
   // if this solver is not thread/mpi safe, report an error if its been launched that way
-  int single_threaded = 0;
+  const int uses_mpi     = solver_uses_mpi( args->solver );
+  const int requires_mpi = solver_requires_mpi( args->solver );
+  const int uses_omp     = solver_uses_omp( args->solver );
+  const int requires_omp = solver_requires_omp( args->solver );
   int c_mpi;
-  switch ( args->solver ) {
-    case UMFPACK:
-      single_threaded = 1;
-      break;
-    default: ; // otherwise do nothing
+  {
+    const char* mpi_world_size = getenv( "OMPI_COMM_WORLD_SIZE" );
+    if ( mpi_world_size == NULL ) { // no env value configured
+      c_mpi = 0;
+      // printf( "no OMPI_COMM_WORLD_SIZE\n" );
+    }
+    else { // works #ifdef OPEN_MPI -- we're using openMPI rather than lam or mpich...
+      int ret = sscanf( mpi_world_size, "%d", &c_mpi );
+      assert( ret == 1 );
+      // printf( "OMPI_COMM_WORLD_SIZE=%d\n", c_mpi );
+    }
   }
-  ierr = MPI_Comm_size( MPI_COMM_WORLD, &c_mpi );
-  assert( ierr == 0 );
-  if ( single_threaded && c_mpi > 1 ) {
+  int c_omp = 0; // no sane checks for openMP yet...
+  const int is_mpi = ( requires_mpi || ( uses_mpi && ( c_mpi != 0 ) ) );
+  const int is_omp = ( requires_omp || ( uses_omp && ( c_omp != 0 ) ) );
+  const int is_single_threaded = ( !is_mpi && !is_omp );
+
+
+  // start up MPI, if we're using it
+  const int is_single_threaded_but_mpi = is_single_threaded && ( c_mpi > 1 );
+  if ( is_mpi || is_single_threaded_but_mpi ) {
+    int ierr;
+    ierr = MPI_Init( &argc, &argv );
+    assert( ierr == 0 );
+    ierr = MPI_Comm_rank( MPI_COMM_WORLD, &( args->mpi_rank ) );
+    assert( ierr == 0 );
+    ierr = MPI_Comm_size( MPI_COMM_WORLD, &c_mpi );
+    assert( ierr == 0 );
+  }
+
+  // wait till after firing up MPI, so we only put out an error on the rank=0 machine
+  if ( is_single_threaded_but_mpi ) {
     if ( args->mpi_rank == 0 )
-      fprintf( stderr, "error: selected solver is single threaded, but launched with %d threads\n", c_mpi );
-    ierr = MPI_Finalize();
+      fprintf( stderr, "error: selected solver (%s) is single threaded but was launched with %d threads\n",
+               solver2str( args->solver ), c_mpi );
+    int ierr = MPI_Finalize();
     assert( ierr == 0 );
     return 10;
   }
@@ -142,6 +165,7 @@ int main( int argc, char ** argv ) {
     if (( retval = load_matrix( args->input, A ) ) != 0 ) {
       return retval;
     }
+    assert(validate_matrix(A) == 0);
     m = matrix_rows( A );
     // TODO load a rhs from the --input matrix file
 
@@ -157,16 +181,15 @@ int main( int argc, char ** argv ) {
       // convert from COO vector to dense format vector
       // TODO this is redundant, since it needs to be done in the solver ... do it there, remove this later
       convert_matrix( b, DCOL, FIRST_INDEX_ZERO );
+      // TODO but don't remove this here, since we want to test dense-matrix performance? OR do we need a new option! OR do we decide based on matrix sparsity? (EIT is sparse...)
     }
     else {
       assert( b != NULL ); // malloc failure
-      *b = ( matrix_t ) {
-        0
-      };
+      *b = ( matrix_t ) {0};
       b->m = m;
       b->n = 1;
       b->nz = m;
-      b->format = DROW;
+      b->format = DCOL;
       b->dd = malloc( m * sizeof( double ) );
       b->data_type = REAL_DOUBLE;
       { // initialize right-hand-side (b)
@@ -178,6 +201,8 @@ int main( int argc, char ** argv ) {
         }
       }
     }
+    assert(validate_matrix(b) == 0);
+
     if ( args->expected != NULL ) {
       // TODO refactor: this is a cut and paste of the loader for 'b'
       if (( retval = load_matrix( args->expected, expected ) ) != 0 ) {
@@ -189,6 +214,7 @@ int main( int argc, char ** argv ) {
       // convert from COO vector to dense format vector
       // TODO this is redundant, since it needs to be done in the solver ... do it there, remove this later
       convert_matrix( b, DCOL, FIRST_INDEX_ZERO );
+      assert(validate_matrix(expected) == 0);
     }
 
 
@@ -200,8 +226,6 @@ int main( int argc, char ** argv ) {
     // verbose output
     if ( args->verbosity >= 1 ) {
       assert( A != NULL );
-      int c_omp;
-      c_omp = 0; // TODO omp_get_num_threads();
       int ierr = convert_matrix( A, SM_COO, FIRST_INDEX_ZERO );
       assert( ierr == 0 );
       const char* sym, *location, *type;
@@ -258,39 +282,19 @@ int main( int argc, char ** argv ) {
         default:
           assert( false ); // fell through
       }
-      const char* solver;
-      switch ( args->solver ) {
-        case MUMPS:
-          solver = "mumps";
-          break;
-        case UMFPACK:
-          solver = "umfpack";
-          break;
-        default:
-          assert( false ); // fell through
-      }
       printf( "Ax=b: A is %zux%zu, nz=%zu, %s%s, %s, b is %zux%zu, nz=%zu\nsolved with %s on %d core%s, %d thread%s\n",
               A->m, A->n, A->nz,
               sym, location, type,
               b->m, b->n, b->nz,
-              solver,
+              solver2str( args->solver ),
               c_mpi, c_mpi == 1 ? "" : "s", c_omp, c_omp == 1 ? "" : "s" );
 
       if ( args->verbosity >= 2 ) {
-        int i;
-        assert( A->data_type == REAL_DOUBLE );
-        double* v = A->dd;
-        for ( i = 0; i < A->nz; i++ ) {
-          printf( "  A(%i,%i)=%.2f\n", A->ii[i], A->jj[i], v[i] );
-        }
+        printf_matrix( "  A", A );
       }
 
       if ( args->verbosity >= 2 ) { // show the rhs matrix
-        int i;
-        assert( b->data_type == REAL_DOUBLE );
-        double* d = b->dd;
-        for ( i = 0;i < b->m;i++ )
-          printf( "  b(%i)=%.2f\n", i, d[i] );
+        printf_matrix( "  b", b );
       }
     }
 
@@ -318,6 +322,19 @@ int main( int argc, char ** argv ) {
     perftimer_inc( timer, "output", -1 );
   }
 
+  // print/store result
+  if (( args->mpi_rank == 0 ) && ( args->output != NULL ) ) {
+    if ( strncmp( args->output, "-", 2 ) == 0 ) {
+      printf_matrix( "  x", rhs );
+    }
+    else {
+      // TODO test args->output to decide if its an acceptable filename before now
+      // TODO really, we shouldn't care what the file name is, just the file format...
+      if ( save_matrix( rhs, args->output ) != 0 )
+        retval = 12; // TODO normalize error codes so they are defined in one place (defines?)
+    }
+  }
+
   // test result?
   if (( args->mpi_rank == 0 ) && ( expected->format != INVALID ) ) {
     perftimer_inc( timer, "test", -1 );
@@ -328,25 +345,6 @@ int main( int argc, char ** argv ) {
     else {
       retval = 100;
       printf( "FAIL\n" );
-    }
-  }
-
-  if (( args->mpi_rank == 0 ) && ( args->output != NULL ) ) {
-    if ( strncmp( args->output, "-", 2 ) == 0 ) {
-      int ret = convert_matrix( rhs, DROW, FIRST_INDEX_ZERO );
-      assert( ret == 0 );
-
-      int i;
-      assert( rhs->data_type == REAL_DOUBLE );
-      double* d = rhs->dd;
-      for ( i = 0;i < rhs->m;i++ )
-        printf( "  x(%d)=%.2f\n", i, d[i] );
-    }
-    else {
-      // TODO test args->output to decide if its an acceptable filename before now
-      // TODO really, we shouldn't care what the file name is, just the file format...
-      if ( save_matrix( rhs, args->output ) != 0 )
-        retval = 12; // TODO normalize error codes so they are defined in one place (defines?)
     }
   }
 
@@ -365,8 +363,11 @@ int main( int argc, char ** argv ) {
 
     perftimer_inc( timer, "MPI", -1 );
   }
-  ierr = MPI_Finalize();
-  assert( ierr == 0 );
+
+  if ( is_mpi ) {
+    int ierr = MPI_Finalize();
+    assert( ierr == 0 );
+  }
 
   // show timing info, if requested, to depth N
   if ( extra_timing && args->rep == 0 ) {

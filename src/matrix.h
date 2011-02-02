@@ -55,10 +55,18 @@ enum matrix_symmetric_storage_t { BOTH = 0, UPPER_TRIANGULAR, LOWER_TRIANGULAR }
 // COMPLEX_SINGLE: two C floats make a complex single-precision floating point number
 // PATTERN: no data (dd), pattern of non-zero entries is indicated by ii, jj
 enum matrix_data_type_t { SM_REAL = 0, REAL_DOUBLE = 0, REAL_SINGLE = 1, SM_COMPLEX = 2, COMPLEX_DOUBLE = 2, COMPLEX_SINGLE = 3, SM_PATTERN = 4 };  //  TODO remove SM prefixes (bebop conflict)
+// TODO support MATLAB complex format where real and imag are split ("ZOMPLEX") (CHOLMOD)
+// TODO maybe split REAL/COMPLEX/PATTERN from storage type (float, double, int, long, uint, ulong)
+
+// TODO support various index formats for ii, jj (int, unsigned int, long) (CHOLMOD)
+
+// TODO support sorted OR unsorted flag (if sorted, doesn't need sorting later, mark as unsorted when modifying)
+// TODO support "packed" -- nzmax is malloc size, nz is ptr to end-of-row/col (CHOLMOD)
+// unpacked: A->i [A->p [j] ... A->p [j]+A->nz[j]-1] vs packed: A->i [A->p [j] ... A->p [j+1]-1]
 
 typedef struct matrix_t {
-  size_t m; // rows
-  size_t n; // columns
+  size_t m; // rows -- TODO rename 'nrow'
+  size_t n; // columns -- TODO rename 'ncol'
   // NOTE: m=n=0 indicates an empty/invalid matrix, if m=0, then n=0
   //   and vice-versa, so you only need to check one of them
   size_t nz; // non-zeros, invalid for DENSE
@@ -100,5 +108,10 @@ int convert_matrix( matrix_t* m, enum matrix_format_t f, enum matrix_base_t b );
 // returns: 0: okay, <0=problem found
 // TODO const correctness
 int validate_matrix( matrix_t* m );
+
+// for debugging, this will print the matrix to stdout
+// pre is a string to put at the start of each line
+// (indenting and/or matrix name)
+void printf_matrix( char const *const pre, matrix_t* m );
 
 #endif

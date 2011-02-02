@@ -79,9 +79,11 @@ AM_PROG_CC_C_O
 #AC_OPENMP
 
 # Checks for libraries.
-AC_SEARCH_LIBS([load_sparse_matrix], [sparse_matrix_converter],,AC_MSG_ERROR([could not find required BeBOP sparse matrix I/O library]))
-AC_SEARCH_LIBS([dmumps_c], [dmumps],,AC_MSG_ERROR([could not find required double precision MUMPS library]))
+AC_SEARCH_LIBS([load_sparse_matrix], [sparse_matrix_converter],,AC_MSG_ERROR([missing BeBOP sparse matrix I/O library]))
+AC_SEARCH_LIBS([dmumps_c], [dmumps],,AC_MSG_ERROR([missing MUMPS library (double precision)]))
 AC_SEARCH_LIBS([umfpack_di_symbolic], [umfpack],,AC_MSG_ERROR([missing UMFPACK]))
+# might not be needed, if already included through another solver
+AC_SEARCH_LIBS([cholmod_solve], [cholmod],,AC_MSG_ERROR([missing CHOLMOD]))
 
 # Checks for header files.
 AC_CHECK_HEADERS([float.h stdlib.h string.h sys/time.h])

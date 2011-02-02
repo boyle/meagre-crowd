@@ -23,7 +23,17 @@
 #include "perftimer.h"
 #include "matrix.h"
 
-enum solvers_t { UMFPACK, MUMPS }; // TODO rm (obsolete)
+// TODO solve different types of systems (CHOLMOD)
+// #define CHOLMOD_A    0          /* solve Ax=b */
+// #define CHOLMOD_LDLt 1          /* solve LDL'x=b */
+// #define CHOLMOD_LD   2          /* solve LDx=b */
+// #define CHOLMOD_DLt  3          /* solve DL'x=b */
+// #define CHOLMOD_L    4          /* solve Lx=b */
+// #define CHOLMOD_Lt   5          /* solve L'x=b */
+// #define CHOLMOD_D    6          /* solve Dx=b */
+// #define CHOLMOD_P    7          /* permute x=Px */
+// #define CHOLMOD_Pt   8          /* permute x=P'x */
+
 
 // --------------------------------------------
 // structures and enums
@@ -47,6 +57,11 @@ void printf_solvers( const unsigned int verbosity );
 //   e.g. can the solver only handle Symmetric Postive Definite (SPD) matrices
 // returns: 1 yes, 0 no
 int solver_can_do( const int solver, matrix_t* A, matrix_t* b );
+inline int solver_uses_mpi( const int solver );
+inline int solver_requires_mpi( const int solver );
+inline int solver_uses_omp( const int solver );
+inline int solver_requires_omp( const int solver );
+
 
 // select the most appropriate solver for this problem
 //  - is it small and thus should be solved single-threaded (single processor)
