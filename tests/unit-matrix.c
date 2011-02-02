@@ -22,6 +22,7 @@
 #include "matrix.h"
 
 
+// prototypes
 struct enum2format_t {
   const enum matrix_format_t f;
   const char* s;
@@ -47,6 +48,11 @@ const struct enum2base_t enum2base[] = { {FIRST_INDEX_ZERO, "zero"},
 };
 
 void print_matrix( matrix_t* a );
+void test_formats( matrix_t* a );
+void test_basic();
+void build_test_matrix( matrix_t** m, int i);
+
+
 void print_matrix( matrix_t* a ) {
   printf( "    %zux%zu (nz:%zu) %s%s%s%s %s\n",
           a->m, a->n, a->nz,
@@ -73,7 +79,6 @@ void print_matrix( matrix_t* a ) {
 }
 
 
-void test_formats( matrix_t* a );
 void test_formats( matrix_t* a ) {
   matrix_t* b = copy_matrix( a );
   assert( b != NULL );
@@ -139,7 +144,6 @@ void test_formats( matrix_t* a ) {
 // TODO check that if it starts as invalid, it stays invalid type
 // TODO check that if it isn't invalid, it fails when asking to become invalid type
 
-void test_basic();
 void test_basic() {
   // try mucking around with an INVALID matrix
   matrix_t* a = malloc_matrix();
@@ -159,42 +163,55 @@ void test_basic() {
 
   // create a couple of test matrices
   // TODO generate random matrices?
-  matrix_t* c = malloc_matrix();
-  assert( c != NULL );
-  *c = ( matrix_t ) {
-    0
-  };
-  c->m = 8;
-  c->n = 9;
-  c->nz = 4;
-  c->base = FIRST_INDEX_ZERO;
-  c->format = SM_COO;
-  // TODO try other symmetries/locations
-  c->data_type = REAL_DOUBLE; // TODO try other data types
-  c->dd = malloc( sizeof( double ) * ( c->nz ) );
-  c->ii = malloc( sizeof( unsigned int ) * ( c->nz ) );
-  c->jj = malloc( sizeof( unsigned int ) * ( c->nz ) );
-  assert( c->dd != NULL );
-  assert( c->ii != NULL );
-  assert( c->jj != NULL );
-  {
-    int i;
-    double* d = c->dd;
-    for ( i = 0;i < c->nz; i++ ) {
-      d[i] = ( double ) i + 10.0;
-      c->ii[i] = i * 2;
-      c->jj[i] = i + 4;
-    }
-    assert( validate_matrix( c ) == 0 );
-  }
+  matrix_t* c = NULL;
 
   // try converting between all types
+  build_test_matrix(&c, 0);
   test_formats( c );
-  free_matrix( c );
+
 
   // TODO do some cmp_matrix's that are supposed to fail in different ways
 
   // TODO test behaviour of an emtpy matrix (nz=0) in all formats
+  free_matrix( c );
+}
+
+void build_test_matrix( matrix_t** m, int i) {
+  assert(m != NULL);
+  free_matrix(*m);
+  *m = malloc_matrix();
+  assert( *m != NULL );
+  matrix_t *const c = *m;
+  switch(i) {
+    case 0:
+      // unsymmetric matrix
+      c->m = 8;
+      c->n = 9;
+      c->nz = 4;
+      c->base = FIRST_INDEX_ZERO;
+      c->format = SM_COO;
+      // TODO try other symmetries/locations
+      c->data_type = REAL_DOUBLE; // TODO try other data types
+      c->dd = malloc( sizeof( double ) * ( c->nz ) );
+      c->ii = malloc( sizeof( unsigned int ) * ( c->nz ) );
+      c->jj = malloc( sizeof( unsigned int ) * ( c->nz ) );
+      assert( c->dd != NULL );
+      assert( c->ii != NULL );
+      assert( c->jj != NULL );
+      {
+	int i;
+	double* d = c->dd;
+	for ( i = 0;i < c->nz; i++ ) {
+	  d[i] = ( double ) i + 10.0;
+	  c->ii[i] = i * 2;
+	  c->jj[i] = i + 4;
+	}
+	assert( validate_matrix( c ) == 0 );
+      }
+      break;
+    default:
+      assert(0); // bad i
+  }
 }
 
 int main( int argc, char **argv ) {
