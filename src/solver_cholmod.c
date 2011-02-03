@@ -47,6 +47,10 @@ static inline void _matrix2cholmodsparse( matrix_t* A, cholmod_sparse* B )  {
   // check we're starting with a sane matrix
   assert( validate_matrix( A ) == 0 );
 
+  assert( A->sym == SM_SYMMETRIC );
+  convert_matrix_symmetry( A, UPPER_TRIANGULAR );
+
+
   // prepare the matrix
   int ierr = convert_matrix( A, SM_CSC, FIRST_INDEX_ZERO );
   assert( ierr == 0 );
@@ -247,6 +251,7 @@ static inline void _cholmoddense2matrix( cholmod_dense* B, matrix_t* A ) {
 void solver_analyze_cholmod( solver_state_t* s, matrix_t* A ) {
   assert( s != NULL );
   assert( A != NULL );
+  assert( A->sym == SM_SYMMETRIC );
   solve_system_cholmod_t* const p = s->specific;
   assert( p != NULL );
 
@@ -261,6 +266,7 @@ void solver_analyze_cholmod( solver_state_t* s, matrix_t* A ) {
 void solver_factorize_cholmod( solver_state_t* s, matrix_t* A ) {
   assert( s != NULL );
   assert( A != NULL );
+  assert( A->sym == SM_SYMMETRIC );
   solve_system_cholmod_t* const p = s->specific;
   assert( p != NULL );
 

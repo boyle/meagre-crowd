@@ -77,6 +77,8 @@ int load_matrix( char* n, matrix_t* AA ) {
   // destroy BeBOP's matrix, guts (excepting the data which we now own)
   free( A->repr );
 
+  detect_matrix_symmetry( AA );
+
   return 0; // success
 }
 

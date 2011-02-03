@@ -1242,7 +1242,7 @@ int detect_matrix_symmetry( matrix_t* m ) {
   if (( ret = convert_matrix( m, SM_COO, m->base ) ) != 0 )
     return ret;
 
-  const double tol = 1e-15; // TODO use limits.h machine precision -- different tolerances for patterns
+  const double tol = 5e-15; // TODO use limits.h machine precision -- different tolerances for patterns
   int pattern_is_symmetric = 1;
   int i, j;
   // TODO handle other data formats

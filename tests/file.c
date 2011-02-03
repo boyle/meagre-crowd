@@ -57,7 +57,7 @@ char *argv[];
   destroy_sparse_matrix( A );
 
   printf( "matrix market\n" );
-  A = load_sparse_matrix( MATRIX_MARKET, "test.mm" );
+  A = load_sparse_matrix( MATRIX_MARKET, "unsym.mm" );
   assert( A != NULL );
   save_sparse_matrix( "out-test.mm2mm", A, MATRIX_MARKET );
   save_sparse_matrix( "out-test.mm2hb", A, HARWELL_BOEING );

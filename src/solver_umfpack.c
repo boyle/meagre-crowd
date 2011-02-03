@@ -48,10 +48,16 @@ void solver_analyze_umfpack( solver_state_t* s, matrix_t* A ) {
   solve_system_umfpack_t* const p = s->specific;
   assert( p != NULL );
 
+  // TODO could do this smarter by giving MUMPS the symmetric matrix to solve,
+  // instead we're just going straight for the unsymmetric solver
+  // TODO this logic should really be moved to the wrapper solver() functions using the capabilities masks
+  if ( A->sym == SM_SYMMETRIC )
+    convert_matrix_symmetry( A, BOTH );
+
   // prepare the matrix
   int ierr = convert_matrix( A, SM_CSC, FIRST_INDEX_ZERO );
   assert( ierr == 0 );
-  assert( A->sym == SM_UNSYMMETRIC );
+  assert(( A->sym == SM_UNSYMMETRIC ) || ( A->sym == SM_SYMMETRIC ) );
   assert( A->data_type == REAL_DOUBLE ); // don't handle complex... yet TODO
   assert( A->m == A->n ); // TODO can only handle square matrices at present (UMFPACK?)
 
@@ -71,7 +77,7 @@ void solver_factorize_umfpack( solver_state_t* s, matrix_t* A ) {
   // prepare the matrix
   int ierr = convert_matrix( A, SM_CSC, FIRST_INDEX_ZERO );
   assert( ierr == 0 );
-  assert( A->sym == SM_UNSYMMETRIC );
+  assert(( A->sym == SM_UNSYMMETRIC ) || ( A->sym == SM_SYMMETRIC ) );
   assert( A->data_type == REAL_DOUBLE ); // don't handle complex... yet TODO
   assert( A->m == A->n ); // TODO can only handle square matrices at present (UMFPACK?)
 

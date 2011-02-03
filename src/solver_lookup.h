@@ -97,7 +97,7 @@ struct  solver_properties_t {
 
 
 // Note: remember to upate this value when adding more solvers!
-#define SOLVER_INDEX_COUNT 2
+#define SOLVER_INDEX_COUNT 3
 #define SOLVER_SHORTNAME_MAX_LEN 7
 
 static const struct solver_properties_t solver_lookup[] = {
@@ -146,45 +146,43 @@ static const struct solver_properties_t solver_lookup[] = {
     "        SIAM Journal of Matrix Analysis and Applications, Vol 23, No 1, pp 15-41 (2001).\n"
     "    [2] P. R. Amestoy and A. Guermouche and J.-Y. L'Excellent and S. Pralet,\n"
     "        Hybrid scheduling for the parallel solution of linear systems.\n"
-    "        Parallel Computing Vol 32 (2), pp 136-156 (2006).\n" }
+    "        Parallel Computing Vol 32 (2), pp 136-156 (2006).\n" },
 
-  /* TODO need to be able to test for symmetric positive definite matrix before enabling this
-    { "cholmod", "CHOLMOD", "Tim Davis, William Hager", "University of Florida", "1.7.1", "LGPL",
-      // version 1.7.3 is available...
-      "http://www.cise.ufl.edu/research/sparse/cholmod",
-      &solver_init_cholmod,
-      &solver_analyze_cholmod,
-      &solver_factorize_cholmod,
-      &solver_evaluate_cholmod,
-      &solver_finalize_cholmod,
-      SOLVES_FORMAT_CSC | SOLVES_BASE_ZERO |
-      // TODO can handle COO matrices and dense matrices (DROW?)
-      SOLVES_SQUARE_ONLY |
-      SOLVES_SYMMETRIC_POSITIVE_DEFINITE_ONLY |
-      SOLVES_SYMMETRIC |
-      // upper or lower triangular symmetric or BOTH or unsymmetric but must still be SPD
-      // TODO keep track of when a matrices' entries have been sorted!
-      SOLVES_DATA_TYPE_REAL_DOUBLE |
-      // TODO is cholmod really restricted to square matrices?
-      SOLVES_RHS_DCOL | SOLVES_RHS_CSC,
-      SOLVER_SINGLE_THREADED_ONLY,
-      "    * Dynamic supernodes in sparse Cholesky update/downdate and triangular\n"
-      "      solves, T. A. Davis and W. W. Hager, ACM Trans. Math. Software,\n"
-      "      Vol 35, No. 4, 2009. (as CISE Tech Report)\n"
-      "    * Algorithm 887: CHOLMOD, supernodal sparse Cholesky factorization and\n"
-      "      update/downdate, Y. Chen, T. A. Davis, W. W. Hager, and \n"
-      "      S. Rajamanickam, ACM Trans. Math. Software, Vol 35, No. 3, 2009.\n"
-      "      (as CISE Tech Report)\n"
-      "    * Row modifications of a sparse Cholesky factorization, T. A. Davis\n"
-      "      and W. W. Hager, SIAM Journal on Matrix Analysis and Applications,\n"
-      "      vol 26, no 3, pp. 621-639, 2005.\n"
-      "    * Multiple-rank modifications of a sparse Cholesky factorization,\n"
-      "      T. A. Davis and W. W. Hager, SIAM Journal on Matrix Analysis and\n"
-      "      Applications, vol. 22, no. 4, pp. 997-1013, 2001.\n"
-      "    * Modifying a sparse Cholesky factorization, T. A. Davis and W. W.\n"
-      "      Hager, SIAM Journal on Matrix Analysis and Applications, vol. 20,\n"
-      "      no. 3, pp. 606-627, 1999.\n" }
-  */
+  { "cholmod", "CHOLMOD", "Tim Davis, William Hager", "University of Florida", "1.7.1", "LGPL",
+    // version 1.7.3 is available...
+    "http://www.cise.ufl.edu/research/sparse/cholmod",
+    &solver_init_cholmod,
+    &solver_analyze_cholmod,
+    &solver_factorize_cholmod,
+    &solver_evaluate_cholmod,
+    &solver_finalize_cholmod,
+    SOLVES_FORMAT_CSC | SOLVES_BASE_ZERO |
+    // TODO can handle COO matrices and dense matrices (DROW?)
+    SOLVES_SQUARE_ONLY |
+    SOLVES_SYMMETRIC_POSITIVE_DEFINITE_ONLY |
+    SOLVES_SYMMETRIC |
+    // upper or lower triangular symmetric or BOTH or unsymmetric but must still be SPD
+    // TODO keep track of when a matrices' entries have been sorted!
+    SOLVES_DATA_TYPE_REAL_DOUBLE |
+    // TODO is cholmod really restricted to square matrices?
+    SOLVES_RHS_DCOL | SOLVES_RHS_CSC,
+    SOLVER_SINGLE_THREADED_ONLY,
+    "    * Dynamic supernodes in sparse Cholesky update/downdate and triangular\n"
+    "      solves, T. A. Davis and W. W. Hager, ACM Trans. Math. Software,\n"
+    "      Vol 35, No. 4, 2009. (as CISE Tech Report)\n"
+    "    * Algorithm 887: CHOLMOD, supernodal sparse Cholesky factorization and\n"
+    "      update/downdate, Y. Chen, T. A. Davis, W. W. Hager, and \n"
+    "      S. Rajamanickam, ACM Trans. Math. Software, Vol 35, No. 3, 2009.\n"
+    "      (as CISE Tech Report)\n"
+    "    * Row modifications of a sparse Cholesky factorization, T. A. Davis\n"
+    "      and W. W. Hager, SIAM Journal on Matrix Analysis and Applications,\n"
+    "      vol 26, no 3, pp. 621-639, 2005.\n"
+    "    * Multiple-rank modifications of a sparse Cholesky factorization,\n"
+    "      T. A. Davis and W. W. Hager, SIAM Journal on Matrix Analysis and\n"
+    "      Applications, vol. 22, no. 4, pp. 997-1013, 2001.\n"
+    "    * Modifying a sparse Cholesky factorization, T. A. Davis and W. W.\n"
+    "      Hager, SIAM Journal on Matrix Analysis and Applications, vol. 20,\n"
+    "      no. 3, pp. 606-627, 1999.\n" }
 
 };
 

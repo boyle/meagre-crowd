@@ -76,7 +76,7 @@ int main( int argc, char ** argv ) {
     assert( ierr == 0 );
 
     struct sparse_matrix_t* A;
-    A = load_sparse_matrix( MATRIX_MARKET, "test.mm" );
+    A = load_sparse_matrix( MATRIX_MARKET, "unsym.mm" );
     assert( A != NULL );
     ierr = sparse_matrix_convert( A, COO );
     assert( ierr == 0 );
