@@ -38,7 +38,11 @@ noinst_HEADERS = src/perftimer.h src/matrix.h src/args.h src/file.h \
 bin_SCRIPTS = launch_jobs collect_results
 # some random files we want to distribute with the package tar
 EXTRA_DIST = get_dependencies $(bin_SCRIPTS) \
-	     tests/test.mm tests/test.hb tests/test.rb \
+	     tests/unsym.mm tests/sym.mm tests/sym_posdef.mm \
+	     tests/rhs1.mm \
+	     tests/unsym-default-ans.mm tests/sym-default-ans.mm tests/sym_posdef-default-ans.mm \
+	     tests/unsym-rhs1-ans.mm tests/sym-rhs1-ans.mm tests/sym_posdef-rhs1-ans.mm \
+	     tests/test.hb tests/test.rb \
              ChangeLog README NEWS INSTALL LICENSE COPYING COPYING.LESSER
 
 # the tests
