@@ -97,8 +97,6 @@ struct  solver_properties_t {
 #define SOLVER_CAN_USE_OMP  (1<<3)
 
 
-// Note: remember to upate this value when adding more solvers!
-#define SOLVER_INDEX_COUNT 3 // TODO remove this and just look for a NULL at the end of the list
 // not the actual longest string but something to make it safe to compare strings from the command line
 #define SOLVER_SHORTNAME_MAX_LEN 15 
 

@@ -30,19 +30,17 @@
 
 static inline int _valid_solver( const int solver );
 static inline int _valid_solver( const int solver ) {
-  if (( solver >= 0 ) && ( solver < SOLVER_INDEX_COUNT ) )
-    return 1;
-  else
-    return 0;
+  return ( solver_lookup[solver].shortname != NULL );
 }
 
 // lookup functions
 int lookup_solver_by_shortname( const char* shortname ) {
   assert( shortname != NULL );
-  int i;
-  for ( i = 0; i < SOLVER_INDEX_COUNT; i++ ) {
+  int i = 0;
+  while ( solver_lookup[i].shortname != NULL ) {
     if ( strncmp( solver_lookup[i].shortname, shortname, SOLVER_SHORTNAME_MAX_LEN ) == 0 )
       return i;
+    i++;
   }
   return -1;
 }
@@ -59,14 +57,18 @@ void printf_solvers( const unsigned int verbosity ) {
   int i, j;
   // determine max shortname length so everything can be aligned nicely
   size_t max_shortname_len = 0;
-  size_t l [SOLVER_INDEX_COUNT];
-  for ( i = 0; i < SOLVER_INDEX_COUNT; i++ ) {
+
+  // count solvers
+  for( i = 0; solver_lookup[i].shortname != NULL; i++);
+  size_t * const l = malloc(i*sizeof(size_t));
+
+  for( i = 0; solver_lookup[i].shortname != NULL; i++) {
     size_t ll = strlen( solver_lookup[i].shortname );
     l[i] = ll;
     if ( ll > max_shortname_len )
       max_shortname_len = ll;
   }
-  for ( i = 0; i < SOLVER_INDEX_COUNT; i++ ) {
+  for( i = 0; solver_lookup[i].shortname != NULL; i++) {
     printf( "  %s", solver_lookup[i].shortname );
     for ( j = 0; j < max_shortname_len - l[i]; j++ )
       printf( " " );
@@ -83,10 +85,12 @@ void printf_solvers( const unsigned int verbosity ) {
               solver_lookup[i].url );
     }
     if ( verbosity >= 2 ) {
-      printf( "    references:\n%s\n\n", solver_lookup[i].references );
+      printf( "    References:\n%s\n\n", solver_lookup[i].references );
       // TODO capabilities
     }
   }
+
+  free(l);
 }
 
 
