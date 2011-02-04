@@ -365,6 +365,7 @@ AT_CLEANUP
 
 MC_SOLVERS_UNSYM([umfpack])
 MC_SOLVERS_UNSYM([mumps])
+MC_SOLVERS_UNSYM([paradiso])
 dnl Note: cholmod is symmetric positive definite matrices ONLY
 dnl posdef only?
 MC_SOLVERS_SYM_POSDEF([cholmod])

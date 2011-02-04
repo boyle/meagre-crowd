@@ -56,35 +56,36 @@ struct  solver_properties_t {
 #define SOLVES_FORMAT_CSR  (1<<6)
 
 #define SOLVES_SQUARE_ONLY                          (1<<7)
+#define SOLVER_REQUIRES_DIAGONAL                    (1<<8) // Paradiso requires the entries on the diagonal to be allocated, even if they're zero!
 
-#define SOLVES_UNSYMMETRIC                          (1<<8)
-#define SOLVES_SYMMETRIC_POSITIVE_DEFINITE_ONLY     (1<<9)
-#define SOLVES_SYMMETRIC_UPPER_TRIANGULAR           (1<<10)
-#define SOLVES_SYMMETRIC_LOWER_TRIANGULAR           (1<<11)
-#define SOLVES_SYMMETRIC_BOTH                       (1<<12)
+#define SOLVES_UNSYMMETRIC                          (1<<9)
+#define SOLVES_SYMMETRIC_POSITIVE_DEFINITE_ONLY     (1<<10)
+#define SOLVES_SYMMETRIC_UPPER_TRIANGULAR           (1<<11)
+#define SOLVES_SYMMETRIC_LOWER_TRIANGULAR           (1<<12)
+#define SOLVES_SYMMETRIC_BOTH                       (1<<13)
 #define SOLVES_SYMMETRIC                            (SOLVES_SYMMETRIC_UPPER_TRIANGULAR | SOLVES_SYMMETRIC_LOWER_TRIANGULAR | SOLVES_SYMMETRIC_BOTH)
-#define SOLVES_SKEW_SYMMETRIC_UPPER_TRIANGULAR      (1<<13)
-#define SOLVES_SKEW_SYMMETRIC_LOWER_TRIANGULAR      (1<<14)
+#define SOLVES_SKEW_SYMMETRIC_UPPER_TRIANGULAR      (1<<14)
+#define SOLVES_SKEW_SYMMETRIC_LOWER_TRIANGULAR      (1<<15)
 #define SOLVES_SKEW_SYMMETRIC                       (SOLVES_SKEW_SYMMETRIC_UPPER_TRIANGULAR | SOLVES_SKEW_SYMMETRIC_LOWER_TRIANGULAR)
-#define SOLVES_HERMITIAN_SYMMETRIC_UPPER_TRIANGULAR (1<<15)
-#define SOLVES_HERMITIAN_SYMMETRIC_LOWER_TRIANGULAR (1<<16)
+#define SOLVES_HERMITIAN_SYMMETRIC_UPPER_TRIANGULAR (1<<16)
+#define SOLVES_HERMITIAN_SYMMETRIC_LOWER_TRIANGULAR (1<<17)
 #define SOLVES_HERMITIAN_SYMMETRIC                  (SOLVES_HERMITIAN_SYMMETRIC_UPPER_TRIANGULAR | SOLVES_HERMITIAN_SYMMETRIC_LOWER_TRIANGULAR)
 
-#define SOLVES_DATA_TYPE_REAL_DOUBLE    (1<<17)
-#define SOLVES_DATA_TYPE_REAL_SINGLE    (1<<18)
-#define SOLVES_DATA_TYPE_COMPLEX_DOUBLE (1<<19)
-#define SOLVES_DATA_TYPE_COMPLEX_SINGLE (1<<20)
+#define SOLVES_DATA_TYPE_REAL_DOUBLE    (1<<18)
+#define SOLVES_DATA_TYPE_REAL_SINGLE    (1<<19)
+#define SOLVES_DATA_TYPE_COMPLEX_DOUBLE (1<<20)
+#define SOLVES_DATA_TYPE_COMPLEX_SINGLE (1<<21)
 
-#define SOLVES_RHS_BASE_ZERO (1<<21)
-#define SOLVES_RHS_BASE_ONE  (1<<22)
+#define SOLVES_RHS_BASE_ZERO (1<<22)
+#define SOLVES_RHS_BASE_ONE  (1<<23)
 
-#define SOLVES_RHS_DROW (1<<23)
-#define SOLVES_RHS_DCOL (1<<24)
-#define SOLVES_RHS_COO  (1<<25)
-#define SOLVES_RHS_CSC  (1<<26)
-#define SOLVES_RHS_CSR  (1<<27)
+#define SOLVES_RHS_DROW (1<<24)
+#define SOLVES_RHS_DCOL (1<<25)
+#define SOLVES_RHS_COO  (1<<26)
+#define SOLVES_RHS_CSC  (1<<27)
+#define SOLVES_RHS_CSR  (1<<28)
 
-#define SOLVES_RHS_VECTOR_ONLY (1<<28)
+#define SOLVES_RHS_VECTOR_ONLY (1<<29)
 
 
 // how multicore is each solver?
@@ -213,7 +214,6 @@ static const struct solver_properties_t solver_lookup[] = {
   //   unsym: combine direct and iterative for unsym (same sparsity pattern, slowly changing system)
   //     solves first factorization to LU, then uses these as preconditioned krylov subspace iterations, switch back if not converging
   //     IPARM(4), IPARM(20)
-/*
   { "paradiso", "Paradiso", "Olaf Schenk, Klaus Gärtner", "University Basel", "4.1.0", "academic/commercial",
     "http://www.pardiso-project.org",
     &solver_init_paradiso,
@@ -221,19 +221,11 @@ static const struct solver_properties_t solver_lookup[] = {
     &solver_factorize_paradiso,
     &solver_evaluate_paradiso,
     &solver_finalize_paradiso,
-    // can solver LU /LDL or LL^t, w/ multiple right-hand sides
-    // TODO update after reading documentation
-    SOLVES_FORMAT_CSR | SOLVES_BASE_ZERO |
-    // TODO can handle COO matrices and dense matrices (DROW?)
-    SOLVES_SQUARE_ONLY |
-    SOLVES_SYMMETRIC |
-    // upper or lower triangular symmetric or BOTH or unsymmetric but must still be SPD
-    // TODO keep track of when a matrices' entries have been sorted!
-    SOLVES_DATA_TYPE_REAL_DOUBLE |
-    // TODO is cholmod really restricted to square matrices?
-    SOLVES_RHS_DCOL | SOLVES_RHS_CSC,
-    // TODO openMP and/or MPI
-    SOLVER_SINGLE_THREADED_ONLY,
+    SOLVES_FORMAT_CSR | SOLVES_BASE_ONE | SOLVER_REQUIRES_DIAGONAL |
+    SOLVES_SYMMETRIC | SOLVES_UNSYMMETRIC |
+    SOLVES_DATA_TYPE_REAL_DOUBLE | // TODO and REAL_COMPLEX
+    SOLVES_RHS_DCOL | SOLVES_RHS_CSR,
+    SOLVER_REQUIRES_MPI | SOLVER_REQUIRES_OMP,
     "    [1] O. Schenk and K. Gärtner, Solving Unsymmetric Sparse Systems of Linear\n"
     "        Equations with PARDISO, Journal of Future Generation Computer Systems,\n"
     "        20(3):475--487, 2004.\n"
@@ -250,11 +242,11 @@ static const struct solver_properties_t solver_lookup[] = {
     "        Algorithms to the Solution of Saddle-Point Problems in Large-Scale\n"
     "        Nonconvex Interior-Point Optimization. Journal of Computational\n"
     "        Optimization and Applications, pp. 321-341, Volume 36, Numbers 2-3 /\n"
-    "        April, 2007.\n" }
-*/
+    "        April, 2007.\n" },
+
+
+   // Note: MUST have null entry at the end of the list!
    {0}
 };
-
-// Note: did the SOLVER_INDEX_COUNT get updated when adding more solvers??
 
 #endif

@@ -26,10 +26,10 @@
 #include <assert.h>
 
 // NOTE: paradiso doesn't include a header file for its library, use these prototypes instead
-void pardisoinit (void   *, int    *,   int *, int *, double *, int *);
-void pardiso     (void   *, int    *,   int *, int *,    int *, int *, 
-                  double *, int    *,    int *, int *,   int *, int *,
-                     int *, double *, double *, int *, double *);
+void pardisoinit (void   * PT, int    * MTYPE,   int * SOLVER, int * IPARM, double * DPARM, int *ERROR);
+void pardiso     (void   * PT, int    * MAXFCT,   int * MNUM, int * MTYPE,    int * PHASE, int * N,
+                  double * A, int    * IA,    int * JA, int * PERM,   int * NRHS, int * IPARM,
+                     int * MSGLVL, double * B, double * X, int * ERROR, double * DPARM);
 void pardiso_chkmatrix  (int *, int *, double *, int *, int *, int *);
 void pardiso_chkvec     (int *, int *, double *, int *);
 void pardiso_printstats (int *, int *, double *, int *, int *, int *,
@@ -54,18 +54,46 @@ enum paradiso_solve_error { NO_ERROR=0, INCONSISTENT_INPUT=-1,
                             MAX_ITER=-100, NO_CONVERGENCE=-101, // (w/in 25 iterations)
                             ITER_ERR=-102, ITER_BREAKDOWN=-103 };
 
+#define IPARM(I) iparm[(I)-1]
+#define DPARM(I) dparm[(I)-1]
 typedef struct {
   int Arows;
   int Acols;
   int* Aii; // these are pointers to existing data (DON'T free)
   int* Ajj;
   double* Add;
+
+  // Paradiso config
+  int *PT; // int *64 (Paradiso private ptr)
+  int MTYPE;
+  int SOLVER; // 0 sparse direct, 1 multi-recursive iterative
+  int *iparm; // int * 64 - config
+  double *dparm; // double * 64 - config
+  int error;
 } solve_system_paradiso_t;
 
 void solver_init_paradiso( solver_state_t* s ) {
   assert( s != NULL );
-  s->specific = calloc( 1, sizeof( solve_system_paradiso_t ) );
-  assert( s->specific != NULL );
+  solve_system_paradiso_t * const p = calloc( 1, sizeof( solve_system_paradiso_t ) );
+  assert( p != NULL );
+  s->specific = p;
+
+  p->PT = malloc(64*sizeof(int));
+  assert(p->PT != NULL);
+  p->MTYPE = 11; // default to real/unsym
+  p->SOLVER = 0; // default to direct solver
+  p->iparm = calloc(64,sizeof(int));
+  p->dparm = calloc(64,sizeof(double));
+
+  p->IPARM(3) = 1; // must be set to match number of processors TODO c_omp * c_mpi or just c_omp???
+  p->IPARM(52) = 1; // number of compute nodes (MPI)
+
+  // launch paradiso
+  // TODO do we need to know the matrix type when we start here?? might need to move to analyze stage...
+  pardisoinit(p->PT, &(p->MTYPE), &(p->SOLVER), p->iparm, p->dparm, &(p->error) );
+  if(p->error != NO_ERROR)
+    fprintf(stderr, "error: paradiso initialization code %d\n", p->error); // TODO decode
+  assert(p->error == NO_ERROR);
 }
 
 void solver_analyze_paradiso( solver_state_t* s, matrix_t* A ) {
@@ -144,8 +172,9 @@ void solver_finalize_paradiso( solver_state_t* s ) {
 
   // release memory
   if ( p != NULL ) {
-//    umfpack_di_free_numeric(p->Numeric);
-//    umfpack_di_free_symbolic(p->Symbolic);
+    free(p->PT);
+    free(p->iparm);
+    free(p->dparm);
   }
   free( p );
 }
