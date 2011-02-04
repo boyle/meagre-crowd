@@ -30,8 +30,8 @@ meagre_crowd_SOURCES = src/meagre-crowd.c \
     src/solver_cholmod.c \
     src/solver_paradiso.c
 # TODO make openMP optional... OPENMP_CFLAGS, PTHREADS and FLIBS are all required only for Paradiso!
-meagre_crowd_LIBS = $(PTHREAD_LIBS) $(LIBS) $(FLIBS)
-meagre_crowd_CFLAGS = $(CFLAGS) $(OPENMP_CFLAGS) $(PTHREAD_CFLAGS)
+AM_LIBS = $(PTHREAD_LIBS) $(LIBS) $(FLIBS)
+AM_CFLAGS = $(CFLAGS) $(OPENMP_CFLAGS) $(PTHREAD_CFLAGS) -Werror #-Wextra
 # this is required for Sun systems, but will break when we want to do the same for MPI... (mpicc)
 #meagre_crowd_CC = $(PTHREAD_CC)
 
@@ -60,8 +60,6 @@ tests_unit_perftimer_SOURCES = tests/unit-perftimer.c src/perftimer.c
 tests_unit_perftimer_CPPFLAGS = -I$(srcdir)/src
 tests_unit_matrix_SOURCES = tests/unit-matrix.c src/matrix.c
 tests_unit_matrix_CPPFLAGS = -I$(srcdir)/src
-
-AM_CFLAGS = -Werror #-Wextra
 
 clean-local: clean-local-check
 maintainer-clean-local:
