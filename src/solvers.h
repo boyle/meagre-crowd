@@ -35,6 +35,11 @@
 // #define CHOLMOD_Pt   8          /* permute x=P'x */
 
 
+// TODO add option to preserve A or allow it to be destroyed? (need solver_lookup.h flag to indicate if copy is necessary?)
+// TODO options for preserving x or allow them to be destroyed in the process?
+// if ptr x == b, then x can be destroyed (need flag in solver_lookup to tell whether copying is necessary?)
+// TODO for now, assume a copy is required and don't count this cost in the timing
+
 // --------------------------------------------
 // structures and enums
 typedef struct {

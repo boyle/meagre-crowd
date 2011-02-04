@@ -22,6 +22,7 @@
 #include "solver_mumps.h"
 #include "solver_umfpack.h"
 #include "solver_cholmod.h"
+#include "solver_paradiso.h"
 
 
 // the static solver lookup
@@ -97,8 +98,9 @@ struct  solver_properties_t {
 
 
 // Note: remember to upate this value when adding more solvers!
-#define SOLVER_INDEX_COUNT 3
-#define SOLVER_SHORTNAME_MAX_LEN 7
+#define SOLVER_INDEX_COUNT 3 // TODO remove this and just look for a NULL at the end of the list
+// not the actual longest string but something to make it safe to compare strings from the command line
+#define SOLVER_SHORTNAME_MAX_LEN 15 
 
 static const struct solver_properties_t solver_lookup[] = {
   { "umfpack", "UMFPACK", "Tim Davis et al", "University of Florida", "5.5.0", "GPL",
@@ -182,8 +184,77 @@ static const struct solver_properties_t solver_lookup[] = {
     "      Applications, vol. 22, no. 4, pp. 997-1013, 2001.\n"
     "    * Modifying a sparse Cholesky factorization, T. A. Davis and W. W.\n"
     "      Hager, SIAM Journal on Matrix Analysis and Applications, vol. 20,\n"
-    "      no. 3, pp. 606-627, 1999.\n" }
+    "      no. 3, pp. 606-627, 1999.\n" },
 
+  // can calculate bit-identical solution on multicore vs. clusters of multicores
+  // MPI based solver is for symmetric indefinite!
+  // supports: unsymmetric, structurally symmetric, real/complex, hermitian
+  // LU w/ complete pivoting
+  // combines iterative and direct solvers... for very large 3D problems
+  // integrated METIS -- what version?
+  // email: pardiso-informatik@unibas.ch about where this solver is used"
+  // license is specific to host & username
+  // uses left and right-looking L3 BLAS w/ supernodes (openMP and MPI)
+  //  symmetric: orderings (min-degree or nested-disection METIS), then
+  //     parallel left-right Choleksy (PAP^t=LL^t or indefinite PAP^t = LDL^t)
+  //     1x1 and 2x2 Bunch-Kaufman pivoting for sym-indef, then fwd-backward subst & itr refinement
+  //     perturbs coefficient matrix when pivots can't be found, corrected by iterative refinement steps
+  //      -- as accurate as complete sparse pivoting techniques
+  //     can improve pivoting accuracy by identifying large entries and permuting closer to diagonal (fewer pivot perturbations required)
+  //       -- maximum weighted matchings
+  //     also computes inertia for real sym indef matrices
+  //   structurally sym: PAP^t = QLU^t do symmetric fill-in reducing ordering, then apply to parallel unsym factorization
+  //     partial pivoting at supernodes and itr refinement
+  //   unsym: permute and scale (large entries near diagonal to improve numerical reliability), fill-in reducing permutation (P_mps A +(P_mps A)^t)
+  //     parallel factorization QLUR = A' = P P_mps D_r A D_c P (super-node pivoting Q R) P=P P_mps to keep "sufficiently large cycles of P_mps in one diagonal block
+  //     can't factorize anymore? pivot perturbation
+  //     pivot thres \alpha = e ||A'||_inf (e=machine epsilon), tiny pivots set to sgn(l)*e*||A'|_inf (numerical stability vs. small pivots)
+  //      -- so needs iterative refinement to get a good answer since the factorization has errors
+  //   for real sym indef matrices: MPI based solver
+  //   for sym indef: can use *iterative* solver (weighted matchings, algebraic multilevel incomplete factorization) (Krylov subspace techniques) (multilevel incomplete factorization preconditioners)
+  //   unsym: combine direct and iterative for unsym (same sparsity pattern, slowly changing system)
+  //     solves first factorization to LU, then uses these as preconditioned krylov subspace iterations, switch back if not converging
+  //     IPARM(4), IPARM(20)
+/*
+  { "paradiso", "Paradiso", "Olaf Schenk, Klaus Gärtner", "University Basel", "4.1.0", "academic/commercial",
+    "http://www.pardiso-project.org",
+    &solver_init_paradiso,
+    &solver_analyze_paradiso,
+    &solver_factorize_paradiso,
+    &solver_evaluate_paradiso,
+    &solver_finalize_paradiso,
+    // can solver LU /LDL or LL^t, w/ multiple right-hand sides
+    // TODO update after reading documentation
+    SOLVES_FORMAT_CSR | SOLVES_BASE_ZERO |
+    // TODO can handle COO matrices and dense matrices (DROW?)
+    SOLVES_SQUARE_ONLY |
+    SOLVES_SYMMETRIC |
+    // upper or lower triangular symmetric or BOTH or unsymmetric but must still be SPD
+    // TODO keep track of when a matrices' entries have been sorted!
+    SOLVES_DATA_TYPE_REAL_DOUBLE |
+    // TODO is cholmod really restricted to square matrices?
+    SOLVES_RHS_DCOL | SOLVES_RHS_CSC,
+    // TODO openMP and/or MPI
+    SOLVER_SINGLE_THREADED_ONLY,
+    "    [1] O. Schenk and K. Gärtner, Solving Unsymmetric Sparse Systems of Linear\n"
+    "        Equations with PARDISO, Journal of Future Generation Computer Systems,\n"
+    "        20(3):475--487, 2004.\n"
+    "    [2] O. Schenk and K. Gärtner, On fast factorization pivoting methods for\n"
+    "        symmetric indefinite systems, Elec. Trans. Numer. Anal., 23:158--179, 2006.\n"
+    "    [3] G.Karypis and V.Kumar, A fast and high quality multilevel scheme for\n"
+    "        partitioning irregular graphs, SIAM Journal on Scientific Computing, 1998\n"
+    "        (20) 1, 359-392\n"
+    "                            Version 4.1.0 related:\n"
+    "    [4] O. Schenk, M. Bollhoefer, and R. Roemer, On large-scale diagonalization\n"
+    "        techniques for the Anderson model of localization. SIAM Review 50 (2008),\n"
+    "        pp. 91-112.\n"
+    "    [5] O. Schenk, A. Waechter, and M. Hagemann, Matching-based Preprocessing\n"
+    "        Algorithms to the Solution of Saddle-Point Problems in Large-Scale\n"
+    "        Nonconvex Interior-Point Optimization. Journal of Computational\n"
+    "        Optimization and Applications, pp. 321-341, Volume 36, Numbers 2-3 /\n"
+    "        April, 2007.\n" }
+*/
+   {0}
 };
 
 // Note: did the SOLVER_INDEX_COUNT get updated when adding more solvers??

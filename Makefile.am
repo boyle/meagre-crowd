@@ -27,12 +27,18 @@ meagre_crowd_SOURCES = src/meagre-crowd.c \
     src/solvers.c \
     src/solver_mumps.c \
     src/solver_umfpack.c \
-    src/solver_cholmod.c
+    src/solver_cholmod.c \
+    src/solver_paradiso.c
+# TODO make openMP optional... OPENMP_CFLAGS, PTHREADS and FLIBS are all required only for Paradiso!
+meagre_crowd_LIBS = $(PTHREAD_LIBS) $(LIBS) $(FLIBS)
+meagre_crowd_CFLAGS = $(CFLAGS) $(OPENMP_CFLAGS) $(PTHREAD_CFLAGS)
+# this is required for Sun systems, but will break when we want to do the same for MPI... (mpicc)
+#meagre_crowd_CC = $(PTHREAD_CC)
 
 # header files that need to be distributed but not installed
 noinst_HEADERS = src/perftimer.h src/matrix.h src/args.h src/file.h \
                  src/solvers.h src/solver_lookup.h \
-		 src/solver_mumps.h src/solver_umfpack.h src/solver_cholmod.h
+		 src/solver_mumps.h src/solver_umfpack.h src/solver_cholmod.h src/solver_paradiso.h
 
 # want these scripts installed in the end
 bin_SCRIPTS = launch_jobs collect_results
@@ -43,7 +49,8 @@ EXTRA_DIST = get_dependencies $(bin_SCRIPTS) \
 	     tests/unsym-default-ans.mm tests/sym-default-ans.mm tests/sym_posdef-default-ans.mm \
 	     tests/unsym-rhs1-ans.mm tests/sym-rhs1-ans.mm tests/sym_posdef-rhs1-ans.mm \
 	     tests/test.hb tests/test.rb \
-             ChangeLog README NEWS INSTALL LICENSE COPYING COPYING.LESSER
+             ChangeLog README NEWS INSTALL LICENSE COPYING COPYING.LESSER \
+             m4/*
 
 # the tests
 BUILT_TESTS = tests/file tests/helloworld-mpi tests/helloworld-mumps tests/mumps-file tests/unit-perftimer tests/unit-matrix tests/hello-umfpack

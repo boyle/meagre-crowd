@@ -19,12 +19,14 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.65)
+AC_PREREQ([2.68])
 AC_INIT([meagre-crowd],[0.4.1],[<meagre-crowd@googlegroups.com>])
 
 AC_COPYRIGHT([Copyright (C) 2010, 2011 Alistair Boyle])
 
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([build-aux])
+m4_include([m4/ax_pthread.m4])
 
 AC_CONFIG_SRCDIR([src/meagre-crowd.c])
 AC_CONFIG_HEADERS([src/config.h])
@@ -84,6 +86,14 @@ AC_SEARCH_LIBS([dmumps_c], [dmumps],,AC_MSG_ERROR([missing MUMPS library (double
 AC_SEARCH_LIBS([umfpack_di_symbolic], [umfpack],,AC_MSG_ERROR([missing UMFPACK]))
 # might not be needed, if already included through another solver
 AC_SEARCH_LIBS([cholmod_solve], [cholmod],,AC_MSG_ERROR([missing CHOLMOD]))
+# has a 30 day license!
+# TODO reduce extra libs
+
+# TODO (others: gfortran, pthread, m?)     AX_OPENMP([ACTION-IF-FOUND[, ACTION-IF-NOT-FOUND]])
+AC_OPENMP
+AX_PTHREAD
+AC_F77_LIBRARY_LDFLAGS
+AC_SEARCH_LIBS([pardisoinit],[paradiso],,AC_MSG_ERROR([missing Paradiso]), $FLIBS $OPENMP_CFLAGS $LIB_PTHREAD)
 
 # Checks for header files.
 AC_CHECK_HEADERS([float.h stdlib.h string.h sys/time.h])
@@ -96,7 +106,7 @@ AC_TYPE_SIZE_T
 
 # Checks for library functions.
 AC_FUNC_ERROR_AT_LINE
-AC_FUNC_MALLOC
+# TODO AC_FUNC_MALLOC -- need replacement rpl_malloc or this breaks...
 AC_FUNC_STRNLEN
 AC_CHECK_FUNCS([gettimeofday strndup])
 
