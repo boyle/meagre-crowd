@@ -117,7 +117,19 @@ int main( int argc, char ** argv ) {
       // printf( "OMPI_COMM_WORLD_SIZE=%d\n", c_mpi );
     }
   }
-  int c_omp = 0; // no sane checks for openMP yet...
+  int c_omp;
+  {
+    const char* omp_threads = getenv( "OMP_NUM_THREADS" );
+    if ( omp_threads == NULL ) { // no env value configured
+      c_omp = 0;
+      // printf( "no OMP_NUM_THREADS\n" );
+    }
+    else { // works #ifdef OPEN_MP -- we're using openMP
+      int ret = sscanf( omp_threads, "%d", &c_omp );
+      assert( ret == 1 );
+      // printf( "OMP_NUM_THREADS=%d\n", c_omp );
+    }
+  }
   const int is_mpi = ( requires_mpi || ( uses_mpi && ( c_mpi != 0 ) ) );
   const int is_omp = ( requires_omp || ( uses_omp && ( c_omp != 0 ) ) );
   const int is_single_threaded = ( !is_mpi && !is_omp );
