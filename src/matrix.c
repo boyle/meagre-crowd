@@ -1321,6 +1321,7 @@ int validate_matrix( matrix_t* m ) {
   // TODO for CSC/CSR/COO check for duplicate entrys (should be summed)
   // TODO if symmetric check there aren't any extra values in the other triangle
   // TODO check that no matrix indices are outside the declared matrix rows/cols
+  // TODO check for bad data: +-infinity and NaN
 
   // all is okay
   return 0;
