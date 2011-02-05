@@ -59,16 +59,16 @@ void printf_solvers( const unsigned int verbosity ) {
   size_t max_shortname_len = 0;
 
   // count solvers
-  for( i = 0; solver_lookup[i].shortname != NULL; i++);
-  size_t * const l = malloc(i*sizeof(size_t));
+  for ( i = 0; solver_lookup[i].shortname != NULL; i++ );
+  size_t * const l = malloc( i * sizeof( size_t ) );
 
-  for( i = 0; solver_lookup[i].shortname != NULL; i++) {
+  for ( i = 0; solver_lookup[i].shortname != NULL; i++ ) {
     size_t ll = strlen( solver_lookup[i].shortname );
     l[i] = ll;
     if ( ll > max_shortname_len )
       max_shortname_len = ll;
   }
-  for( i = 0; solver_lookup[i].shortname != NULL; i++) {
+  for ( i = 0; solver_lookup[i].shortname != NULL; i++ ) {
     printf( "  %s", solver_lookup[i].shortname );
     for ( j = 0; j < max_shortname_len - l[i]; j++ )
       printf( " " );
@@ -90,7 +90,7 @@ void printf_solvers( const unsigned int verbosity ) {
     }
   }
 
-  free(l);
+  free( l );
 }
 
 

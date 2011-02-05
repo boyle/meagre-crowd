@@ -99,7 +99,7 @@ struct  solver_properties_t {
 
 
 // not the actual longest string but something to make it safe to compare strings from the command line
-#define SOLVER_SHORTNAME_MAX_LEN 15 
+#define SOLVER_SHORTNAME_MAX_LEN 15
 
 static const struct solver_properties_t solver_lookup[] = {
   { "umfpack", "UMFPACK", "Tim Davis et al", "University of Florida", "5.5.0", "GPL",
@@ -245,8 +245,8 @@ static const struct solver_properties_t solver_lookup[] = {
     "        April, 2007.\n" },
 
 
-   // Note: MUST have null entry at the end of the list!
-   {0}
+  // Note: MUST have null entry at the end of the list!
+  {0}
 };
 
 #endif

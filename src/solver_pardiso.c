@@ -27,33 +27,35 @@
 #include <stdint.h> // int64_t
 
 // NOTE: pardiso doesn't include a header file for its library, use these prototypes instead
-void pardisoinit (void   * PT, int    * MTYPE,   int * SOLVER, int * IPARM, double * DPARM, int *ERROR);
-void pardiso     (void   * PT, int    * MAXFCT,   int * MNUM, int * MTYPE,    int * PHASE, int * N,
-                  double * A, int    * IA,    int * JA, int * PERM,   int * NRHS, int * IPARM,
-                     int * MSGLVL, double * B, double * X, int * ERROR, double * DPARM);
-void pardiso_chkmatrix  (int *, int *, double *, int *, int *, int *);
-void pardiso_chkvec     (int *, int *, double *, int *);
-void pardiso_printstats (int *, int *, double *, int *, int *, int *,
-                           double *, int *);
+void pardisoinit( void   * PT, int    * MTYPE,   int * SOLVER, int * IPARM, double * DPARM, int *ERROR );
+void pardiso( void   * PT, int    * MAXFCT,   int * MNUM, int * MTYPE,    int * PHASE, int * N,
+              double * A, int    * IA,    int * JA, int * PERM,   int * NRHS, int * IPARM,
+              int * MSGLVL, double * B, double * X, int * ERROR, double * DPARM );
+void pardiso_chkmatrix( int *, int *, double *, int *, int *, int * );
+void pardiso_chkvec( int *, int *, double *, int * );
+void pardiso_printstats( int *, int *, double *, int *, int *, int *,
+                         double *, int * );
 
-enum pardiso_mtype { REAL_PATTERN_SYM=1, REAL_SYM_POSDEF = 2, REAL_SYM_INDEF = -2,
-                      COMPLEX_PATTERN_SYM = 3, COMPLEX_HERMITIAN_POSDEF = 4,
-                      COMPLEX_HERMITIAN_INDEF = -4,
-                      COMPLEX_SYM = 6,
-                      REAL_UNSYM = 11,
-                      COMPLEX_UNSYM = 13 };
+enum pardiso_mtype { REAL_PATTERN_SYM = 1, REAL_SYM_POSDEF = 2, REAL_SYM_INDEF = -2,
+                     COMPLEX_PATTERN_SYM = 3, COMPLEX_HERMITIAN_POSDEF = 4,
+                     COMPLEX_HERMITIAN_INDEF = -4,
+                     COMPLEX_SYM = 6,
+                     REAL_UNSYM = 11,
+                     COMPLEX_UNSYM = 13
+                   };
 enum pardiso_solver { SPARSE_DIRECT_SOLVER = 0, MULTIRECURSIVE_ITERATIVE_SOLVER = 1};
 
-enum pardiso_solve_error { NO_ERROR=0, INCONSISTENT_INPUT=-1,
-                            MEM=-2, REORDERING=-3,
-                            ZERO_PIVOT_NUMERICAL_FACT_OR_ITR_REFINEMENT=-4,
-                            INTERNAL_ERR=-5, PREORDER_FAILED=-6, DIAG_MATRIX_PROB=-7,
-                            INT32_OVERFLOW=-8,
-                            // pardiso.lic problems
-                            NO_LICENSE=-10, EXPIRED_LICENSE=-11, LICENSE_WRONG_HOST_USER=-12,
-                            // Krylov subspace issues
-                            MAX_ITER=-100, NO_CONVERGENCE=-101, // (w/in 25 iterations)
-                            ITER_ERR=-102, ITER_BREAKDOWN=-103 };
+enum pardiso_solve_error { NO_ERROR = 0, INCONSISTENT_INPUT = -1,
+                           MEM = -2, REORDERING = -3,
+                           ZERO_PIVOT_NUMERICAL_FACT_OR_ITR_REFINEMENT = -4,
+                           INTERNAL_ERR = -5, PREORDER_FAILED = -6, DIAG_MATRIX_PROB = -7,
+                           INT32_OVERFLOW = -8,
+                           // pardiso.lic problems
+                           NO_LICENSE = -10, EXPIRED_LICENSE = -11, LICENSE_WRONG_HOST_USER = -12,
+                           // Krylov subspace issues
+                           MAX_ITER = -100, NO_CONVERGENCE = -101, // (w/in 25 iterations)
+                           ITER_ERR = -102, ITER_BREAKDOWN = -103
+                         };
 
 #define IPARM(I) iparm[(I)-1]
 #define DPARM(I) dparm[(I)-1]
@@ -79,22 +81,22 @@ void solver_init_pardiso( solver_state_t* s ) {
   assert( p != NULL );
   s->specific = p;
 
-  p->PT = malloc(64*sizeof(int64_t)); // TODO try much larger allocation...
-  assert(p->PT != NULL);
+  p->PT = malloc( 64 * sizeof( int64_t ) ); // TODO try much larger allocation...
+  assert( p->PT != NULL );
   p->MTYPE = 11; // default to real/unsym
   p->SOLVER = 0; // default to direct solver
-  p->iparm = calloc(64,sizeof(int));
-  p->dparm = calloc(64,sizeof(double));
+  p->iparm = calloc( 64, sizeof( int ) );
+  p->dparm = calloc( 64, sizeof( double ) );
 
-  p->IPARM(3) = 1; // must be set to match number of processors TODO c_omp * c_mpi or just c_omp???
-  p->IPARM(52) = 1; // number of compute nodes (MPI)
+  p->IPARM( 3 ) = 1; // must be set to match number of processors TODO c_omp * c_mpi or just c_omp???
+  p->IPARM( 52 ) = 1; // number of compute nodes (MPI)
 
   // launch pardiso
   // TODO do we need to know the matrix type when we start here?? might need to move to analyze stage...
-  pardisoinit(p->PT, &(p->MTYPE), &(p->SOLVER), p->iparm, p->dparm, &(p->error) );
-  if(p->error != NO_ERROR)
-    fprintf(stderr, "error: pardiso initialization code %d\n", p->error); // TODO decode
-  assert(p->error == NO_ERROR);
+  pardisoinit( p->PT, &( p->MTYPE ), &( p->SOLVER ), p->iparm, p->dparm, &( p->error ) );
+  if ( p->error != NO_ERROR )
+    fprintf( stderr, "error: pardiso initialization code %d\n", p->error ); // TODO decode
+  assert( p->error == NO_ERROR );
 }
 
 void solver_analyze_pardiso( solver_state_t* s, matrix_t* A ) {
@@ -103,7 +105,7 @@ void solver_analyze_pardiso( solver_state_t* s, matrix_t* A ) {
   solve_system_pardiso_t* const p = s->specific;
   assert( p != NULL );
 
-  assert(0); // TODO beyond here...
+  assert( 0 ); // TODO beyond here...
 
   // TODO could do this smarter by giving MUMPS the symmetric matrix to solve,
   // instead we're just going straight for the unsymmetric solver
@@ -175,9 +177,9 @@ void solver_finalize_pardiso( solver_state_t* s ) {
 
   // release memory
   if ( p != NULL ) {
-    free(p->PT);
-    free(p->iparm);
-    free(p->dparm);
+    free( p->PT );
+    free( p->iparm );
+    free( p->dparm );
   }
   free( p );
 }
