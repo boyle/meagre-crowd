@@ -19,7 +19,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.68])
+AC_PREREQ([2.65])
 AC_INIT([meagre-crowd],[0.4.1],[<meagre-crowd@googlegroups.com>])
 
 AC_COPYRIGHT([Copyright (C) 2010, 2011 Alistair Boyle])
@@ -93,7 +93,7 @@ AC_SEARCH_LIBS([cholmod_solve], [cholmod],,AC_MSG_ERROR([missing CHOLMOD]))
 AC_OPENMP
 AX_PTHREAD
 AC_F77_LIBRARY_LDFLAGS
-AC_SEARCH_LIBS([pardisoinit],[paradiso],,AC_MSG_ERROR([missing Paradiso]), $FLIBS $OPENMP_CFLAGS $LIB_PTHREAD)
+AC_SEARCH_LIBS([pardisoinit],[pardiso],,AC_MSG_ERROR([missing Pardiso]), $FLIBS $OPENMP_CFLAGS $LIB_PTHREAD)
 
 # Checks for header files.
 AC_CHECK_HEADERS([float.h stdlib.h string.h sys/time.h])

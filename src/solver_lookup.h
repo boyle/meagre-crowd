@@ -22,7 +22,7 @@
 #include "solver_mumps.h"
 #include "solver_umfpack.h"
 #include "solver_cholmod.h"
-#include "solver_paradiso.h"
+#include "solver_pardiso.h"
 
 
 // the static solver lookup
@@ -214,18 +214,18 @@ static const struct solver_properties_t solver_lookup[] = {
   //   unsym: combine direct and iterative for unsym (same sparsity pattern, slowly changing system)
   //     solves first factorization to LU, then uses these as preconditioned krylov subspace iterations, switch back if not converging
   //     IPARM(4), IPARM(20)
-  { "paradiso", "Paradiso", "Olaf Schenk, Klaus Gärtner", "University Basel", "4.1.0", "academic/commercial",
+  { "pardiso", "Pardiso", "Olaf Schenk, Klaus Gärtner", "University Basel", "4.1.0", "academic/commercial",
     "http://www.pardiso-project.org",
-    &solver_init_paradiso,
-    &solver_analyze_paradiso,
-    &solver_factorize_paradiso,
-    &solver_evaluate_paradiso,
-    &solver_finalize_paradiso,
+    &solver_init_pardiso,
+    &solver_analyze_pardiso,
+    &solver_factorize_pardiso,
+    &solver_evaluate_pardiso,
+    &solver_finalize_pardiso,
     SOLVES_FORMAT_CSR | SOLVES_BASE_ONE | SOLVER_REQUIRES_DIAGONAL |
     SOLVES_SYMMETRIC | SOLVES_UNSYMMETRIC |
     SOLVES_DATA_TYPE_REAL_DOUBLE | // TODO and REAL_COMPLEX
     SOLVES_RHS_DCOL | SOLVES_RHS_CSR,
-    SOLVER_REQUIRES_MPI | SOLVER_REQUIRES_OMP,
+    SOLVER_REQUIRES_OMP, // futuer release is supposed to support MPI too SOLVER_REQUIRES_MPI
     "    [1] O. Schenk and K. Gärtner, Solving Unsymmetric Sparse Systems of Linear\n"
     "        Equations with PARDISO, Journal of Future Generation Computer Systems,\n"
     "        20(3):475--487, 2004.\n"
