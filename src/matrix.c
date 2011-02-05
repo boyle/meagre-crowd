@@ -854,6 +854,8 @@ int convert_matrix( matrix_t* m, enum matrix_format_t f, enum matrix_base_t b ) 
       case DCOL:
         break; // nothing needs doing
       case SM_COO: // adjust row and col
+      case SM_CSC:
+      case SM_CSR:
         if ( b == FIRST_INDEX_ZERO ) {
           for ( i = 0;i < m->nz;i++ ) {
             m->ii[i]--;
@@ -863,30 +865,6 @@ int convert_matrix( matrix_t* m, enum matrix_format_t f, enum matrix_base_t b ) 
         else { // FIRST_INDEX_ONE
           for ( i = 0;i < m->nz;i++ ) {
             m->ii[i]++;
-            m->jj[i]++;
-          }
-        }
-        break;
-      case SM_CSC: // adjust col
-        if ( b == FIRST_INDEX_ZERO ) {
-          for ( i = 0;i < m->nz;i++ ) {
-            m->ii[i]--;
-          }
-        }
-        else { // FIRST_INDEX_ONE
-          for ( i = 0;i < m->nz;i++ ) {
-            m->ii[i]++;
-          }
-        }
-        break;
-      case SM_CSR: // adjust row
-        if ( b == FIRST_INDEX_ZERO ) {
-          for ( i = 0;i < m->nz;i++ ) {
-            m->jj[i]--;
-          }
-        }
-        else { // FIRST_INDEX_ONE
-          for ( i = 0;i < m->nz;i++ ) {
             m->jj[i]++;
           }
         }
