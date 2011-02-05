@@ -140,6 +140,7 @@ static const struct solver_properties_t solver_lookup[] = {
     SOLVES_DATA_TYPE_REAL_DOUBLE |
     SOLVES_SQUARE_ONLY |
     // TODO is mumps really restricted to square matrices?
+    // TODO mumps can handle sparse rhs and can solve multiple right hand sides
     SOLVES_RHS_DCOL | SOLVES_RHS_VECTOR_ONLY,
     SOLVER_REQUIRES_MPI,
     "    [1] P. R. Amestoy, I. S. Duff, J. Koster and J.-Y. L'Excellent,\n"
@@ -221,11 +222,11 @@ static const struct solver_properties_t solver_lookup[] = {
     &solver_factorize_pardiso,
     &solver_evaluate_pardiso,
     &solver_finalize_pardiso,
-    SOLVES_FORMAT_CSR | SOLVES_BASE_ONE | SOLVER_REQUIRES_DIAGONAL |
-    SOLVES_SYMMETRIC | SOLVES_UNSYMMETRIC |
+    SOLVES_FORMAT_CSR | SOLVES_BASE_ONE | SOLVER_REQUIRES_DIAGONAL | // TODO diagonal only for sym matrices?
+    SOLVES_SYMMETRIC_UPPER_TRIANGULAR | SOLVES_UNSYMMETRIC | // TODO or lower triangular?
     SOLVES_DATA_TYPE_REAL_DOUBLE | // TODO and REAL_COMPLEX
     SOLVES_RHS_DCOL | SOLVES_RHS_CSR,
-    SOLVER_REQUIRES_OMP, // futuer release is supposed to support MPI too SOLVER_REQUIRES_MPI
+    SOLVER_REQUIRES_OMP | SOLVER_CAN_USE_MPI,
     "    [1] O. Schenk and K. Gärtner, Solving Unsymmetric Sparse Systems of Linear\n"
     "        Equations with PARDISO, Journal of Future Generation Computer Systems,\n"
     "        20(3):475--487, 2004.\n"
