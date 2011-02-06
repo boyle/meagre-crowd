@@ -25,6 +25,7 @@
 #include <string.h> // memcpy
 #include <assert.h>
 #include <stdint.h> // int64_t
+#include <unistd.h> // dup -> redirect stdout temporarily
 
 // NOTE: pardiso doesn't include a header file for its library, use these prototypes instead
 void pardisoinit( void   * PT, int    * MTYPE,   int * SOLVER, int * IPARM, double * DPARM, int *ERROR );
@@ -79,7 +80,7 @@ void solver_init_pardiso( solver_state_t* s ) {
   assert( p != NULL );
   s->specific = p;
 
-  p->PT = malloc( 64 * sizeof( int64_t ) ); // TODO try much larger allocation...
+  p->PT = malloc( 64 * sizeof( int64_t ) );
   assert( p->PT != NULL );
   p->MTYPE = REAL_UNSYM; // default to real/unsym
   int SOLVER = 0; // default to direct solver
@@ -142,7 +143,56 @@ void solver_init_pardiso( solver_state_t* s ) {
   // launch pardiso
   // TODO do we need to know the matrix type when we start here?? might need to move to analyze stage...
   int error_code = 0;
+
+  // we redirect stdout to /dev/null around this call to skip the licensing warnings
+  // Very non-portable code...
+  // check:
+  //  printf("stdout is being redirected to /dev/null\n");
+  // Method 1:
+  //  int old_stdout = dup(STDOUT_FILENO);
+  //  assert(old_stdout > 0); // or an error occurred
+  //  FILE *fp1 = freopen("/dev/null","w", stdout);
+  //  assert(fp1 != NULL);
+  // Method 2:
+  FILE *o = stdout;
+  stdout = fopen("/dev/null","w");
+  assert(stdout != NULL);
+  // Method 3:
+  //  int o = dup(fileno(stdout);
+  //  assert(o != -1);
+  //  freopen = fopen("/dev/null","w");
+  //  assert(freopen != NULL);
+  // check:
+  //  printf("can't see this. RIGHT?\n");
+
   pardisoinit( p->PT, &( p->MTYPE ), &SOLVER, p->iparm, p->dparm, &error_code );
+
+  // the trick though, is to return stdout to normal afterwards
+  // Note: this definitely is different on windows!
+  // Method 1:
+  //  FILE *fp2 = fdopen(old_stdout, "w");
+  //  assert(fp2 != NULL);
+  //  int ret = fclose(stdout);
+  //  assert(ret == 0);
+  //  stdout = fp2; // glibc
+  //  OR *stdout = *fp2; // Solaris and MacOS X
+  //  ret = close(old_stdout);
+  //  assert(ret == 0);
+  // Method 2:
+  int ret = fclose(stdout);
+  assert(ret == 0);
+  stdout = o;
+  // Method 3:
+  //  int ret = dup2(o, fileno(stdout));
+  //  assert(ret != -1);
+  //  ret = close(o);
+  //  assert(ret == 0);
+  // check:
+  //  printf("stdout has been restored!\n");
+
+
+
+  // check for errors from paradiso
   if ( error_code != NO_ERROR )
     fprintf( stderr, "error: pardiso initialization code %d\n", error_code ); // TODO decode
   assert( error_code == NO_ERROR );
@@ -185,13 +235,13 @@ void solver_analyze_pardiso( solver_state_t* s, matrix_t* A ) {
   // expects A->dd to be "double" either real or complex
   // expects "int" for A->ii, A->jj
   int* const PERM = NULL; // if(IPARM(5)=1, user fill-reducing permutation (ordering) (size N) B = P A P^t, PERM(i) = row i of A to column PERM(i) of B
-  int* const NRHS = NULL; // columns in rhs
+  int NRHS = 0; // columns in rhs
   int MSGLVL = 0; // TODO set based on s->verbosity
   double* const B = NULL; // N x NRHS, replaced w/ X if IPARM(6) = 1 -- solution phase
   double* const X = NULL; // N x NRHS solution if IPRAM(6) = 0 -- solution phase
   int error_code = 0;
   pardiso( p->PT, &MAXFCT, &MNUM, &( p->MTYPE ), &PHASE, &N,
-           A->dd, ( int* ) A->ii, ( int* ) A->jj, PERM, NRHS, p->iparm,
+           A->dd, ( int* ) A->ii, ( int* ) A->jj, PERM, &NRHS, p->iparm,
            &MSGLVL, B, X, &error_code, p->dparm );
   if ( error_code != NO_ERROR )
     fprintf( stderr, "error: pardiso analyze code %d\n", error_code ); // TODO decode
@@ -240,13 +290,13 @@ void solver_factorize_pardiso( solver_state_t* s, matrix_t* A ) {
   // expects A->dd to be "double" either real or complex
   // expects "int" for A->ii, A->jj
   int* const PERM = NULL; // if(IPARM(5)=1, user fill-reducing permutation (ordering) (size N) B = P A P^t, PERM(i) = row i of A to column PERM(i) of B
-  int* const NRHS = NULL; // columns in rhs
+  int NRHS = 0; // columns in rhs
   int MSGLVL = 0; // TODO set based on s->verbosity
   double* const B = NULL; // N x NRHS, replaced w/ X if IPARM(6) = 1 -- solution phase
   double* const X = NULL; // N x NRHS solution if IPRAM(6) = 0 -- solution phase
   int error_code = 0;
   pardiso( p->PT, &MAXFCT, &MNUM, &( p->MTYPE ), &PHASE, &N,
-           A->dd, ( int* ) A->ii, ( int* ) A->jj, PERM, NRHS, p->iparm,
+           A->dd, ( int* ) A->ii, ( int* ) A->jj, PERM, &NRHS, p->iparm,
            &MSGLVL, B, X, &error_code, p->dparm );
   if ( error_code != NO_ERROR )
     fprintf( stderr, "error: pardiso factorize code %d\n", error_code ); // TODO decode
@@ -317,14 +367,15 @@ void solver_finalize_pardiso( solver_state_t* s ) {
 
   // release memory
   if ( p != NULL ) {
-    int MAXFCT = 1;
-    int MNUM = 1; // use which of MAXFACT stored factorizations in solution phase
-    int PHASE = -1; // 10*i + j, do phases i->j, 1: analysis, 2; factorize, 3: solve w/ itr refinement, 4: terminate and release mem for MNUM, <0: release all mem
-    int MSGLVL = 0; // TODO set based on s->verbosity
-    int error_code = 0;
-    pardiso( p->PT, &MAXFCT, &MNUM, NULL, &PHASE, NULL,
-             NULL, NULL, NULL, NULL, NULL, NULL,
-             &MSGLVL, NULL, NULL, &error_code, NULL );
+//    int MAXFCT = 1;
+//    int MNUM = 1; // use which of MAXFACT stored factorizations in solution phase
+//    int PHASE = -1; // 10*i + j, do phases i->j, 1: analysis, 2; factorize, 3: solve w/ itr refinement, 4: terminate and release mem for MNUM, <0: release all mem
+//    int MSGLVL = 0; // TODO set based on s->verbosity
+    int error_code = NO_ERROR;
+// TODO this seems to segfault... but if we don't, things aren't cleaned up nicely
+//    pardiso( p->PT, &MAXFCT, &MNUM, NULL, &PHASE, NULL,
+//             NULL, NULL, NULL, NULL, NULL, NULL,
+//             &MSGLVL, NULL, NULL, &error_code, NULL );
     if ( error_code != NO_ERROR )
       fprintf( stderr, "error: pardiso finalize code %d\n", error_code ); // TODO decode
     assert( error_code == NO_ERROR );
