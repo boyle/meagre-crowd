@@ -49,8 +49,7 @@ EXTRA_DIST = get_dependencies $(bin_SCRIPTS) \
 	     tests/unsym-default-ans.mm tests/sym-default-ans.mm tests/sym_posdef-default-ans.mm \
 	     tests/unsym-rhs1-ans.mm tests/sym-rhs1-ans.mm tests/sym_posdef-rhs1-ans.mm \
 	     tests/test.hb tests/test.rb \
-             ChangeLog README NEWS INSTALL LICENSE COPYING COPYING.LESSER \
-             m4/*
+             ChangeLog README NEWS INSTALL LICENSE COPYING COPYING.LESSER
 
 # the tests
 BUILT_TESTS = tests/file tests/helloworld-mpi tests/helloworld-mumps tests/mumps-file tests/unit-perftimer tests/unit-matrix tests/hello-umfpack
