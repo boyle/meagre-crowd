@@ -40,3 +40,7 @@ Fix memory leaks:
  - there is a leak in one of the shared libraries atexit() - probably
    the BeBop sparse matrix loader library, maybe rewrite/extract the bits
    I need and clean it up, it seems to be only partially functional from my tests
+
+For the immediate future:
+ - For EIT simulations we're interested in square matrices.
+   Real problems are symmetric. Complex problems are *not* Hermitian.
