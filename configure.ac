@@ -97,6 +97,7 @@ AC_OPENMP
 AX_PTHREAD
 AC_F77_LIBRARY_LDFLAGS
 AC_SEARCH_LIBS([pardisoinit],[pardiso],,AC_MSG_ERROR([missing Pardiso]), $FLIBS $OPENMP_CFLAGS $LIB_PTHREAD)
+AC_SEARCH_LIBS([pwgsmp_],[pwsmp],,AC_MSG_ERROR([missing WSMP]), $FLIBS $OPENMP_CFLAGS $LIB_PTHREAD)
 
 # Checks for header files.
 AC_CHECK_HEADERS([float.h stdlib.h string.h sys/time.h])
