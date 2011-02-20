@@ -82,10 +82,10 @@ AM_PROG_CC_C_O
 
 # Checks for libraries.
 AC_SEARCH_LIBS([load_sparse_matrix], [sparse_matrix_converter],,AC_MSG_ERROR([missing BeBOP sparse matrix I/O library]))
-AC_SEARCH_LIBS([dmumps_c], [dmumps],,AC_MSG_ERROR([missing MUMPS library (double precision)]))
-AC_SEARCH_LIBS([umfpack_di_symbolic], [umfpack],,AC_MSG_ERROR([missing UMFPACK]))
+AC_SEARCH_LIBS([dmumps_c], [dmumps],,AC_MSG_ERROR([missing solver: MUMPS (double precision)]))
+AC_SEARCH_LIBS([umfpack_di_symbolic], [umfpack],,AC_MSG_ERROR([missing solver: UMFPACK]))
 # might not be needed, if already included through another solver
-AC_SEARCH_LIBS([cholmod_solve], [cholmod],,AC_MSG_ERROR([missing CHOLMOD]))
+AC_SEARCH_LIBS([cholmod_solve], [cholmod],,AC_MSG_ERROR([missing solver: CHOLMOD]))
 # has a 30 day license!
 # TODO reduce extra libs
 
@@ -96,8 +96,8 @@ AC_SEARCH_LIBS([taucs_linsolve],[taucs],,AC_MSG_ERROR([missing solver: TAUCS]))
 AC_OPENMP
 AX_PTHREAD
 AC_F77_LIBRARY_LDFLAGS
-AC_SEARCH_LIBS([pardisoinit],[pardiso],,AC_MSG_ERROR([missing Pardiso]), $FLIBS $OPENMP_CFLAGS $LIB_PTHREAD)
-AC_SEARCH_LIBS([pwgsmp_],[pwsmp],,AC_MSG_ERROR([missing WSMP]), $FLIBS $OPENMP_CFLAGS $LIB_PTHREAD)
+AC_SEARCH_LIBS([pardisoinit],[pardiso],,AC_MSG_ERROR([missing solver: Pardiso]), $FLIBS $OPENMP_CFLAGS $LIB_PTHREAD)
+AC_SEARCH_LIBS([pwgsmp_],[pwsmp],,AC_MSG_ERROR([missing solver: WSMP]), $FLIBS $OPENMP_CFLAGS $LIB_PTHREAD)
 
 # Checks for header files.
 AC_CHECK_HEADERS([float.h stdlib.h string.h sys/time.h])
