@@ -29,7 +29,8 @@ meagre_crowd_SOURCES = src/meagre-crowd.c \
     src/solver_umfpack.c \
     src/solver_cholmod.c \
     src/solver_taucs.c \
-    src/solver_pardiso.c
+    src/solver_pardiso.c \
+    src/solver_wsmp.c
 
 # TODO make openMP optional... OPENMP_CFLAGS, PTHREADS and FLIBS are all required only for Paradiso!
 AM_LIBS = $(PTHREAD_LIBS) $(LIBS) $(FLIBS)
@@ -40,7 +41,7 @@ AM_CFLAGS = $(CFLAGS) $(OPENMP_CFLAGS) $(PTHREAD_CFLAGS) -Werror #-Wextra
 # header files that need to be distributed but not installed
 noinst_HEADERS = src/perftimer.h src/matrix.h src/args.h src/file.h \
                  src/solvers.h src/solver_lookup.h \
-		 src/solver_mumps.h src/solver_umfpack.h src/solver_cholmod.h src/solver_pardiso.h src/solver_taucs.h
+		 src/solver_mumps.h src/solver_umfpack.h src/solver_cholmod.h src/solver_pardiso.h src/solver_taucs.h src/solver_wsmp.h
 
 # want these scripts installed in the end
 bin_SCRIPTS = launch_jobs collect_results

@@ -16,13 +16,14 @@
  *     You should have received a copy of the GNU Lesser General Public License
  *     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _SOLVER_PARDISO_H_
-#define _SOLVER_PARDISO_H_
+#ifndef _SOLVER_WSMP_H_
+#define _SOLVER_WSMP_H_
 
 #include "config.h"
 #include "solvers.h"
 #include "matrix.h"
 
+//const char* solver_version_wsmp();
 void solver_init_wsmp( solver_state_t* s );
 void solver_analyze_wsmp( solver_state_t* s, matrix_t* A );
 void solver_factorize_wsmp( solver_state_t* s, matrix_t* A );

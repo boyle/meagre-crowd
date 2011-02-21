@@ -861,20 +861,27 @@ if [[ -n $WSMP_BUILD ]]; then
     rm -rf wsmp
     tar zxvf $F > /dev/null
     cd ${S}/wsmp/wsmp-Linux64
+    echo -n "*   "
     cat VERSION | head -1
     [[ ! -f ${HOME}/wsmp.lic ]] && [[ ! -f ${S}/wsmp.lic ]] && \
       cp wsmp.lic ${S}/
-    cp lib/GNU/mpi2/libpwsmp64.a ${INSTALL_LIB_DIR}/libpwsmp-mpi2-64b.a
-    cp lib/GNU/openmpi/libpwsmp64.a ${INSTALL_LIB_DIR}/libpwsmp-openmpi-64b.a
-    cd ${INSTALL_LIB_DIR}
-    LIBS="-L${INSTALL_LIB_DIR} ${BLAS_DLIB} -lmpi_f77 -lgfortran -lpthread -lm"
+    LIBS="-L${INSTALL_LIB_DIR} ${BLAS_DLIB} -lmpi_f77" 
     if [[ ${MPI} == "openmpi" ]]; then
-      a2so ${INSTALL_LIB_DIR}/libpwsmp-openmpi-64b.a ${LIBS}
+      info "  selected OpenMPI version of libpwsmp"
+      cp ${S}/wsmp/wsmp-Linux64/lib/GNU/openmpi/libpwsmp64.a ${INSTALL_LIB_DIR}/libpwsmp-openmpi-64b.a
+      cd ${INSTALL_LIB_DIR}
       ln -sf libpwsmp-openmpi-64b.so libpwsmp.so
     else
+      info "  selected mpich2 version of libpwsmp"
+      cp ${S}/wsmp/wsmp-Linux64/lib/GNU/mpi2/libpwsmp64.a ${INSTALL_LIB_DIR}/libpwsmp-mpi2-64b.a
       a2so ${INSTALL_LIB_DIR}/libpwsmp-mpi2-64b.a    ${LIBS}
+      cd ${INSTALL_LIB_DIR}
       ln -sf libpwsmp-mpi2-64b.so libpwsmp.so
     fi
+    info "  installed libwsmp"
+    cp ${S}/wsmp/wsmp-Linux64/lib/GNU/libwsmp64.a ${INSTALL_LIB_DIR}/libwsmp-64b.a
+    a2so ${INSTALL_LIB_DIR}/libwsmp-64b.a -L${INSTALL_LIB_DIR} ${BLAS_DLIB} -lpthread
+    ln -sf libwsmp-64b.so libwsmp.so
   fi
 fi
 

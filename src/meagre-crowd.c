@@ -143,8 +143,10 @@ int main( int argc, char ** argv ) {
   const int is_single_threaded_but_mpi = is_single_threaded && ( c_mpi > 1 );
   if ( is_mpi || is_single_threaded_but_mpi ) {
     int ierr;
-    ierr = MPI_Init( &argc, &argv );
+    int provided_threading;
+    ierr = MPI_Init_thread( &argc, &argv, MPI_THREAD_MULTIPLE, &provided_threading );
     assert( ierr == 0 );
+    assert(provided_threading == MPI_THREAD_MULTIPLE);
     ierr = MPI_Comm_rank( MPI_COMM_WORLD, &( args->mpi_rank ) );
     assert( ierr == 0 );
     ierr = MPI_Comm_size( MPI_COMM_WORLD, &c_mpi );

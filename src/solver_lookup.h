@@ -24,6 +24,7 @@
 #include "solver_cholmod.h"
 #include "solver_taucs.h"
 #include "solver_pardiso.h"
+#include "solver_wsmp.h"
 
 
 // the static solver lookup
@@ -57,7 +58,9 @@ struct  solver_properties_t {
 #define SOLVES_FORMAT_CSR  (1<<6)
 
 #define SOLVES_SQUARE_ONLY                          (1<<7)
-#define SOLVER_REQUIRES_DIAGONAL                    (1<<8) // Paradiso requires the entries on the diagonal to be allocated, even if they're zero!
+#define SOLVER_SYM_REQUIRES_DIAGONAL                (1<<8)
+// Paradiso requires the entries on the diagonal to be allocated, even if they're zero! (WSMP too)
+// This is for symmetric matrices that are not pos-def. (Pos-def matrices have entries on all diagonals.)
 
 #define SOLVES_UNSYMMETRIC                          (1<<9)
 #define SOLVES_SYMMETRIC_POSITIVE_DEFINITE_ONLY     (1<<10)
@@ -243,7 +246,7 @@ static const struct solver_properties_t solver_lookup[] = {
     &solver_factorize_pardiso,
     &solver_evaluate_pardiso,
     &solver_finalize_pardiso,
-    SOLVES_FORMAT_CSR | SOLVES_BASE_ONE | SOLVER_REQUIRES_DIAGONAL | // TODO diagonal only for sym matrices?
+    SOLVES_FORMAT_CSR | SOLVES_BASE_ONE | SOLVER_SYM_REQUIRES_DIAGONAL | // TODO diagonal only for sym matrices?
     SOLVES_SYMMETRIC_UPPER_TRIANGULAR | SOLVES_UNSYMMETRIC | // TODO or lower triangular?
     SOLVES_DATA_TYPE_REAL_DOUBLE | // TODO and REAL_COMPLEX
     SOLVES_RHS_DCOL | SOLVES_RHS_CSR,
@@ -266,6 +269,21 @@ static const struct solver_properties_t solver_lookup[] = {
     "        Optimization and Applications, pp. 321-341, Volume 36, Numbers 2-3 /\n"
     "        April, 2007.\n" },
 
+  { "wsmp", "WSMP", "Anshul Gupta", "IBM/Univ. Minnesota", "11.01.19", "commercial?",
+    "http://www-users.cs.umn.edu/~agupta/wsmp.html",
+    &solver_init_wsmp,
+    &solver_analyze_wsmp,
+    &solver_factorize_wsmp,
+    &solver_evaluate_wsmp,
+    &solver_finalize_wsmp,
+    SOLVES_FORMAT_CSR | SOLVES_BASE_ZERO | SOLVER_SYM_REQUIRES_DIAGONAL | // TODO CSC lower triangular, base 1
+    SOLVES_SYMMETRIC_UPPER_TRIANGULAR | SOLVES_UNSYMMETRIC | // TODO solvers
+    SOLVES_DATA_TYPE_REAL_DOUBLE | // TODO and REAL_COMPLEX -- 8Byte floating pt, 4 byte ints
+    SOLVES_RHS_DCOL,
+    SOLVER_CAN_USE_OMP | SOLVER_REQUIRES_MPI, // TODO: SOLVER_CAN_USE_MPI (select non-MPI solver...) // TODO non-MPI/OMP solvers (switch, based on number of threads/nodes)
+    "    [1] A. Gupta, G. Karypis, V. Kumar, A Highly Scalable Parallel Algorithm for\n"
+    "        Sparse Matrix Factorization, IEEE Transactions on Parallel and\n"
+    "        Distributed Systems, 8(5):502–520, May 1997.\n" },
 
   // Note: MUST have null entry at the end of the list!
   {0}
