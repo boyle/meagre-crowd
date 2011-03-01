@@ -3,6 +3,7 @@
 # select implimentations
 MPI="openmpi" # mpich2 or mpich1 or openmpi or local or skip
 BLAS="netlib" # netlib or atlas or local
+CBLAS="netlib"
 LAPACK="netlib" # netlib or local
 METIS="parmetis" # parmetis or metis -- metis is required by cholmod
 
@@ -13,6 +14,7 @@ METIS="parmetis" # parmetis or metis -- metis is required by cholmod
 MPICH2_MPI_VER="1.2.1p1"
 MPICH1_MPI_VER="1.2.7p1"
 OPENMPI_MPI_VER="1.4.3"
+CILK_VER="5.4.6"
 ATLAS_BLAS_VER=3.8.3 #latest stable
 LAPACK_VER=3.3.0
 # orderings
@@ -29,6 +31,8 @@ CHOLMOD_VER=1.7.1 # can use Metis-4
 MUMPS_VER=4.9.2
 # Note: no versionable downloads for netlib BLAS, ScaLAPACK
 UMFPACK_VER=5.5.0
+TAUCS_VER=2.2
+
 # necessary functions
 function err() {
   echo "ERROR: ${1} - ${2}"
@@ -41,7 +45,7 @@ function info() {
 
 function help() {
   echo "$(basename $0) [options]"
-  echo "  all: blas lapack blacs scalapack amd camd ccolamd colamd metis scotch cholmod mumps umfpack pardiso wsmp bebop"
+  echo "  all: blas lapack blacs scalapack amd camd ccolamd colamd metis scotch cholmod mumps umfpack pardiso wsmp taucs bebop"
   echo "  nopar - parallel make is disabled"
   echo "  clean - remove build directories"
   echo "  distclean - clean + remove generated files too"
@@ -57,7 +61,9 @@ DEP_DIRS="blas blacs lapack mpi mumps scalapack amd ccolamd camd cholmod colamd 
 while [ $# != 0 ]; do
   case $1 in
     "mpi") MPI_BUILD=1;;
+    "cilk") CILK=1;;
     "blas") BLAS_BUILD=1;;
+    "cblas") CBLAS_BUILD=1;;
     "lapack") LAPACK_BUILD=1;;
     "blacs") BLACS=1;;
     "scalapack") SCALAPACK=1;;
@@ -72,6 +78,7 @@ while [ $# != 0 ]; do
     "umfpack") UMFPACK=1;;
     "pardiso") PARDISO=1;;
     "wsmp") WSMP_BUILD=1;;
+    "taucs") TAUCS=1;;
     "bebop") BEBOP=1;;
     "nopar") PARALLEL_MAKE_DISABLED=yes;;
     "clean") echo "cleaning..." && rm -rf ${DEP_DIRS} && exit 0;;
@@ -82,7 +89,9 @@ while [ $# != 0 ]; do
 done
 if [[ -n $ALL ]]; then
   MPI_BUILD=1
+  CILK=1
   BLAS_BUILD=1
+  CBLAS_BUILD=1
   LAPACK_BUILD=1
   BLACS=1
   SCALAPACK=1
@@ -95,10 +104,14 @@ if [[ -n $ALL ]]; then
   CHOLMOD=1
   MUMPS=1
   UMFPACK=1
-  PARDISO=1;
-  WSMP_BUILD=1;
+  PARDISO=1
+  WSMP_BUILD=1
+  TAUCS=1
   BEBOP=1
 fi
+
+# dependencies
+[[ -n $TAUCS ]] && CILK_REQUIRED=1 && CBLAS_REQUIRED=1
 
 # some notes on dynamic library tools:
 # ldd lib.so will show what libraries (and where they are) that a .so depends upon
@@ -256,6 +269,30 @@ O=$($MPI_PATH/bin/mpirun -V 2>&1 | head -1)
 info "  Using MPI: ${O}"
 # need this for BLACS openmpi fix
 [[ ${O} =~ "Open MPI" ]] && MPI="openmpi" && info "    setting MPI variable to match: ${MPI}"
+info "  using ${MPI_PATH}/lib/libmpi.so"
+
+
+
+if [[ -n $CILK ]]; then
+  info "CILK"
+  cd ${S}
+  rm -rf ${S}/taucs
+  get_and_unpack taucs http://www.tau.ac.il/~stoledo/taucs/$TAUCS_VER/taucs.tgz
+  cd ${S}/taucs
+  info "  configure"
+  C=${S}/taucs/config/linux.mk
+#  LIBS = $(LIBLAPACK) $(LIBBLAS) $(LIBMETIS) $(LIBF77) $(LIBC)
+  sed -i "s/^LIBBLAS.*/LIBBLAS = ${BLAS_DLIB//\//\\/}/" $C
+  sed -i "s/^LIBLAPACK.*/LIBLAPACK = ${LAPACK_DLIB//\//\\/}/" $C
+  sed -i "s/^LIBMETIS.*/LIBMETIS = ${METIS_DLIB//\//\\/}/" $C
+#  sed -i "s/^LIBF77.*/LIBF77 = /" $C # TODO
+  info "  build"
+  ./configure
+  make
+fi
+if [[ -n $CILK_REQUIRED ]]; then
+  info "CILK TODO for TAUCS"
+fi
 
 # matrix tools:
 # get blas (atlas, netlib, goto, mkl, acml, parblas)
@@ -311,7 +348,7 @@ if [[ -n $BLAS_BUILD ]]; then
     info "  up-to-date"
   fi
 fi
-# find mpi install dir, prefer local install
+# find blas install dir, prefer local install
 if [[ -f ${INSTALL_BASE_DIR}/lib/libblas.so ]]; then
   BLAS_PATH=${INSTALL_BASE_DIR}
 else
@@ -319,6 +356,43 @@ else
 fi
 [[ ! -f ${BLAS_PATH}/lib/libblas.so ]] && err blas "can't find libblas.so at ${BLAS_PATH}"
 BLAS_DLIB="-L${BLAS_PATH}/lib -lblas"
+info "  using ${BLAS_PATH}/lib/libblas.so"
+
+
+# if [[ -n $CBLAS_BUILD ]]; then
+#   info "cBLAS"
+#   CBLAS_LIB=${INSTALL_LIB_DIR}/libcblas.a
+#   cd ${S}
+#   case ${CBLAS} in
+#     "netlib" )
+#       get_and_unpack cblas http://www.netlib.org/cblas/cblas.tgz
+#       cd ${S}/cblas/CBLAS
+#       sed -i s/_LINUX/-${MACHINE}/ make.inc
+#       sed -i s/g77/gfortran/ make.inc
+#       sed -i "s/\(^OPTS *=\) .*/\1 -O3 -fPIC/" make.inc
+#       info "  build"
+#       ${MAKE} all &> /dev/null || err blas "build failed"
+#       cp cblas-${MACHINE}.a  ${INSTALL_LIB_DIR}/libcblas.a
+#       a2so ${INSTALL_LIB_DIR}/libcblas.a -lgfortran -lm
+#     ;;
+#     *) err cblas "bad cblas choice: ${CBLAS}";;
+#   esac
+#   for i in ${BLAS_LIB}; do
+#     [ ! -f ${i} ] && err blas "missing lib ${BLAS_LIB}"
+#   done
+# fi
+# if [[ -n $CBLAS_REQUIRED ]]; then
+#   # find cblas install dir, prefer local install
+#   if [[ -f ${INSTALL_BASE_DIR}/lib/libcblas.so ]]; then
+#     CBLAS_PATH=${INSTALL_BASE_DIR}
+#   else
+#     CBLAS_PATH=/usr
+#   fi
+#   [[ ! -f ${CBLAS_PATH}/lib/libcblas.so ]] && err cblas "can't find libcblas.so at ${CBLAS_PATH}"
+#   CBLAS_DLIB="-L${CBLAS_PATH}/lib -lcblas"
+#   info "  using ${CBLAS_PATH}/lib/libcblas.so"
+# fi
+
 
 if [[ -n $LAPACK_BUILD ]]; then
   info "LAPACK"
@@ -353,9 +427,15 @@ if [[ -n $LAPACK_BUILD ]]; then
   else
     info "  up-to-date"
   fi
-  LAPACK_DIR=$(dirname ${LAPACK_LIB})
-  LAPACK_DLIB="-L${LAPACK_DIR} -llapack"
 fi
+if [[ -f ${INSTALL_BASE_DIR}/lib/liblapack.so ]]; then
+  LAPACK_PATH=${INSTALL_BASE_DIR}
+else
+  LAPACK_PATH=/usr
+fi
+[[ ! -f ${LAPACK_PATH}/lib/liblapack.so ]] && err lapack "can't find liblapack.so at ${LAPACK_PATH}"
+LAPACK_DLIB="-L${LAPACK_PATH} -llapack"
+info "  using ${LAPACK_PATH}/lib/liblapack.so"
 
 if [[ -n $BLACS ]]; then
   # get BLACS [ScaLAPACK communications]
@@ -595,8 +675,16 @@ if [[ -n $METIS_BUILD ]]; then
     ;;
     * ) err metis "bad selection - ${METIS}";;
   esac
-  METIS_DLIB="-L${INSTALL_LIB_DIR} -l${METIS}"
 fi
+# find blas install dir, prefer local install
+if [[ -f ${INSTALL_BASE_DIR}/lib/lib${METIS}.so ]]; then
+  METIS_PATH=${INSTALL_BASE_DIR}
+else
+  METIS_PATH=/usr
+fi
+[[ ! -f ${METIS_PATH}/lib/lib${METIS}.so ]] && err metis "can't find lib${METIS}.so at ${METIS_PATH}"
+METIS_DLIB="-L${METIS_PATH}/lib -l${METIS}"
+info "  using ${METIS_PATH}/lib/lib${METIS}.so"
 
 if [[ -n $SCOTCH ]]; then
   # Note: parallel make broken for esmumps releases
@@ -787,6 +875,37 @@ if [[ -n $WSMP_BUILD ]]; then
       ln -sf libpwsmp-mpi2-64b.so libpwsmp.so
     fi
   fi
+fi
+
+if [[ -n $TAUCS ]]; then
+  info "TAUCS"
+  cd ${S}
+  rm -rf ${S}/taucs
+  get_and_unpack taucs http://www.tau.ac.il/~stoledo/taucs/$TAUCS_VER/taucs.tgz
+  cd ${S}/taucs
+  info "  patch"
+  C=${S}/taucs/config/linux.mk
+  sed -i "s/^FC.*/FC = gfortran/" $C # was g77
+  sed -i "s/^CFLAGS.*/CFLAGS = -O3 -fPIC -fexceptions -D_GNU_SOURCE/" $C
+  sed -i "s/^FFLAGS.*/FFLAGS = -O3 -fPIC -fno-second-underscore/" $C
+  sed -i "s/^LDFLAGS.*/LDFLAGS = -Wl,-rpath,${INSTALL_LIB_DIR//\//\\/}/" $C
+  sed -i "s/^LIBBLAS.*/LIBBLAS = ${BLAS_DLIB//\//\\/}/" $C
+  sed -i "s/^LIBLAPACK.*/LIBLAPACK = ${LAPACK_DLIB//\//\\/}/" $C
+  sed -i "s/^LIBMETIS.*/LIBMETIS = ${METIS_DLIB//\//\\/}/" $C
+  sed -i "s/^LIBF77.*/LIBF77 = -lgfortran/" $C # was -lg2c
+#  sed -i "s/^LIBC.*/LIBC = -lm/" $C # was -lm
+  # and remove a stray printf that snuck in to his code:
+  sed -i "s/^  printf(/  taucs_printf(/" ${S}/taucs/src/taucs_ccs_ooc_lu.c 
+  # TODO need to strip out amd, colamd from compile, select solvers, data types (see doc/)
+  info "  configure"
+  ./configure &> /dev/null || err taucs "configure failed"
+  info "  build"
+  ${MAKE} &> /dev/null || err taucs "make failed"
+  info "  install"
+  cp ${S}/taucs/lib/linux/libtaucs.a ${INSTALL_LIB_DIR}/
+  a2so ${INSTALL_LIB_DIR}/libtaucs.a ${BLAS_DLIB} ${LAPACK_DLIB} ${METIS_DLIB}
+  cp ${S}/taucs/build/linux/*.h ${INSTALL_INC_DIR}/
+  cp ${S}/taucs/src/taucs*.h ${INSTALL_INC_DIR}/
 fi
 
 info "== I/O =="

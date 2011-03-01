@@ -54,6 +54,7 @@ enum matrix_symmetric_storage_t { BOTH = 0, UPPER_TRIANGULAR, LOWER_TRIANGULAR }
 // COMPLEX_SINGLE: two C floats make a complex single-precision floating point number
 // COMPLEX_SINGLE: two C floats make a complex single-precision floating point number
 // PATTERN: no data (dd), pattern of non-zero entries is indicated by ii, jj
+// TODO I like the way TAUCS used a union to split out the different data types the pointer could hold (null, d, s, c, z)... look at taucs doc/
 enum matrix_data_type_t { SM_REAL = 0, REAL_DOUBLE = 0, REAL_SINGLE = 1, SM_COMPLEX = 2, COMPLEX_DOUBLE = 2, COMPLEX_SINGLE = 3, SM_PATTERN = 4 };  //  TODO remove SM prefixes (bebop conflict)
 // TODO support MATLAB complex format where real and imag are split ("ZOMPLEX") (CHOLMOD)
 // TODO maybe split REAL/COMPLEX/PATTERN from storage type (float, double, int, long, uint, ulong)

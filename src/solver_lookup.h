@@ -22,6 +22,7 @@
 #include "solver_mumps.h"
 #include "solver_umfpack.h"
 #include "solver_cholmod.h"
+#include "solver_taucs.h"
 #include "solver_pardiso.h"
 
 
@@ -185,6 +186,26 @@ static const struct solver_properties_t solver_lookup[] = {
     "    * Modifying a sparse Cholesky factorization, T. A. Davis and W. W.\n"
     "      Hager, SIAM Journal on Matrix Analysis and Applications, vol. 20,\n"
     "      no. 3, pp. 606-627, 1999.\n" },
+
+
+  // "Matlab 7 will use TAUCS' in-core sparse Cholesky factorization within the backslash linear solver." (TODO true?)
+  // effectively single threaded
+  // mostly symmetric solvers: out-of-core and in-core, multithreaded w/ CILK (SMP -- taucs.cilk.nproc=N) + 1 out-of-core unsym solver (slow?)...
+  // entry added 2011-03-01, software last updated Sept, 2003 (v2.2)
+  { "taucs", "TAUCS", "Sivan Toledo", "Tel-Aviv University", "2.2", "LGPL",
+    "http://www.tau.ac.il/~stoledo/taucs/",
+    &solver_init_taucs,
+    &solver_analyze_taucs,
+    &solver_factorize_taucs,
+    &solver_evaluate_taucs,
+    &solver_finalize_taucs,
+    SOLVES_FORMAT_CSC | SOLVES_BASE_ZERO |
+    SOLVES_SYMMETRIC_UPPER_TRIANGULAR | SOLVES_UNSYMMETRIC | // TODO or lower triangular?
+    SOLVES_DATA_TYPE_REAL_DOUBLE | // TODO and REAL_COMPLEX, double and single precision, and handles hermitian
+    SOLVES_RHS_DCOL,
+    0, // uses CILK? not MPI or openMP
+    "        TODO citations\n" }, // TODO
+
 
   // can calculate bit-identical solution on multicore vs. clusters of multicores
   // MPI based solver is for symmetric indefinite!

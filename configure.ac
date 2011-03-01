@@ -89,6 +89,9 @@ AC_SEARCH_LIBS([cholmod_solve], [cholmod],,AC_MSG_ERROR([missing CHOLMOD]))
 # has a 30 day license!
 # TODO reduce extra libs
 
+# TODO TAUCS depends on CILK?
+AC_SEARCH_LIBS([taucs_linsolve],[taucs],,AC_MSG_ERROR([missing solver: TAUCS]))
+
 # TODO (others: gfortran, pthread, m?)     AX_OPENMP([ACTION-IF-FOUND[, ACTION-IF-NOT-FOUND]])
 AC_OPENMP
 AX_PTHREAD
