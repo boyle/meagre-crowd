@@ -55,7 +55,7 @@ EXTRA_DIST = get_dependencies $(bin_SCRIPTS) \
              ChangeLog README NEWS INSTALL LICENSE COPYING COPYING.LESSER
 
 # the tests
-BUILT_TESTS = tests/file tests/helloworld-mpi tests/helloworld-mumps tests/hello-pardiso tests/mumps-file tests/unit-perftimer tests/unit-matrix tests/hello-umfpack
+BUILT_TESTS = tests/file tests/helloworld-mpi tests/helloworld-mumps tests/hello-pardiso tests/helloworld-wsmp tests/mumps-file tests/unit-perftimer tests/unit-matrix tests/hello-umfpack
 #TESTS = $(BUILT_TESTS)
 check_PROGRAMS = $(BUILT_TESTS) 
 tests_unit_perftimer_SOURCES = tests/unit-perftimer.c src/perftimer.c
