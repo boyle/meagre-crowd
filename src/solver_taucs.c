@@ -172,7 +172,7 @@ void solver_factorize_taucs( solver_state_t* s, matrix_t* A ) {
   // use taucs out-of-core solver
   if(p->LU == NULL)
     p->LU = taucs_io_create_multifile("/tmp/taucs-");
-  const double memory = 1e6;// TODO
+  const double memory = taucs_available_memory_size();
   int ret = taucs_ooc_factor_lu(&m, p->colperm, p->LU, memory);
   if(ret != TAUCS_SUCCESS)
     fprintf(stderr,"taucs evaluation error: %s\n",taucs_errorcode_to_string_(ret));
