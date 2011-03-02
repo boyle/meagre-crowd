@@ -30,9 +30,6 @@
 typedef struct {
   int Arows;
   int Acols;
-  int* Aii; // these are pointers to existing data (DON'T free)
-  int* Ajj;
-  double* Add;
 
   void* F; // saved factorization for solve stage
   taucs_io_handle* LU;
@@ -87,8 +84,8 @@ void solver_analyze_taucs( solver_state_t* s, matrix_t* A ) {
   assert( A->m == A->n ); // TODO can only handle square matrices at present???
 
   // Compressed Column Format
-  assert( A->jj[0] == 0 );
-  assert( A->jj[A->m] == A->nz );
+//  assert( A->jj[0] == 0 );
+//  assert( A->jj[A->m] == A->nz );
 
   // TODO orderings? taucs_ccs_order
 
@@ -108,9 +105,12 @@ void solver_analyze_taucs( solver_state_t* s, matrix_t* A ) {
   assert(ret == TAUCS_SUCCESS);
 */
 
+  p->Arows = A->m;
+  p->Acols = A->n;
+
   taucs_ccs_matrix m;
   m.m = A->m; // rows
-  m.n = A->m; // columns
+  m.n = A->n; // columns
   m.flags = TAUCS_DOUBLE;
   m.colptr = (int*) A->jj; // colptr
   m.rowind = (int*) A->ii; // row indices
@@ -137,14 +137,6 @@ void solver_factorize_taucs( solver_state_t* s, matrix_t* A ) {
   assert(( A->sym == SM_UNSYMMETRIC ) || ( A->sym == SM_SYMMETRIC ) );
   assert( A->data_type == REAL_DOUBLE ); // don't handle complex... yet TODO
   assert( A->m == A->n ); // TODO can only handle square matrices at present (UMFPACK?)
-
-
-  // save A for the solve step.. needed for iterative refinement // TODO add A to solve stage to allow iterative refinement!, remove this (and from other solvers)
-  p->Arows = A->m;
-  p->Acols = A->n;
-  p->Ajj = ( int* ) A->jj;
-  p->Aii = ( int* ) A->ii;
-  p->Add = A->dd;
 
 // TODO currently not working for unsym matrices
 /*
@@ -190,18 +182,17 @@ void solver_evaluate_taucs( solver_state_t* s, matrix_t* b, matrix_t* x ) {
   assert( p != NULL );
 
   // and we have a valid 'x' and 'b'
-  int ierr = convert_matrix( b, DCOL, FIRST_INDEX_ONE ); // TODO support for sparse rhs too
+  int ierr = convert_matrix( b, DCOL, FIRST_INDEX_ZERO );
   assert( ierr == 0 );
   assert( b->data_type == REAL_DOUBLE ); // don't handle complex... yet TODO
 
-  // TODO if solver only handles single rhs, loops solver and collect answers...
-
-  // allocate data space // TODO if required
+  // allocate data space
   // TODO move this to master function
   // TODO handle sparse answers??
   if(x != b)
     clear_matrix( x );
-  double *const xdd = malloc(( p->Arows * b->n ) * sizeof( double ) ); // TODO or handle complex!
+  // A mxn, X nxp = B mxp
+  double *const xdd = malloc(( p->Acols * b->n ) * sizeof( double ) ); // TODO or handle complex!
 
 // TODO currently not working for unsym matrices
 /*
@@ -239,7 +230,7 @@ void solver_evaluate_taucs( solver_state_t* s, matrix_t* b, matrix_t* x ) {
   x->format = DCOL;
   x->sym = SM_UNSYMMETRIC;
   x->data_type = b->data_type;
-  x->m = p->Arows;
+  x->m = p->Acols;
   x->n = b->n;
   x->nz = x->m * x->n;
   x->dd = xdd;

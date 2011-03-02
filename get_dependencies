@@ -894,8 +894,34 @@ if [[ -n $TAUCS ]]; then
   sed -i "s/^LIBMETIS.*/LIBMETIS = ${METIS_DLIB//\//\\/}/" $C
   sed -i "s/^LIBF77.*/LIBF77 = -lgfortran/" $C # was -lg2c
 #  sed -i "s/^LIBC.*/LIBC = -lm/" $C # was -lm
-  # and remove a stray printf that snuck in to his code:
-  sed -i "s/^  printf(/  taucs_printf(/" ${S}/taucs/src/taucs_ccs_ooc_lu.c 
+  # and remove a stray printf that snuck in to his code, and fix a problem with uninitialized memory (valgrind)
+  cat > taucs_ooc_lu.patch <<EOF
+--- a/src/taucs_ccs_ooc_lu.c    2011-03-02 03:24:02.000000000 -0500
++++ b/src/taucs_ccs_ooc_lu.c	2011-03-02 03:25:00.000000000 -0500
+@@ -2390,10 +2390,12 @@
+     panel_spa = (taucs_datatype*)taucs_malloc(spawidth*nrows*sizeof(taucs_datatype));
+     panel_spamap = (char*)taucs_malloc(spawidth*nrows*sizeof(char) );
+     assert(panel_spa && panel_spamap);
++    memset(panel_spamap, 0, spawidth*nrows*sizeof(char));
+ #else
+     panel_spa = (taucs_datatype**) taucs_malloc(spawidth*sizeof(taucs_datatype*));
+     panel_spamap = (char**) taucs_malloc(spawidth*sizeof(char*) );
+     assert(panel_spa && panel_spamap);
++    memset(panel_spamap, 0, spawidth*sizeof(char));
+ #endif
+   }
+
+@@ -3936,7 +3938,7 @@
+
+   taucs_io_read(LU, HEADER_FLAGS, 1, 1, TAUCS_INT, &flags);
+
+-  printf("taucs_ooc_solve_lu: starting, DZSC=%d%d%d%d\n",
++  taucs_printf("taucs_ooc_solve_lu: starting, DZSC=%d%d%d%d\n",
+ 	 (flags & TAUCS_DOUBLE  ) != 0,
+ 	 (flags & TAUCS_DCOMPLEX) != 0,
+ 	 (flags & TAUCS_SINGLE  ) != 0,
+EOF
+  patch -p 1 -i taucs_ooc_lu.patch
   # TODO need to strip out amd, colamd from compile, select solvers, data types (see doc/)
   info "  configure"
   ./configure &> /dev/null || err taucs "configure failed"

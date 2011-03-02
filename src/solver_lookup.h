@@ -200,7 +200,7 @@ static const struct solver_properties_t solver_lookup[] = {
     &solver_evaluate_taucs,
     &solver_finalize_taucs,
     SOLVES_FORMAT_CSC | SOLVES_BASE_ZERO |
-    SOLVES_SYMMETRIC_UPPER_TRIANGULAR | SOLVES_UNSYMMETRIC | // TODO or lower triangular?
+    SOLVES_SYMMETRIC_UPPER_TRIANGULAR | // SOLVES_UNSYMMETRIC | // TODO or lower triangular?
     SOLVES_DATA_TYPE_REAL_DOUBLE | // TODO and REAL_COMPLEX, double and single precision, and handles hermitian
     SOLVES_RHS_DCOL,
     0, // uses CILK? not MPI or openMP
