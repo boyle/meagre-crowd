@@ -155,8 +155,8 @@ void solver_init_pardiso( solver_state_t* s ) {
   //  assert(fp1 != NULL);
   // Method 2:
   FILE *o = stdout;
-  stdout = fopen("/dev/null","w");
-  assert(stdout != NULL);
+  stdout = fopen( "/dev/null", "w" );
+  assert( stdout != NULL );
   // Method 3:
   //  int o = dup(fileno(stdout);
   //  assert(o != -1);
@@ -179,8 +179,8 @@ void solver_init_pardiso( solver_state_t* s ) {
   //  ret = close(old_stdout);
   //  assert(ret == 0);
   // Method 2:
-  int ret = fclose(stdout);
-  assert(ret == 0);
+  int ret = fclose( stdout );
+  assert( ret == 0 );
   stdout = o;
   // Method 3:
   //  int ret = dup2(o, fileno(stdout));

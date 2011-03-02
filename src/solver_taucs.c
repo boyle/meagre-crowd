@@ -36,16 +36,23 @@ typedef struct {
   int* colperm;
 } solve_system_taucs_t;
 
-static const char* taucs_errorcode_to_string_(int err);
-static const char* taucs_errorcode_to_string_(int err) {
-  switch(err) {
-    case TAUCS_SUCCESS:          return "no error: SUCCESS!";
-    case TAUCS_ERROR:            return "general error";
-    case TAUCS_ERROR_NOMEM:      return "memory allocation failure";
-    case TAUCS_ERROR_BADARGS:    return "bad arguments";
-    case TAUCS_ERROR_MAXDEPTH:   return "recursion limit (stack overflow)";
-    case TAUCS_ERROR_INDEFINITE: return "expecting posdef matrix";
-    default: return "unknown error code";
+static const char* taucs_errorcode_to_string_( int err );
+static const char* taucs_errorcode_to_string_( int err ) {
+  switch ( err ) {
+    case TAUCS_SUCCESS:
+      return "no error: SUCCESS!";
+    case TAUCS_ERROR:
+      return "general error";
+    case TAUCS_ERROR_NOMEM:
+      return "memory allocation failure";
+    case TAUCS_ERROR_BADARGS:
+      return "bad arguments";
+    case TAUCS_ERROR_MAXDEPTH:
+      return "recursion limit (stack overflow)";
+    case TAUCS_ERROR_INDEFINITE:
+      return "expecting posdef matrix";
+    default:
+      return "unknown error code";
   }
 }
 
@@ -56,8 +63,8 @@ void solver_init_taucs( solver_state_t* s ) {
   s->specific = p;
 
   // if set to be verbose set this to stdout TODO
-  if(s->verbosity >= 3)
-    taucs_logfile("stdout");
+  if ( s->verbosity >= 3 )
+    taucs_logfile( "stdout" );
 }
 
 void solver_analyze_taucs( solver_state_t* s, matrix_t* A ) {
@@ -90,20 +97,20 @@ void solver_analyze_taucs( solver_state_t* s, matrix_t* A ) {
   // TODO orderings? taucs_ccs_order
 
 // TODO not working for unsym matrices...
-/*
-  static char* options[] =
-    { "taucs.factor.numeric=false",
-      "taucs.factor.LU=true",
-      // TODO taucs.factor.mf or ll for multifrontal or left-looking
-      // taucs.factor.ordering chooses the ordering method
-      NULL }; // NULL terminated string list
+  /*
+    static char* options[] =
+      { "taucs.factor.numeric=false",
+        "taucs.factor.LU=true",
+        // TODO taucs.factor.mf or ll for multifrontal or left-looking
+        // taucs.factor.ordering chooses the ordering method
+        NULL }; // NULL terminated string list
 
-  const int nrhs = 0;
-  int ret = taucs_linsolve( &m, &(p->F), nrhs, NULL, NULL, options, NULL ); // factorize
-  if(ret != TAUCS_SUCCESS)
-    fprintf(stderr,"taucs analysis error: %s\n",taucs_errorcode_to_string_(ret));
-  assert(ret == TAUCS_SUCCESS);
-*/
+    const int nrhs = 0;
+    int ret = taucs_linsolve( &m, &(p->F), nrhs, NULL, NULL, options, NULL ); // factorize
+    if(ret != TAUCS_SUCCESS)
+      fprintf(stderr,"taucs analysis error: %s\n",taucs_errorcode_to_string_(ret));
+    assert(ret == TAUCS_SUCCESS);
+  */
 
   p->Arows = A->m;
   p->Acols = A->n;
@@ -112,13 +119,13 @@ void solver_analyze_taucs( solver_state_t* s, matrix_t* A ) {
   m.m = A->m; // rows
   m.n = A->n; // columns
   m.flags = TAUCS_DOUBLE;
-  m.colptr = (int*) A->jj; // colptr
-  m.rowind = (int*) A->ii; // row indices
-  m.values.d = (taucs_double*) A->dd;
+  m.colptr = ( int* ) A->jj; // colptr
+  m.rowind = ( int* ) A->ii; // row indices
+  m.values.d = ( taucs_double* ) A->dd;
 
   int* invperm = NULL;
-  taucs_ccs_order(&m, &(p->colperm), &invperm, "colamd"); // return void
-  free(invperm); // don't care about the inverse permutation
+  taucs_ccs_order( &m, &( p->colperm ), &invperm, "colamd" ); // return void
+  free( invperm ); // don't care about the inverse permutation
 }
 
 void solver_factorize_taucs( solver_state_t* s, matrix_t* A ) {
@@ -139,37 +146,37 @@ void solver_factorize_taucs( solver_state_t* s, matrix_t* A ) {
   assert( A->m == A->n ); // TODO can only handle square matrices at present (UMFPACK?)
 
 // TODO currently not working for unsym matrices
-/*
-  static char* options[] =
-    { "taucs.factor.LU=true",
-      "taucs.factor.symbolic=false", // use the analyze results
-      NULL }; // NULL terminated string list
+  /*
+    static char* options[] =
+      { "taucs.factor.LU=true",
+        "taucs.factor.symbolic=false", // use the analyze results
+        NULL }; // NULL terminated string list
 
-  const int nrhs = 0;
-  int ret = taucs_linsolve( &m, &(p->F), nrhs, NULL, NULL, options, NULL ); // factorize
-  if(ret != TAUCS_SUCCESS)
-    fprintf(stderr,"taucs factorization error: %s\n",taucs_errorcode_to_string_(ret));
-  assert(ret == TAUCS_SUCCESS);
+    const int nrhs = 0;
+    int ret = taucs_linsolve( &m, &(p->F), nrhs, NULL, NULL, options, NULL ); // factorize
+    if(ret != TAUCS_SUCCESS)
+      fprintf(stderr,"taucs factorization error: %s\n",taucs_errorcode_to_string_(ret));
+    assert(ret == TAUCS_SUCCESS);
 
-  // TODO currently this re-runs the ordering again, instead of reusing the old one from _anaylze()
-*/
+    // TODO currently this re-runs the ordering again, instead of reusing the old one from _anaylze()
+  */
   taucs_ccs_matrix m;
   m.m = A->m; // rows
   m.n = A->n; // columns
   m.flags = TAUCS_DOUBLE;
-  m.colptr = (int*) A->jj; // colptr
-  m.rowind = (int*) A->ii; // row indices
-  m.values.d = (taucs_double*) A->dd;
+  m.colptr = ( int* ) A->jj; // colptr
+  m.rowind = ( int* ) A->ii; // row indices
+  m.values.d = ( taucs_double* ) A->dd;
 
   // use taucs out-of-core solver
-  if(p->LU == NULL)
-    p->LU = taucs_io_create_multifile("/tmp/taucs-");
+  if ( p->LU == NULL )
+    p->LU = taucs_io_create_multifile( "/tmp/taucs-" );
   const double memory = taucs_available_memory_size();
-  int ret = taucs_ooc_factor_lu(&m, p->colperm, p->LU, memory);
-  if(ret != TAUCS_SUCCESS)
-    fprintf(stderr,"taucs evaluation error: %s\n",taucs_errorcode_to_string_(ret));
-  assert(ret == TAUCS_SUCCESS);
-  
+  int ret = taucs_ooc_factor_lu( &m, p->colperm, p->LU, memory );
+  if ( ret != TAUCS_SUCCESS )
+    fprintf( stderr, "taucs evaluation error: %s\n", taucs_errorcode_to_string_( ret ) );
+  assert( ret == TAUCS_SUCCESS );
+
 }
 
 // TODO b can be sparse... ??
@@ -189,41 +196,41 @@ void solver_evaluate_taucs( solver_state_t* s, matrix_t* b, matrix_t* x ) {
   // allocate data space
   // TODO move this to master function
   // TODO handle sparse answers??
-  if(x != b)
+  if ( x != b )
     clear_matrix( x );
   // A mxn, X nxp = B mxp
   double *const xdd = malloc(( p->Acols * b->n ) * sizeof( double ) ); // TODO or handle complex!
 
 // TODO currently not working for unsym matrices
-/*
-  static char* options[] = 
-    { "taucs.factor.LU=true",
-      "taucs.factor.symbolic=false", // use the analyze results
-      //"taucs.factor.numeric=false", // use the factorize results
-      "taucs.ooc=true", // TAUCS only supports out-of-core solver for unsym matrices -- there is an in-core solver for sym matrices TODO use this when we can
-      "taucs.ooc.basename=/tmp/taucs-",
-      NULL }; // NULL terminated string list
+  /*
+    static char* options[] =
+      { "taucs.factor.LU=true",
+        "taucs.factor.symbolic=false", // use the analyze results
+        //"taucs.factor.numeric=false", // use the factorize results
+        "taucs.ooc=true", // TAUCS only supports out-of-core solver for unsym matrices -- there is an in-core solver for sym matrices TODO use this when we can
+        "taucs.ooc.basename=/tmp/taucs-",
+        NULL }; // NULL terminated string list
 
-  int nrhs = b->n;
+    int nrhs = b->n;
 
-  taucs_ccs_matrix m;
-  m.m = p->Arows; // rows
-  m.n = p->Acols; // columns
-  m.flags = TAUCS_DOUBLE;
-  m.colptr = p->Ajj; // colptr
-  m.rowind = p->Aii; // row indices
-  m.values.d = (taucs_double*) p->Add;
-  int ret = taucs_linsolve( &m, &(p->F), nrhs, xdd, b->dd, options, NULL ); // solve
-  if(ret != TAUCS_SUCCESS)
-    fprintf(stderr,"taucs evaluation error: %s\n",taucs_errorcode_to_string_(ret));
-  assert(ret == TAUCS_SUCCESS);
-*/
+    taucs_ccs_matrix m;
+    m.m = p->Arows; // rows
+    m.n = p->Acols; // columns
+    m.flags = TAUCS_DOUBLE;
+    m.colptr = p->Ajj; // colptr
+    m.rowind = p->Aii; // row indices
+    m.values.d = (taucs_double*) p->Add;
+    int ret = taucs_linsolve( &m, &(p->F), nrhs, xdd, b->dd, options, NULL ); // solve
+    if(ret != TAUCS_SUCCESS)
+      fprintf(stderr,"taucs evaluation error: %s\n",taucs_errorcode_to_string_(ret));
+    assert(ret == TAUCS_SUCCESS);
+  */
 
   // use taucs out-of-core solver
-  int ret = taucs_ooc_solve_lu(p->LU, xdd, b->dd);
-  if(ret != TAUCS_SUCCESS)
-    fprintf(stderr,"taucs evaluation error: %s\n",taucs_errorcode_to_string_(ret));
-  assert(ret == TAUCS_SUCCESS);
+  int ret = taucs_ooc_solve_lu( p->LU, xdd, b->dd );
+  if ( ret != TAUCS_SUCCESS )
+    fprintf( stderr, "taucs evaluation error: %s\n", taucs_errorcode_to_string_( ret ) );
+  assert( ret == TAUCS_SUCCESS );
 
 
   // return result
@@ -244,17 +251,17 @@ void solver_finalize_taucs( solver_state_t* s ) {
 
   // release memory
   if ( p != NULL ) {
-    if(p->F != NULL) {
-      int ret = taucs_linsolve(NULL,&(p->F),0,NULL,NULL,NULL,NULL); // free the factorization
-      if(ret != TAUCS_SUCCESS)
-        fprintf(stderr,"taucs finalize error: %s\n",taucs_errorcode_to_string_(ret));
-      assert(ret == TAUCS_SUCCESS);
+    if ( p->F != NULL ) {
+      int ret = taucs_linsolve( NULL, &( p->F ), 0, NULL, NULL, NULL, NULL ); // free the factorization
+      if ( ret != TAUCS_SUCCESS )
+        fprintf( stderr, "taucs finalize error: %s\n", taucs_errorcode_to_string_( ret ) );
+      assert( ret == TAUCS_SUCCESS );
     }
-    if(p->LU != NULL) {
-      int ret = taucs_io_delete(p->LU);
-      if(ret != TAUCS_SUCCESS)
-        fprintf(stderr,"taucs finalize error: %s\n",taucs_errorcode_to_string_(ret));
-      assert(ret == TAUCS_SUCCESS);
+    if ( p->LU != NULL ) {
+      int ret = taucs_io_delete( p->LU );
+      if ( ret != TAUCS_SUCCESS )
+        fprintf( stderr, "taucs finalize error: %s\n", taucs_errorcode_to_string_( ret ) );
+      assert( ret == TAUCS_SUCCESS );
     }
     p->F = NULL;
     p->LU = NULL;

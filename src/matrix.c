@@ -855,13 +855,13 @@ int convert_matrix( matrix_t* m, enum matrix_format_t f, enum matrix_base_t b ) 
         break; // nothing needs doing
       case SM_COO: // adjust row and col
         if ( b == FIRST_INDEX_ZERO ) {
-          for ( i = 0;i < (m->nz);i++ ) {
+          for ( i = 0;i < ( m->nz );i++ ) {
             m->ii[i]--;
             m->jj[i]--;
           }
         }
         else { // FIRST_INDEX_ONE
-          for ( i = 0;i < (m->nz);i++ ) {
+          for ( i = 0;i < ( m->nz );i++ ) {
             m->ii[i]++;
             m->jj[i]++;
           }
@@ -869,30 +869,30 @@ int convert_matrix( matrix_t* m, enum matrix_format_t f, enum matrix_base_t b ) 
         break;
       case SM_CSC:
         if ( b == FIRST_INDEX_ZERO ) {
-          for ( i = 0;i < (m->nz);i++) 
+          for ( i = 0;i < ( m->nz );i++ )
             m->ii[i]--;
-	  for ( i = 0; i < ((m->n)+1); i++ )
-	    m->jj[i]--; // col ptrs
+          for ( i = 0; i < (( m->n ) + 1 ); i++ )
+            m->jj[i]--; // col ptrs
         }
         else { // FIRST_INDEX_ONE
           for ( i = 0;i < m->nz;i++ )
             m->ii[i]++;
-	  for ( i = 0; i < ((m->n)+1); i++ )
-	    m->jj[i]++; // col ptrs
+          for ( i = 0; i < (( m->n ) + 1 ); i++ )
+            m->jj[i]++; // col ptrs
         }
         break;
       case SM_CSR:
         if ( b == FIRST_INDEX_ZERO ) {
-          for ( i = 0;i < (m->nz);i++) 
+          for ( i = 0;i < ( m->nz );i++ )
             m->jj[i]--;
-	  for ( i = 0; i < ((m->m)+1); i++ )
-	    m->ii[i]--; // row ptrs
+          for ( i = 0; i < (( m->m ) + 1 ); i++ )
+            m->ii[i]--; // row ptrs
         }
         else { // FIRST_INDEX_ONE
           for ( i = 0;i < m->nz;i++ )
             m->jj[i]++;
-	  for ( i = 0; i < ((m->m)+1); i++ )
-	    m->ii[i]++; // row ptrs
+          for ( i = 0; i < (( m->m ) + 1 ); i++ )
+            m->ii[i]++; // row ptrs
         }
         break;
     }
