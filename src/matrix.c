@@ -1062,7 +1062,6 @@ static inline int _symmetry_both( matrix_t* m ) {
   memcpy( m->jj + nz_old, m->ii, nz_old*sizeof( unsigned int ) );
   memcpy( m->dd + nz_old * dwidth, m->dd, nz_old*dwidth );
 
-
   // update ptrs
   m->location = BOTH;
   // TODO clean this up!
@@ -1075,9 +1074,10 @@ static inline int _symmetry_both( matrix_t* m ) {
     if ( m->ii[i] == m->jj[i] ) { // on the diagonal
       del++; // deleting the i-th entry
       if ( i + 1 != m->nz ) { // unless its the last entry
-        memcpy( m->ii + i, m->ii + ( i + 1 ), ( m->nz - i - 1 )*sizeof( unsigned int ) );
-        memcpy( m->jj + i, m->jj + ( i + 1 ), ( m->nz - i - 1 )*sizeof( unsigned int ) );
-        memcpy( m->dd + i * dwidth, m->dd + ( i + 1 ) * dwidth, ( m->nz - i - 1 )*dwidth );
+        // Note: have to use memmove here since potentially the arrays dst and src overlap when we shuffle them downwards
+        memmove( m->ii + i, m->ii + ( i + 1 ), ( m->nz - i - 1 )*sizeof( unsigned int ) );
+        memmove( m->jj + i, m->jj + ( i + 1 ), ( m->nz - i - 1 )*sizeof( unsigned int ) );
+        memmove( m->dd + i * dwidth, m->dd + ( i + 1 ) * dwidth, ( m->nz - i - 1 )*dwidth );
       }
     }
   }
