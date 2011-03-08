@@ -62,7 +62,16 @@ void solver_analyze_umfpack( solver_state_t* s, matrix_t* A ) {
   assert( A->jj[0] == 0 );
   assert( A->jj[A->n] == A->nz );
 
-  umfpack_di_symbolic( A->m, A->n, ( int* ) A->jj, ( int* ) A->ii, A->dd, &( p->Symbolic ), NULL, NULL );
+  if(s->verbosity >= 3) {
+    double Control [UMFPACK_CONTROL];
+    Control[UMFPACK_PRL] = 6;
+    umfpack_di_report_matrix( A->m, A->n, ( int* ) A->jj, ( int* ) A->ii, A->dd, 0, Control);
+  }
+
+  int status = umfpack_di_symbolic( A->m, A->n, ( int* ) A->jj, ( int* ) A->ii, A->dd, &( p->Symbolic ), NULL, NULL );
+  if(status != UMFPACK_OK)
+    umfpack_di_report_status(NULL, status);
+  assert(status == UMFPACK_OK);
 }
 
 void solver_factorize_umfpack( solver_state_t* s, matrix_t* A ) {
@@ -83,7 +92,10 @@ void solver_factorize_umfpack( solver_state_t* s, matrix_t* A ) {
   p->Ajj = ( int* ) A->jj;
   p->Aii = ( int* ) A->ii;
   p->Add = A->dd;
-  umfpack_di_numeric( p->Ajj, p->Aii, p->Add, p->Symbolic, &( p->Numeric ), NULL, NULL );
+  int status = umfpack_di_numeric( p->Ajj, p->Aii, p->Add, p->Symbolic, &( p->Numeric ), NULL, NULL );
+  if(status != UMFPACK_OK)
+    umfpack_di_report_status(NULL, status);
+  assert(status == UMFPACK_OK);
 }
 
 // TODO b can be sparse... ??
@@ -115,7 +127,10 @@ void solver_evaluate_umfpack( solver_state_t* s, matrix_t* b, matrix_t* x ) {
     assert(x->dd != NULL);
   }
 
-  umfpack_di_solve( UMFPACK_A, p->Ajj, p->Aii, p->Add, x->dd, b->dd, p->Numeric, NULL, NULL ) ;
+  int status = umfpack_di_solve( UMFPACK_A, p->Ajj, p->Aii, p->Add, x->dd, b->dd, p->Numeric, NULL, NULL );
+  if(status != UMFPACK_OK)
+    umfpack_di_report_status(NULL, status);
+  assert(status == UMFPACK_OK);
 }
 
 void solver_finalize_umfpack( solver_state_t* s ) {
