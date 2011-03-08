@@ -73,20 +73,17 @@ void solver_analyze_taucs( solver_state_t* s, matrix_t* A ) {
   solve_system_taucs_t* const p = s->specific;
   assert( p != NULL );
 
-  // TODO could do this smarter by giving MUMPS the symmetric matrix to solve,
+  // TODO could do this smarter by giving TAUCS the symmetric matrix to solve,
   // instead we're just going straight for the unsymmetric solver
-  // TODO this logic should really be moved to the wrapper solver() functions using the capabilities masks
-  if ( A->sym == SM_SYMMETRIC )
-    convert_matrix_symmetry( A, BOTH );
+  assert( A->sym == SM_UNSYMMETRIC );
   // TODO for SYMMETRIC matrices: taucs wants all diagonal entries to exist in A, even if they are zero
   // TODO taucs can handle pattern symmetric matrices that have unsymmetric data
 
   // TODO speial handling if the matrix has a symmetric pattern but unsymmetric data .. copy, delete data, set to pattern and test
 
   // prepare the matrix
-  int ierr = convert_matrix( A, SM_CSC, FIRST_INDEX_ZERO );
-  assert( ierr == 0 );
-  assert(( A->sym == SM_UNSYMMETRIC ) || ( A->sym == SM_SYMMETRIC ) );
+  assert( A->format == SM_CSC );
+  assert( A->base == FIRST_INDEX_ZERO );
   assert( A->data_type == REAL_DOUBLE ); // don't handle complex... yet TODO
   assert( A->m == A->n ); // TODO can only handle square matrices at present???
 
@@ -135,13 +132,11 @@ void solver_factorize_taucs( solver_state_t* s, matrix_t* A ) {
   assert( p != NULL );
 
   // TODO symmetric matrix handling
-  if ( A->sym == SM_SYMMETRIC )
-    convert_matrix_symmetry( A, BOTH );
+  assert( A->sym == SM_UNSYMMETRIC );
 
   // prepare the matrix
-  int ierr = convert_matrix( A, SM_CSC, FIRST_INDEX_ZERO );
-  assert( ierr == 0 );
-  assert(( A->sym == SM_UNSYMMETRIC ) || ( A->sym == SM_SYMMETRIC ) );
+  assert( A->format == SM_CSC );
+  assert( A->base == FIRST_INDEX_ZERO );
   assert( A->data_type == REAL_DOUBLE ); // don't handle complex... yet TODO
   assert( A->m == A->n ); // TODO can only handle square matrices at present (UMFPACK?)
 

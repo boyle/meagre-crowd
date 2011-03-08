@@ -178,17 +178,14 @@ void solver_analyze_wsmp( solver_state_t* s, matrix_t* A ) {
   solve_system_wsmp_t* const p = s->specific;
   assert( p != NULL );
 
-  // TODO could do this smarter by giving MUMPS the symmetric matrix to solve,
+  // TODO could do this smarter by giving WSMP the symmetric matrix to solve,
   // instead we're just going straight for the unsymmetric solver
-  // TODO this logic should really be moved to the wrapper solver() functions using the capabilities masks
-  if ( A->sym == SM_SYMMETRIC )
-    convert_matrix_symmetry( A, BOTH );
+  assert( A->sym == SM_UNSYMMETRIC );
   // TODO for SYMMETRIC matrices: wsmp wants all diagonal entries to exist in A, even if they are zero
 
   // prepare the matrix
-  int ierr = convert_matrix( A, SM_CSR, FIRST_INDEX_ONE );
-  assert( ierr == 0 );
-  assert(( A->sym == SM_UNSYMMETRIC ) || ( A->sym == SM_SYMMETRIC ) );
+  assert( A->format == SM_CSR );
+  assert( A->base == FIRST_INDEX_ONE );
   assert( A->data_type == REAL_DOUBLE ); // don't handle complex... yet TODO
   assert( A->m == A->n ); // TODO can only handle square matrices at present???
 
@@ -214,13 +211,11 @@ void solver_factorize_wsmp( solver_state_t* s, matrix_t* A ) {
   assert( p != NULL );
 
   // TODO symmetric matrix handling
-  if ( A->sym == SM_SYMMETRIC )
-    convert_matrix_symmetry( A, BOTH );
+  assert( A->sym == SM_UNSYMMETRIC );
 
   // prepare the matrix
-  int ierr = convert_matrix( A, SM_CSR, FIRST_INDEX_ONE );
-  assert( ierr == 0 );
-  assert(( A->sym == SM_UNSYMMETRIC ) || ( A->sym == SM_SYMMETRIC ) );
+  assert( A->format == SM_CSR );
+  assert( A->base == FIRST_INDEX_ONE );
   assert( A->data_type == REAL_DOUBLE ); // don't handle complex... yet TODO
   assert( A->m == A->n ); // TODO can only handle square matrices at present (UMFPACK?)
 

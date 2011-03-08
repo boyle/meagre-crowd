@@ -48,12 +48,11 @@ static inline void _matrix2cholmodsparse( matrix_t* A, cholmod_sparse* B )  {
   assert( validate_matrix( A ) == 0 );
 
   assert( A->sym == SM_SYMMETRIC );
-  convert_matrix_symmetry( A, UPPER_TRIANGULAR );
+  assert( A->location == UPPER_TRIANGULAR );
+  assert( A->format == SM_CSC );
+  assert( A->base == FIRST_INDEX_ZERO );
 
-
-  // prepare the matrix
-  int ierr = convert_matrix( A, SM_CSC, FIRST_INDEX_ZERO );
-  assert( ierr == 0 );
+  // Note: must have symmetric and positive definite
   // TODO check its positive definite
 
   B->nrow = A->m;
@@ -67,9 +66,6 @@ static inline void _matrix2cholmodsparse( matrix_t* A, cholmod_sparse* B )  {
   // (complex is split into real and imag components)
   B->z = NULL;
 
-  // Note: must have symmetric and positive definite
-  // TODO test for positive definite flag
-  assert( A->sym == SM_SYMMETRIC );
   if ( A->location == BOTH )
     B->stype = 0; // TODO optimization: could be +1 or -1, then other half would be *ignored*
   else if ( A->location == UPPER_TRIANGULAR )

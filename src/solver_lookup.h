@@ -166,7 +166,8 @@ static const struct solver_properties_t solver_lookup[] = {
     // TODO can handle COO matrices and dense matrices (DROW?)
     SOLVES_SQUARE_ONLY |
     SOLVES_SYMMETRIC_POSITIVE_DEFINITE_ONLY |
-    SOLVES_SYMMETRIC |
+    // TODO SOLVES_SYMMETRIC |
+    SOLVES_SYMMETRIC_UPPER_TRIANGULAR |
     // upper or lower triangular symmetric or BOTH or unsymmetric but must still be SPD
     // TODO keep track of when a matrices' entries have been sorted!
     SOLVES_DATA_TYPE_REAL_DOUBLE |
@@ -202,8 +203,8 @@ static const struct solver_properties_t solver_lookup[] = {
     &solver_factorize_taucs,
     &solver_evaluate_taucs,
     &solver_finalize_taucs,
-    SOLVES_FORMAT_CSC | SOLVES_BASE_ZERO |
-    SOLVES_SYMMETRIC_UPPER_TRIANGULAR | // SOLVES_UNSYMMETRIC | // TODO or lower triangular?
+    SOLVES_FORMAT_CSC | SOLVES_BASE_ZERO | SOLVES_UNSYMMETRIC |
+    // TODO SOLVES_SYMMETRIC_UPPER_TRIANGULAR | //  // TODO or lower triangular?
     SOLVES_DATA_TYPE_REAL_DOUBLE | // TODO and REAL_COMPLEX, double and single precision, and handles hermitian
     SOLVES_RHS_DCOL,
     0, // uses CILK? not MPI or openMP
@@ -246,8 +247,9 @@ static const struct solver_properties_t solver_lookup[] = {
     &solver_factorize_pardiso,
     &solver_evaluate_pardiso,
     &solver_finalize_pardiso,
-    SOLVES_FORMAT_CSR | SOLVES_BASE_ONE | SOLVER_SYM_REQUIRES_DIAGONAL | // TODO diagonal only for sym matrices?
-    SOLVES_SYMMETRIC_UPPER_TRIANGULAR | SOLVES_UNSYMMETRIC | // TODO or lower triangular?
+    SOLVES_FORMAT_CSR | SOLVES_BASE_ONE | SOLVES_UNSYMMETRIC |
+    SOLVER_SYM_REQUIRES_DIAGONAL | // TODO diagonal only for sym matrices?
+    // TODO SOLVES_SYMMETRIC_UPPER_TRIANGULAR // TODO or lower triangular?
     SOLVES_DATA_TYPE_REAL_DOUBLE | // TODO and REAL_COMPLEX
     SOLVES_RHS_DCOL | SOLVES_RHS_CSR,
     SOLVER_REQUIRES_OMP | SOLVER_CAN_USE_MPI,
@@ -276,8 +278,9 @@ static const struct solver_properties_t solver_lookup[] = {
     &solver_factorize_wsmp,
     &solver_evaluate_wsmp,
     &solver_finalize_wsmp,
-    SOLVES_FORMAT_CSR | SOLVES_BASE_ZERO | SOLVER_SYM_REQUIRES_DIAGONAL | // TODO CSC lower triangular, base 1
-    SOLVES_SYMMETRIC_UPPER_TRIANGULAR | SOLVES_UNSYMMETRIC | // TODO solvers
+    SOLVES_FORMAT_CSR | SOLVES_BASE_ONE | SOLVES_UNSYMMETRIC |
+    SOLVER_SYM_REQUIRES_DIAGONAL | // TODO CSC lower triangular, base 1
+    // TODO SOLVES_SYMMETRIC_UPPER_TRIANGULAR // TODO solvers
     SOLVES_DATA_TYPE_REAL_DOUBLE | // TODO and REAL_COMPLEX -- 8Byte floating pt, 4 byte ints
     SOLVES_RHS_DCOL,
     SOLVER_CAN_USE_OMP | SOLVER_REQUIRES_MPI, // TODO: SOLVER_CAN_USE_MPI (select non-MPI solver...) // TODO non-MPI/OMP solvers (switch, based on number of threads/nodes)

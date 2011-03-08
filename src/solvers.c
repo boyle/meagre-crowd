@@ -28,6 +28,153 @@
 
 #include "solver_lookup.h"
 
+static inline int _convert_matrix_A( const int solver, matrix_t* A );
+static inline int _convert_matrix_A( const int solver, matrix_t* A ) {
+  const unsigned int c = solver_lookup[solver].capabilities;
+  // symmetry: don't convert unless we have to
+  switch(A->sym) {
+    case SM_UNSYMMETRIC:
+      assert(c & SOLVES_UNSYMMETRIC); // nothing we can do...
+      break;
+    case SM_SYMMETRIC:
+      if(c & SOLVES_SYMMETRIC) {
+        switch(A->location) {
+	  case BOTH:
+	    if(!(c & SOLVES_SYMMETRIC_BOTH)) {
+	      if(c & SOLVES_SYMMETRIC_UPPER_TRIANGULAR) {
+	        int ierr = convert_matrix_symmetry( A, UPPER_TRIANGULAR );
+		assert(ierr == 0);
+	      }
+	      else if(c & SOLVES_SYMMETRIC_LOWER_TRIANGULAR) {
+	        int ierr = convert_matrix_symmetry( A, LOWER_TRIANGULAR );
+		assert(ierr == 0);
+	      }
+	      else {
+	        assert(0); // unhittable? TODO
+	      }
+	    }
+	    break;
+	  case UPPER_TRIANGULAR:
+	    if(!(c & SOLVES_SYMMETRIC_UPPER_TRIANGULAR)) {
+	      // choose lower triangular first: a cheaper conversion and faster calculations later
+	      if(c & SOLVES_SYMMETRIC_LOWER_TRIANGULAR) {
+	        int ierr = convert_matrix_symmetry( A, LOWER_TRIANGULAR );
+		assert(ierr == 0);
+	      }
+	      else if(c & SOLVES_SYMMETRIC_BOTH) {
+	        int ierr = convert_matrix_symmetry( A, BOTH );
+		assert(ierr == 0);
+	      }
+	      else {
+	        assert(0); // unhittable? TODO
+	      }
+	    }
+	    break;
+	  case LOWER_TRIANGULAR:
+	    if(!(c & SOLVES_SYMMETRIC_LOWER_TRIANGULAR)) {
+	      // choose upper triangular first: a cheaper conversion and faster calculations later
+	      if(c & SOLVES_SYMMETRIC_UPPER_TRIANGULAR) {
+	        int ierr = convert_matrix_symmetry( A, UPPER_TRIANGULAR );
+		assert(ierr == 0);
+	      }
+	      else if(c & SOLVES_SYMMETRIC_BOTH) {
+	        int ierr = convert_matrix_symmetry( A, BOTH );
+		assert(ierr == 0);
+	      }
+	      else {
+	        assert(0); // unhittable? TODO
+	      }
+	    }
+	    break;
+	}
+      }
+      else if(c & SOLVES_UNSYMMETRIC) {
+        // so we can convert it to an unsymmetric matrix
+	int ierr = convert_matrix_symmetry( A, BOTH );
+	assert(ierr == 0);
+	A->sym = SM_UNSYMMETRIC; // forget we were symmetric
+      }
+      else {
+        assert(0); // TODO
+      }
+      break;
+    case SM_SKEW_SYMMETRIC:
+      assert(0); // TODO
+      break;
+    case SM_HERMITIAN:
+      assert(0); // TODO
+      break;
+  }
+
+  // format: don't convert unless we have to
+  enum matrix_base_t base = A->base;
+  switch(base) {
+    case FIRST_INDEX_ZERO:
+      if(!(c & SOLVES_BASE_ZERO)) {
+        base = FIRST_INDEX_ONE; // need to convert
+      }
+      break;
+    case FIRST_INDEX_ONE:
+      if(!(c & SOLVES_BASE_ONE)) {
+        base = FIRST_INDEX_ZERO; // need to convert
+      }
+      break;
+  }
+
+  // TODO should we prefer CSC/CSR over COO (more efficient?)
+  enum matrix_format_t format = A->format;
+  switch(format) {
+    case INVALID:
+      assert(0); // fail!
+      break;
+    case DROW:
+    case DCOL:
+      assert(0); // TODO .. decide if we should be doing this in a sparse format?
+    case SM_COO:
+      if(!(c & SOLVES_FORMAT_COO)) { // can't handle COO format... figure out what to do next
+        if(c & SOLVES_FORMAT_CSR) {
+	  format = SM_CSR;
+	}
+	else if(c & SOLVES_FORMAT_CSC) {
+	  format = SM_CSC;
+	}
+	else {
+	  assert(0); // TODO
+	}
+      }
+      break;
+    case SM_CSC:
+      if(!(c & SOLVES_FORMAT_CSC)) { // can't handle COO format... figure out what to do next
+        if(c & SOLVES_FORMAT_COO) {
+	  format = SM_COO;
+	}
+	else if(c & SOLVES_FORMAT_CSR) {
+	  format = SM_CSR;
+	}
+	else {
+	  assert(0); // TODO
+	}
+      }
+      break;
+    case SM_CSR:
+      if(!(c & SOLVES_FORMAT_CSR)) { // can't handle COO format... figure out what to do next
+        if(c & SOLVES_FORMAT_COO) {
+	  format = SM_COO;
+	}
+	else if(c & SOLVES_FORMAT_CSC) {
+	  format = SM_CSC;
+	}
+	else {
+	  assert(0); // TODO
+	}
+      }
+      break;
+  }
+  int ierr = convert_matrix( A, format, base );
+  assert( ierr == 0 );
+  return 0; // TODO return error code
+}
+
 static inline int _valid_solver( const int solver );
 static inline int _valid_solver( const int solver ) {
   return ( solver_lookup[solver].shortname != NULL );
@@ -181,10 +328,12 @@ void solver_finalize( solver_state_t* s ) {
 // evaluate the patterns in A, doesn't care about the actual values in the matrix (A->dd)
 void solver_analyze( solver_state_t* s, matrix_t* A ) {
   assert( s != NULL );
-  if(s->mpi_rank == 0)
-    assert( A != NULL );
-  perftimer_inc( s->timer, "analyze", -1 );
   const int solver = s->solver;
+  if(s->mpi_rank == 0) {
+    assert( A != NULL );
+    _convert_matrix_A(solver, A);
+  }
+  perftimer_inc( s->timer, "analyze", -1 );
   if ( _valid_solver( solver ) && ( solver_lookup[solver].analyze != NULL ) )
     solver_lookup[solver].analyze( s, A );
 }
@@ -193,10 +342,12 @@ void solver_analyze( solver_state_t* s, matrix_t* A ) {
 // factorize the matrix A, A must have the same pattern of non-zeros at that used in the solver_analyze stage
 void solver_factorize( solver_state_t* s, matrix_t* A ) {
   assert( s != NULL );
-  if(s->mpi_rank == 0)
-    assert( A != NULL );
-  perftimer_inc( s->timer, "factorize", -1 );
   const int solver = s->solver;
+  if(s->mpi_rank == 0) {
+    assert( A != NULL );
+    _convert_matrix_A(solver, A);
+  }
+  perftimer_inc( s->timer, "factorize", -1 );
   if ( _valid_solver( solver ) && ( solver_lookup[solver].factorize != NULL ) )
     solver_lookup[solver].factorize( s, A );
 }
@@ -206,12 +357,12 @@ void solver_factorize( solver_state_t* s, matrix_t* A ) {
 // returns 'x', the solution
 void solver_evaluate( solver_state_t* s, matrix_t* b, matrix_t* x ) {
   assert( s != NULL );
+  const int solver = s->solver;
   if(s->mpi_rank == 0) {
     assert( b != NULL );
     assert( x != NULL );
   }
   perftimer_inc( s->timer, "evaluate", -1 );
-  const int solver = s->solver;
   if ( _valid_solver( solver ) && ( solver_lookup[solver].evaluate != NULL ) ) {
     solver_lookup[solver].evaluate( s, b, x );
   }
