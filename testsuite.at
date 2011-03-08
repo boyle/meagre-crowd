@@ -84,6 +84,19 @@ PASS
 ]])
 AT_CLEANUP
 
+AT_SETUP([pardiso])
+AT_KEYWORDS([pardiso hello])
+AT_CHECK([OMP_NUM_THREADS=1 hello-pardiso  | tail -8],0,[[ x [0] =  0.142857
+ x [1] =  0.500000
+ x [2] = -1.338095
+ x [3] =  0.142857
+ x [4] = -0.831818
+ x [5] =  0.238095
+ x [6] = -0.327273
+ x [7] =  1.157143
+]])
+AT_CLEANUP
+
 AT_SETUP([matrix-market files])
 AT_KEYWORDS([file hello])
 MC_DATA_FILE_TEST_RB
