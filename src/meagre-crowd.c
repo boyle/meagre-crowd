@@ -33,6 +33,10 @@
 
 #include <mpi.h>
 
+// for getrusage
+#include <sys/time.h>
+#include <sys/resource.h>
+
 #include "args.h"
 #include "perftimer.h"
 #include "file.h"
@@ -399,5 +403,36 @@ int main( int argc, char ** argv ) {
   }
   perftimer_free( timer );
   free( args );
+
+  // we can report on memory usage per-process
+  // RUSAGE_SELF includes the usage for all threads and children
+  struct rusage usage;
+  int rr = getrusage(RUSAGE_SELF, &usage);
+  if((rr == 0) && (args->verbosity > 1)) {
+    if(args->verbosity > 4)
+      printf("user %ld:%ld, sys: %ld:%ld,  maxrss: %ld, ixrss: %ld, idrss: %ld, isrss: %ld minflt: %ld, majflt: %ld, nswap: %ld, inblock: %ld, outblock: %ld, msgsnd: %ld, msgrcv: %ld, signals: %ld, nvcsw: %ld, nivcsw: %ld\n",
+	usage.ru_utime.tv_sec, usage.ru_utime.tv_usec, /* user time used */
+	usage.ru_stime.tv_sec, usage.ru_stime.tv_usec, /* system time used */
+	usage.ru_maxrss,        /* maximum resident set size */
+	usage.ru_ixrss,         /* integral shared memory size */
+	usage.ru_idrss,         /* integral unshared data size */
+	usage.ru_isrss,         /* integral unshared stack size */
+	usage.ru_minflt,        /* page reclaims */
+	usage.ru_majflt,        /* page faults */
+	usage.ru_nswap,         /* swaps */
+	usage.ru_inblock,       /* block input operations */
+	usage.ru_oublock,       /* block output operations */
+	usage.ru_msgsnd,        /* messages sent */
+	usage.ru_msgrcv,        /* messages received */
+	usage.ru_nsignals,      /* signals received */
+	usage.ru_nvcsw,         /* voluntary context switches */
+	usage.ru_nivcsw);        /* involuntary context switches */
+    if(args->verbosity > 1)
+      printf("memory usage: maximum resident=%ldkB, page reclaims=%ld, page faults w/ IO=%ld, \n",
+	usage.ru_maxrss,        /* maximum resident set size */
+	usage.ru_minflt,        /* page reclaims */
+	usage.ru_majflt);        /* page faults */
+  }
+
   return retval;
 }
