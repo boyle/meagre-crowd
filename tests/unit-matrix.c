@@ -50,6 +50,7 @@ const struct enum2base_t enum2base[] = { {FIRST_INDEX_ZERO, "zero"},
 void print_matrix( matrix_t* a );
 void test_formats( matrix_t* a );
 void test_symmetry( matrix_t* a );
+void test_copy( matrix_t* a );
 void test_basic();
 void build_test_matrix( matrix_t** m, int i );
 
@@ -123,6 +124,26 @@ void test_symmetry( matrix_t* a ) {
   }
 
   free_matrix( b );
+}
+
+void test_copy( matrix_t* a ) {
+  printf( "copy test\n" );
+  int j;
+  for ( j = 1; j < matrix_format_t__MAX; j++ ) { // storage formats, skipping INVALID
+    matrix_t* b = copy_matrix( a );
+    assert( b != NULL );
+    assert( validate_matrix( a ) == 0 );
+    assert( validate_matrix( b ) == 0 );
+
+    int ret = convert_matrix( b, ( enum matrix_format_t ) j, FIRST_INDEX_ZERO );
+    assert(ret == 0);
+
+    matrix_t* c = copy_matrix( b );
+    free_matrix( b );
+
+    print_matrix( c );
+    free_matrix( c );
+  }
 }
 
 void test_formats( matrix_t* a ) {
@@ -218,6 +239,10 @@ void test_basic() {
 
   build_test_matrix( &c, 1 );
   test_symmetry( c );
+
+  build_test_matrix( &c, 0 );
+  test_copy( c );
+
 
   // TODO do some cmp_matrix's that are supposed to fail in different ways
 

@@ -86,8 +86,10 @@ int load_matrix( char* n, matrix_t* AA ) {
   AA->ii = ( unsigned int* ) Acoo->II;
   AA->jj = ( unsigned int* ) Acoo->JJ;
 
+
   // destroy BeBOP's matrix, guts (excepting the data which we now own)
   free( A->repr );
+  free( A );
 
   if(AA->sym == SM_UNSYMMETRIC)
     detect_matrix_symmetry( AA );

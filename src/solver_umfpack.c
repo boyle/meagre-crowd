@@ -112,6 +112,7 @@ void solver_evaluate_umfpack( solver_state_t* s, matrix_t* b, matrix_t* x ) {
     x->n = b->n;
     x->nz = x->m * x->n;
     x->dd = malloc(( x->m ) * ( x->n ) * sizeof( double ) );
+    assert(x->dd != NULL);
   }
 
   umfpack_di_solve( UMFPACK_A, p->Ajj, p->Aii, p->Add, x->dd, b->dd, p->Numeric, NULL, NULL ) ;

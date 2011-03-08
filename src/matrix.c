@@ -176,11 +176,25 @@ matrix_t* copy_matrix( matrix_t* m ) {
 
   *ret = *m; // shallow copy
 
+  // if its an invalid matrix, this is a quick job
+  if(ret->format == INVALID) {
+    ret->nz = 0;
+    ret->dd = NULL;
+    ret->ii = NULL;
+    ret->jj = NULL;
+    return ret;
+  }
+
   // and now the deep copy (ii, jj, dd)
   const size_t dwidth = _data_width( m->data_type );
-  // if its only a pattern, or an empty matrix, then there is nothing in 'dd', it's a NULL ptr
-  if (( m->data_type != SM_PATTERN ) && ( m->format != INVALID ) && ( m->nz != 0 ) ) {
 
+  // set data: copy if required
+  if((m->nz == 0) || (m->data_type == SM_PATTERN)) {
+    ret->nz = 0;
+    ret->dd = NULL;
+  }
+  // if its only a pattern, or an empty matrix, then there is nothing in 'dd', it's a NULL ptr
+  else {
     size_t n; // entries to copy
     if (( m->format == DROW ) || ( m->format == DCOL ) )
       n = ( m->m ) * ( m->n ); // rows*cols entries
@@ -197,10 +211,8 @@ matrix_t* copy_matrix( matrix_t* m ) {
 
     memcpy( ret->dd, m->dd, n*dwidth ); // memcpy(*dest,*src,n)
   }
-  else { // otherwise, make sure the shallow copy didn't have cruft in it
-    ret->dd = NULL;
-  }
 
+  // handle indices: ii, jj
   switch ( m->format ) {
     case SM_COO:
       ret->ii = malloc(( m->nz ) * sizeof( unsigned int ) );
@@ -210,7 +222,8 @@ matrix_t* copy_matrix( matrix_t* m ) {
         return NULL;
       }
       memcpy( ret->ii, m->ii, ( m->nz )*sizeof( unsigned int ) ); // memcpy(*dest,*src,n)
-      ret->jj = malloc(( m->n ) * sizeof( unsigned int ) );
+
+      ret->jj = malloc(( m->nz ) * sizeof( unsigned int ) );
       if ( ret->jj == NULL ) { // malloc failed
         free( ret->ii );
         free( ret->dd );
@@ -228,6 +241,7 @@ matrix_t* copy_matrix( matrix_t* m ) {
         return NULL;
       }
       memcpy( ret->ii, m->ii, ( m->m + 1 )*sizeof( unsigned int ) ); // memcpy(*dest,*src,n)
+
       ret->jj = malloc(( m->nz ) * sizeof( unsigned int ) );
       if ( ret->jj == NULL ) { // malloc failed
         free( ret->ii );
@@ -246,6 +260,7 @@ matrix_t* copy_matrix( matrix_t* m ) {
         return NULL;
       }
       memcpy( ret->jj, m->jj, ( m->n + 1 )*sizeof( unsigned int ) ); // memcpy(*dest,*src,n)
+
       ret->ii = malloc(( m->nz ) * sizeof( unsigned int ) );
       if ( ret->ii == NULL ) { // malloc failed
         free( ret->jj );
@@ -532,6 +547,10 @@ int _csc2coo( matrix_t* m ) {
   assert( ret == 0 ); // should never fail
 
   // store, ready for BeBOP
+  // Note that BeBOP loses these pointers if we don't save them
+  void* dd_old = m->dd;
+  void* ii_old = m->ii;
+  void* jj_old = m->jj;
   struct sparse_matrix_t* A = _bebop_input( m, CSC );
 
   int ierr = sparse_matrix_convert( A, COO );
@@ -546,6 +565,9 @@ int _csc2coo( matrix_t* m ) {
 
   // clean up after BeBOP
   _bebop_destroy( A );
+  free(dd_old);
+  free(ii_old);
+  free(jj_old);
 
   // now convert back to appropriate base
   ret = convert_matrix( m, m->format, old_base );
@@ -566,6 +588,10 @@ int _coo2csc( matrix_t* m ) {
   assert( ret == 0 ); // should never fail
 
   // store, ready for BeBOP
+  // Note that BeBOP loses these pointers if we don't save them
+  void* dd_old = m->dd;
+  void* ii_old = m->ii;
+  void* jj_old = m->jj;
   struct sparse_matrix_t* A = _bebop_input( m, COO );
 
   int ierr = sparse_matrix_convert( A, CSC );
@@ -584,6 +610,9 @@ int _coo2csc( matrix_t* m ) {
 
   // clean up after BeBOP
   _bebop_destroy( A );
+  free(dd_old);
+  free(ii_old);
+  free(jj_old);
 
   // now convert back to appropriate base
   ret = convert_matrix( m, m->format, old_base );
@@ -604,6 +633,10 @@ int _csr2coo( matrix_t* m ) {
   assert( ret == 0 ); // should never fail
 
   // store, ready for BeBOP
+  // Note that BeBOP loses these pointers if we don't save them
+  void* dd_old = m->dd;
+  void* ii_old = m->ii;
+  void* jj_old = m->jj;
   struct sparse_matrix_t* A = _bebop_input( m, CSR );
 
   int ierr = sparse_matrix_convert( A, COO );
@@ -618,6 +651,9 @@ int _csr2coo( matrix_t* m ) {
 
   // clean up after BeBOP
   _bebop_destroy( A );
+  free(dd_old);
+  free(ii_old);
+  free(jj_old);
 
   // now convert back to appropriate base
   ret = convert_matrix( m, m->format, old_base );
@@ -638,6 +674,10 @@ int _coo2csr( matrix_t* m ) {
   assert( ret == 0 ); // should never fail
 
   // store, ready for BeBOP
+  // Note that BeBOP loses these pointers if we don't save them
+  void* dd_old = m->dd;
+  void* ii_old = m->ii;
+  void* jj_old = m->jj;
   struct sparse_matrix_t* A = _bebop_input( m, COO );
 
   int ierr = sparse_matrix_convert( A, CSR );
@@ -651,6 +691,9 @@ int _coo2csr( matrix_t* m ) {
 
   // clean up after BeBOP
   _bebop_destroy( A );
+  free(dd_old);
+  free(ii_old);
+  free(jj_old);
 
   // now convert back to appropriate base
   ret = convert_matrix( m, m->format, old_base );
@@ -1098,18 +1141,24 @@ static inline int _realloc_arrays( matrix_t* m, size_t nz ) {
   void* dd_new         = realloc( m->dd, nz * dwidth );
 
   // udpate ptrs
-  if (( ii_new != NULL ) && ( jj_new != NULL ) && ( dd_new != NULL ) ) {
+  if( ii_new != NULL ) {
     m->ii = ii_new;
+  }
+  if( jj_new != NULL ) {
     m->jj = jj_new;
+  }
+  if( dd_new != NULL ) {
     m->dd = dd_new;
-    m->nz = nz;
-    return 0;
+  }
+
+  if( ( ii_new == NULL ) || ( jj_new == NULL ) || ( dd_new == NULL ) ) {
+    m->nz = 0; // something has gone horribly wrong, don't look at these arrays!
+    assert(0);
+    return -1;
   }
   else {
-    // if the update shrank the arrays, its safe to ignore the failed realloc
-    if ( m->nz > nz )
-      m->nz = nz;
-    return -1;
+    m->nz = nz;
+    return 0;
   }
 }
 
@@ -1356,7 +1405,7 @@ int validate_matrix( matrix_t* m ) {
 void printf_matrix( char const *const pre, matrix_t* m ) {
   assert( m != NULL );
 
-  matrix_t *const  c = m; // TODO copy_matrix( m );
+  matrix_t *const  c = copy_matrix( m );
   assert( c != NULL );
   convert_matrix( c, SM_COO, FIRST_INDEX_ZERO ); // TODO return value?
 
@@ -1372,5 +1421,5 @@ void printf_matrix( char const *const pre, matrix_t* m ) {
       printf( "%s(%i,%i)=%.2f\n", pre, c->ii[i], c->jj[i], v[i] );
   }
 
-  //TODO free_matrix( c );
+  free_matrix( c );
 }
