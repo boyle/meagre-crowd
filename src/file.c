@@ -57,7 +57,8 @@ int load_matrix( char* n, matrix_t* AA ) {
   struct coo_matrix_t* Acoo = A->repr;
   Acoo->ownership = USER_DEALLOCATES;
   assert( Acoo->index_base == ZERO );
-  assert( Acoo->symmetry_type == UNSYMMETRIC );
+  assert( ( Acoo->symmetry_type == UNSYMMETRIC ) ||
+          ( Acoo->symmetry_type == SYMMETRIC ) );
   assert( Acoo->value_type == REAL );
 
   // store data
@@ -67,8 +68,19 @@ int load_matrix( char* n, matrix_t* AA ) {
   AA->nz = Acoo->nnz;
   AA->base = FIRST_INDEX_ZERO;
   AA->format = SM_COO;
-  AA->sym = SM_UNSYMMETRIC;
-  AA->location = BOTH;
+  if(Acoo->symmetry_type == UNSYMMETRIC) {
+    AA->sym = SM_UNSYMMETRIC;
+    AA->location = BOTH;
+  }
+  else { // its symmetric
+    AA->sym = SM_SYMMETRIC;
+    if(Acoo ->symmetric_storage_location == UPPER_TRIANGLE) {
+      AA->location = UPPER_TRIANGULAR;
+    }
+    else {
+      AA->location = LOWER_TRIANGULAR;
+    }
+  }
   AA->data_type = REAL_DOUBLE;
   AA->dd = Acoo->val;
   AA->ii = ( unsigned int* ) Acoo->II;
@@ -77,7 +89,8 @@ int load_matrix( char* n, matrix_t* AA ) {
   // destroy BeBOP's matrix, guts (excepting the data which we now own)
   free( A->repr );
 
-  detect_matrix_symmetry( AA );
+  if(AA->sym == SM_UNSYMMETRIC)
+    detect_matrix_symmetry( AA );
 
   return 0; // success
 }
