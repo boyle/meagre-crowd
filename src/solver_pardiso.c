@@ -236,7 +236,7 @@ void solver_analyze_pardiso( solver_state_t* s, matrix_t* A ) {
   // expects "int" for A->ii, A->jj
   int* const PERM = NULL; // if(IPARM(5)=1, user fill-reducing permutation (ordering) (size N) B = P A P^t, PERM(i) = row i of A to column PERM(i) of B
   int NRHS = 0; // columns in rhs
-  int MSGLVL = 0; // TODO set based on s->verbosity
+  int MSGLVL = (s->verbosity >= 4);
   double* const B = NULL; // N x NRHS, replaced w/ X if IPARM(6) = 1 -- solution phase
   double* const X = NULL; // N x NRHS solution if IPRAM(6) = 0 -- solution phase
   int error_code = 0;
@@ -291,7 +291,7 @@ void solver_factorize_pardiso( solver_state_t* s, matrix_t* A ) {
   // expects "int" for A->ii, A->jj
   int* const PERM = NULL; // if(IPARM(5)=1, user fill-reducing permutation (ordering) (size N) B = P A P^t, PERM(i) = row i of A to column PERM(i) of B
   int NRHS = 0; // columns in rhs
-  int MSGLVL = 0; // TODO set based on s->verbosity
+  int MSGLVL = (s->verbosity >= 4);
   double* const B = NULL; // N x NRHS, replaced w/ X if IPARM(6) = 1 -- solution phase
   double* const X = NULL; // N x NRHS solution if IPRAM(6) = 0 -- solution phase
   int error_code = 0;
@@ -332,7 +332,7 @@ void solver_evaluate_pardiso( solver_state_t* s, matrix_t* b, matrix_t* x ) {
   // TODO add checks in master function that rows of b == rows of A, rows of x == columns of A
   // TODO add checks in master function that x (or b if b==x) is big enough to hold answer (columns of x == columns of b, rows of x == rows of A)
   int NRHS = b->n; // columns in rhs // TODO handle b == x
-  int MSGLVL = 0; // TODO set based on s->verbosity
+  int MSGLVL = (s->verbosity >= 4);
   double* const B = b->dd; // N x NRHS, replaced w/ X if IPARM(6) = 1 -- solution phase (Note: must be big enough for answer if reusing it!)
 
   // allocate data space // TODO if required
@@ -367,15 +367,17 @@ void solver_finalize_pardiso( solver_state_t* s ) {
 
   // release memory
   if ( p != NULL ) {
-//    int MAXFCT = 1;
-//    int MNUM = 1; // use which of MAXFACT stored factorizations in solution phase
-//    int PHASE = -1; // 10*i + j, do phases i->j, 1: analysis, 2; factorize, 3: solve w/ itr refinement, 4: terminate and release mem for MNUM, <0: release all mem
-//    int MSGLVL = 0; // TODO set based on s->verbosity
+    int MAXFCT = 1;
+    int MNUM = 1; // use which of MAXFACT stored factorizations in solution phase
+    int PHASE = -1; // 10*i + j, do phases i->j, 1: analysis, 2; factorize, 3: solve w/ itr refinement, 4: terminate and release mem for MNUM, <0: release all mem
+    int MSGLVL = (s->verbosity >= 4);
+    int N = 0;
+    int NRHS = 0;
     int error_code = NO_ERROR;
 // TODO this seems to segfault... but if we don't, things aren't cleaned up nicely
-//    pardiso( p->PT, &MAXFCT, &MNUM, NULL, &PHASE, NULL,
-//             NULL, NULL, NULL, NULL, NULL, NULL,
-//             &MSGLVL, NULL, NULL, &error_code, NULL );
+    pardiso( p->PT, &MAXFCT, &MNUM, &( p->MTYPE ), &PHASE, &N,
+             NULL, NULL, NULL, NULL, &NRHS, p->iparm,
+             &MSGLVL, NULL, NULL, &error_code, p->dparm );
     if ( error_code != NO_ERROR )
       fprintf( stderr, "error: pardiso finalize code %d\n", error_code ); // TODO decode
     assert( error_code == NO_ERROR );
