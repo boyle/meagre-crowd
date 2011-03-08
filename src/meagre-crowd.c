@@ -146,7 +146,7 @@ int main( int argc, char ** argv ) {
     int provided_threading;
     ierr = MPI_Init_thread( &argc, &argv, MPI_THREAD_MULTIPLE, &provided_threading );
     assert( ierr == 0 );
-    assert(provided_threading == MPI_THREAD_MULTIPLE);
+//    assert(provided_threading == MPI_THREAD_MULTIPLE);
     ierr = MPI_Comm_rank( MPI_COMM_WORLD, &( args->mpi_rank ) );
     assert( ierr == 0 );
     ierr = MPI_Comm_size( MPI_COMM_WORLD, &c_mpi );

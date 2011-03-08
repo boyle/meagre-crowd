@@ -97,6 +97,11 @@ AT_CHECK([OMP_NUM_THREADS=1 hello-pardiso  | tail -8],0,[[ x [0] =  0.142857
 ]])
 AT_CLEANUP
 
+AT_SETUP([wsmp])
+AT_KEYWORDS([wsmp hello])
+AT_CHECK([WSMPLICPATH=~ helloworld-wsmp],0,[],ignore)
+AT_CLEANUP
+
 AT_SETUP([matrix-market files])
 AT_KEYWORDS([file hello])
 MC_DATA_FILE_TEST_RB
@@ -291,22 +296,22 @@ MC_ARGS_STAGE2([timing],[t])
 
 m4_define([MC_SOLVER_UNSYM_TESTS],[
 dnl UNSYMMETRIC tests
-AT_CHECK(AT_PACKAGE_NAME[ --input=unsym.mm --expected=unsym-default-ans.mm --solver=$1],0,[PASS
+AT_CHECK($2 AT_PACKAGE_NAME[ --input=unsym.mm --expected=unsym-default-ans.mm --solver=$1],0,[PASS
 ])
-AT_CHECK(AT_PACKAGE_NAME[ --input=unsym.mm --right-hand-side=rhs1.mm --expected=unsym-rhs1-ans.mm --solver=$1],0,[PASS
+AT_CHECK($2 AT_PACKAGE_NAME[ --input=unsym.mm --right-hand-side=rhs1.mm --expected=unsym-rhs1-ans.mm --solver=$1],0,[PASS
 ])
-AT_CHECK(AT_PACKAGE_NAME[ --input=unsym.mm --expected=unsym-default-ans.mm -s $1],0,[PASS
+AT_CHECK($2 AT_PACKAGE_NAME[ --input=unsym.mm --expected=unsym-default-ans.mm -s $1],0,[PASS
 ])
 ])
 
 
 m4_define([MC_SOLVER_SYM_TESTS],[
 dnl SYMMETRIC tests
-AT_CHECK(AT_PACKAGE_NAME[ --input=sym.mm --expected=sym-default-ans.mm --solver=$1],0,[PASS
+AT_CHECK($2 AT_PACKAGE_NAME[ --input=sym.mm --expected=sym-default-ans.mm --solver=$1],0,[PASS
 ])
-AT_CHECK(AT_PACKAGE_NAME[ --input=sym.mm --right-hand-side=rhs1.mm --expected=sym-rhs1-ans.mm --solver=$1],0,[PASS
+AT_CHECK($2 AT_PACKAGE_NAME[ --input=sym.mm --right-hand-side=rhs1.mm --expected=sym-rhs1-ans.mm --solver=$1],0,[PASS
 ])
-AT_CHECK(AT_PACKAGE_NAME[ --input=sym.mm --expected=sym-default-ans.mm -s $1],0,[PASS
+AT_CHECK($2 AT_PACKAGE_NAME[ --input=sym.mm --expected=sym-default-ans.mm -s $1],0,[PASS
 ])
 ])
 
@@ -314,11 +319,11 @@ AT_CHECK(AT_PACKAGE_NAME[ --input=sym.mm --expected=sym-default-ans.mm -s $1],0,
 m4_define([MC_SOLVER_SYM_POSDEF_TESTS],[
 dnl SYMMETRIC tests
 dnl Note: numbers are big, so precision has to be reduced to get matches
-AT_CHECK(AT_PACKAGE_NAME[ --input=sym_posdef.mm --expected=sym_posdef-default-ans.mm --solver=$1 --precision=5e-12],0,[PASS
+AT_CHECK($2 AT_PACKAGE_NAME[ --input=sym_posdef.mm --expected=sym_posdef-default-ans.mm --solver=$1 --precision=5e-12],0,[PASS
 ])
-AT_CHECK(AT_PACKAGE_NAME[ --input=sym_posdef.mm --right-hand-side=rhs1.mm --expected=sym_posdef-rhs1-ans.mm --solver=$1 --precision=5e-11],0,[PASS
+AT_CHECK($2 AT_PACKAGE_NAME[ --input=sym_posdef.mm --right-hand-side=rhs1.mm --expected=sym_posdef-rhs1-ans.mm --solver=$1 --precision=5e-11],0,[PASS
 ])
-AT_CHECK(AT_PACKAGE_NAME[ --input=sym_posdef.mm --expected=sym_posdef-default-ans.mm -s $1 --precision=5e-12],0,[PASS
+AT_CHECK($2 AT_PACKAGE_NAME[ --input=sym_posdef.mm --expected=sym_posdef-default-ans.mm -s $1 --precision=5e-12],0,[PASS
 ])
 dnl check for missing arguments
 AT_CHECK(AT_PACKAGE_NAME[ --input=sym_posdef.mm --expected=sym_posdef-default-ans.mm -s],64,,ignore)
@@ -341,9 +346,9 @@ MC_DATA_FILE_ANS1_MM_SYM_POSDEF
 MC_DATA_FILE_ANS2_MM_SYM_POSDEF
 dnl TODO add more testcases: different size matrices, known results
 dnl check solver gives the expected result (i.e. it is linked and configured correctly)
-MC_SOLVER_UNSYM_TESTS($1)
-MC_SOLVER_SYM_TESTS($1)
-MC_SOLVER_SYM_POSDEF_TESTS($1)
+MC_SOLVER_UNSYM_TESTS($1,$2)
+MC_SOLVER_SYM_TESTS($1,$2)
+MC_SOLVER_SYM_POSDEF_TESTS($1,$2)
 AT_CLEANUP
 ])
 
@@ -358,8 +363,8 @@ MC_DATA_FILE_ANS2_MM_SYM
 MC_DATA_FILE_TEST_MM_SYM_POSDEF
 MC_DATA_FILE_ANS1_MM_SYM_POSDEF
 MC_DATA_FILE_ANS2_MM_SYM_POSDEF
-MC_SOLVER_SYM_TESTS($1)
-MC_SOLVER_SYM_POSDEF_TESTS($1)
+MC_SOLVER_SYM_TESTS($1,$2)
+MC_SOLVER_SYM_POSDEF_TESTS($1,$2)
 dnl TODO test clean failures for unsupported types  (unsym, etc)
 AT_CLEANUP
 ])
@@ -371,7 +376,7 @@ MC_DATA_FILE_TEST_MM_SYM_POSDEF
 MC_DATA_FILE_RHS1_MM
 MC_DATA_FILE_ANS1_MM_SYM_POSDEF
 MC_DATA_FILE_ANS2_MM_SYM_POSDEF
-MC_SOLVER_SYM_POSDEF_TESTS($1)
+MC_SOLVER_SYM_POSDEF_TESTS($1,$2)
 dnl TODO test clean failures for unsupported types  (unsym, etc)
 AT_CLEANUP
 ])
@@ -380,7 +385,7 @@ MC_SOLVERS_UNSYM([umfpack])
 MC_SOLVERS_UNSYM([mumps])
 MC_SOLVERS_UNSYM([taucs])
 MC_SOLVERS_UNSYM([pardiso])
-MC_SOLVERS_UNSYM([wsmp])
+MC_SOLVERS_UNSYM([wsmp],[WSMPLICPATH=~])
 dnl Note: cholmod is symmetric positive definite matrices ONLY
 dnl posdef only?
 MC_SOLVERS_SYM_POSDEF([cholmod])

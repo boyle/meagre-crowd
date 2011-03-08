@@ -148,12 +148,27 @@ void solver_init_wsmp( solver_state_t* s ) {
 
 
   // must call wsetmaxthrds_() before initialize
-  MPI_Fint inpcomm = MPI_Comm_c2f(MPI_COMM_WORLD);
-  wsetmpicomm_(&inpcomm);
-//  const int threads = 1;
-//  wsetmaxthrds_(&threads); // TODO FIXME ... if using MPI decide if MPI is thread safe, if not, must limit wsmp to one thread in unsymmetric solver (safe for symmetric solver)
+//  MPI_Fint inpcomm = MPI_Comm_c2f(MPI_COMM_WORLD);
+//  wsetmpicomm_(&inpcomm);
+  const int threads = 1;
+  wsetmaxthrds_(&threads); // TODO FIXME ... if using MPI decide if MPI is thread safe, if not, must limit wsmp to one thread in unsymmetric solver (safe for symmetric solver)
   // TODO p?wsmp_intialize()
+
+  // make wsmp quiet
+  FILE *o = stderr;
+  if(s->verbosity < 4) {
+    stderr = fopen( "/dev/null", "w" );
+    assert( stderr != NULL );
+  }
+
   pwsmp_initialize(); // MPI
+
+  // undo quieting
+  if(s->verbosity < 4) {
+    int ret = fclose( stderr );
+    assert( ret == 0 );
+    stderr = o;
+  }
 }
 
 // TODO split analyze stage into ordering and symbolic factorization stages?
@@ -220,7 +235,8 @@ void solver_factorize_wsmp( solver_state_t* s, matrix_t* A ) {
   int N = A->m; // rows of A
   p->IPARM(2) = WSMP_FACTORIZE;
   p->IPARM(3) = WSMP_FACTORIZE;
-  pwgsmp_( &N, ( int* ) A->ii, ( int* ) A->jj, A->dd, NULL, NULL, NULL, NULL, p->iparm, p->dparm);
+  int TEST = 1;
+  pwgsmp_( &N, ( int* ) A->ii, ( int* ) A->jj, A->dd, NULL, &TEST, &TEST, NULL, p->iparm, p->dparm);
   const int error_code = p->IPARM(64);
   if ( error_code != NO_ERROR )
     fprintf( stderr, "error: wsmp factorize code %d\n", error_code ); // TODO decode
@@ -276,11 +292,14 @@ void solver_evaluate_wsmp( solver_state_t* s, matrix_t* b, matrix_t* x ) {
     x->m = p->Arows;
     x->n = b->n;
     x->nz = x->m * x->n;
+    x->dd = t->dd;
+    free(t);
     if(b->nz > x->nz) {
       double *t = realloc(x->dd, b->nz * sizeof( double ));
       assert(t != NULL); // realloc failure -- TODO proper error code
       x->dd = t;
     }
+    assert(x->dd != NULL);
   }
 
   int N = p->Arows; // rows of A
@@ -288,8 +307,20 @@ void solver_evaluate_wsmp( solver_state_t* s, matrix_t* b, matrix_t* x ) {
   int LDB = b->m;  // rows of B, must be >= N
   int NRHS = b->n; // columns of B
   p->IPARM(2) = WSMP_EVALUATE;
-  p->IPARM(3) = WSMP_ITERATIVE_REFINEMENT; // TODO split into seperate stage
-  pwgsmp_( &N, ( int* ) p->Aii, ( int* ) p->Ajj, p->Add, B, &LDB, &NRHS, NULL, p->iparm, p->dparm);
+//  p->IPARM(3) = WSMP_ITERATIVE_REFINEMENT; // TODO split into seperate stage
+  p->IPARM(3) = WSMP_EVALUATE; // TODO split into seperate stage
+  double TEST = 1;
+  assert(&N != NULL);
+  assert(p->Aii != NULL);
+  assert(p->Ajj != NULL);
+  assert(p->Add != NULL);
+  assert(B != NULL);
+  assert(&LDB != NULL);
+  assert(&NRHS != NULL);
+  assert(&TEST != NULL);
+  assert(p->iparm != NULL);
+  assert(p->dparm != NULL);
+  pwgsmp_( &N, ( int* ) p->Aii, ( int* ) p->Ajj, p->Add, B, &LDB, &NRHS, &TEST, p->iparm, p->dparm);
   const int error_code = p->IPARM(64);
   if ( error_code != NO_ERROR )
     fprintf( stderr, "error: wsmp evaluate code %d\n", error_code ); // TODO decode
