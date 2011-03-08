@@ -834,18 +834,19 @@ if [[ -n $UMFPACK ]]; then
 fi
 
 if [[ -n $PARDISO ]]; then
-  info "Pardiso"
+  PARDISO_VER=4.1.1
+  info "Pardiso ${PARDISO_VER}"
   F=${S}/dl/libpardiso411-GNU430-X86-64.so
   PARDISO_LIB=libpardiso
-  PARDISO_VER=4.1.1
   if [[ ! -f ${F} ]]; then
     echo "  Need to download tar.gz from http://www.pardiso-project.org/branch (licensing required)"
   else
     [[ ! -f ${HOME}/pardiso.lic ]] && [[ ! -f ./pardiso.lic ]] && \
       echo "  Make sure license (pardiso.lic) is in home directory or working directory."
     cp ${F} ${INSTALL_LIB_DIR}/${PARDISO_LIB}-${PARDISO_VER}.so
+    chmod +x ${INSTALL_LIB_DIR}/${PARDISO_LIB}-${PARDISO_VER}.so
     cd ${INSTALL_LIB_DIR}
-    ln -sf ${PARDISO_LIB}-${PARDISO_VER}.so {PARDISO_LIB}.so
+    ln -sf ${PARDISO_LIB}-${PARDISO_VER}.so ${PARDISO_LIB}.so
     # TODO add -rpath and dependencies: blas, lapack, mpi?
   fi
 fi
