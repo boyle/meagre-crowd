@@ -753,6 +753,7 @@ int _drow2coo( matrix_t* m, const enum matrix_base_t b ) {
   m->jj = malloc(( m->m ) * ( m->n ) * sizeof( unsigned int ) );
   if ( m->jj == NULL ) {
     free( m->ii );
+    m->ii = NULL;
     return -1;
   }
 
@@ -802,7 +803,6 @@ int _drow2coo( matrix_t* m, const enum matrix_base_t b ) {
       assert( 0 );
       break;
   }
-
   // optimization!
   // resize ptr arrays to the correct size, now that
   // we know exactly how many non-zero entries there are
@@ -1134,6 +1134,17 @@ static inline int _realloc_arrays( matrix_t* m, size_t nz ) {
   if ( nz == m->nz )
     return 0;
 
+  // TODO could probably clean this code up: realloc free's the ptrs and returns NULL if nz = 0... but need to detect the malloc failure cases too!
+  if(nz == 0) {
+    free(m->ii);
+    free(m->jj);
+    free(m->dd);
+    m->ii = NULL;
+    m->jj = NULL;
+    m->dd = NULL;
+    m->nz = 0;
+  }
+
   const size_t dwidth = _data_width( m->data_type );
   // resize arrays
   unsigned int* ii_new = realloc( m->ii, nz * sizeof( unsigned int ) );
@@ -1412,7 +1423,13 @@ void printf_matrix( char const *const pre, matrix_t* m ) {
   int i;
   assert( c->data_type == REAL_DOUBLE );
   double* v = c->dd;
-  if ( c->n == 1 ) { // if its a vector
+  if ( (c->m == 0) || (c->n == 0) ) {
+    printf("%s is empty\n", pre);
+  }
+  else if ( c->nz == 0 ) {
+    printf("%s is all-zero\n", pre);
+  }
+  else if ( c->n == 1 ) { // if its a vector
     for ( i = 0; i < c->nz; i++ )
       printf( "%s(%i)=%.2f\n", pre, c->ii[i], v[i] );
   }

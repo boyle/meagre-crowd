@@ -104,14 +104,14 @@ void solver_evaluate_umfpack( solver_state_t* s, matrix_t* b, matrix_t* x ) {
   assert( b->data_type == REAL_DOUBLE );
 
   // allocate x, if required
-  if (( x->format != DCOL ) || ( x->m != p->Arows ) || ( x->n != b->n ) ) {
+  if (( x->format != DCOL ) || ( x->m != p->Acols ) || ( x->n != b->n ) ) {
     clear_matrix( x );
     x->format = DCOL;
     x->data_type = b->data_type;
-    x->m = p->Arows;
+    x->m = p->Acols;
     x->n = b->n;
     x->nz = x->m * x->n;
-    x->dd = malloc(( x->m ) * ( x->n ) * sizeof( double ) );
+    x->dd = calloc(( x->m ) * ( x->n ), sizeof( double ) ); // TODO this shouldn't need to be a calloc!
     assert(x->dd != NULL);
   }
 
