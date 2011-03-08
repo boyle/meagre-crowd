@@ -162,12 +162,17 @@ int main( int argc, char ** argv ) {
   }
 
   // Define the problem on the host
-  matrix_t* b = malloc_matrix();
-  matrix_t* expected = malloc_matrix();
-  matrix_t* A = malloc_matrix();
-  matrix_t* rhs = malloc_matrix();
+  matrix_t* b = NULL;
+  matrix_t* expected = NULL;
+  matrix_t* A = NULL;
+  matrix_t* rhs = NULL;
   unsigned int m = 0; // rows
   if ( args->mpi_rank == 0 ) {
+    // we only load matrices for the zero-rank master process
+    b = malloc_matrix();
+    expected = malloc_matrix();
+    A = malloc_matrix();
+    rhs = malloc_matrix();
 
     if ( extra_timing && args->rep == 0 ) {
       perftimer_adjust_depth( timer, -1 );

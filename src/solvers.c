@@ -181,7 +181,8 @@ void solver_finalize( solver_state_t* s ) {
 // evaluate the patterns in A, doesn't care about the actual values in the matrix (A->dd)
 void solver_analyze( solver_state_t* s, matrix_t* A ) {
   assert( s != NULL );
-  assert( A != NULL );
+  if(s->mpi_rank == 0)
+    assert( A != NULL );
   perftimer_inc( s->timer, "analyze", -1 );
   const int solver = s->solver;
   if ( _valid_solver( solver ) && ( solver_lookup[solver].analyze != NULL ) )
@@ -192,7 +193,8 @@ void solver_analyze( solver_state_t* s, matrix_t* A ) {
 // factorize the matrix A, A must have the same pattern of non-zeros at that used in the solver_analyze stage
 void solver_factorize( solver_state_t* s, matrix_t* A ) {
   assert( s != NULL );
-  assert( A != NULL );
+  if(s->mpi_rank == 0)
+    assert( A != NULL );
   perftimer_inc( s->timer, "factorize", -1 );
   const int solver = s->solver;
   if ( _valid_solver( solver ) && ( solver_lookup[solver].factorize != NULL ) )
@@ -204,8 +206,10 @@ void solver_factorize( solver_state_t* s, matrix_t* A ) {
 // returns 'x', the solution
 void solver_evaluate( solver_state_t* s, matrix_t* b, matrix_t* x ) {
   assert( s != NULL );
-  assert( b != NULL );
-  assert( x != NULL );
+  if(s->mpi_rank == 0) {
+    assert( b != NULL );
+    assert( x != NULL );
+  }
   perftimer_inc( s->timer, "evaluate", -1 );
   const int solver = s->solver;
   if ( _valid_solver( solver ) && ( solver_lookup[solver].evaluate != NULL ) ) {
