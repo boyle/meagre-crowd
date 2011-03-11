@@ -172,7 +172,7 @@ static const struct solver_properties_t solver_lookup[] = {
     // TODO keep track of when a matrices' entries have been sorted!
     SOLVES_DATA_TYPE_REAL_DOUBLE |
     // TODO is cholmod really restricted to square matrices?
-    SOLVES_RHS_DCOL | SOLVES_RHS_CSC,
+    SOLVES_RHS_DCOL | SOLVES_RHS_VECTOR_ONLY, // TODO | SOLVES_RHS_CSC,
     SOLVER_SINGLE_THREADED_ONLY,
     "    * Dynamic supernodes in sparse Cholesky update/downdate and triangular\n"
     "      solves, T. A. Davis and W. W. Hager, ACM Trans. Math. Software,\n"
@@ -206,7 +206,7 @@ static const struct solver_properties_t solver_lookup[] = {
     SOLVES_FORMAT_CSC | SOLVES_BASE_ZERO | SOLVES_UNSYMMETRIC |
     // TODO SOLVES_SYMMETRIC_UPPER_TRIANGULAR | //  // TODO or lower triangular?
     SOLVES_DATA_TYPE_REAL_DOUBLE | // TODO and REAL_COMPLEX, double and single precision, and handles hermitian
-    SOLVES_RHS_DCOL,
+    SOLVES_RHS_DCOL | SOLVES_RHS_VECTOR_ONLY,
     0, // uses CILK? not MPI or openMP
     "        TODO citations\n" }, // TODO
 
@@ -251,7 +251,7 @@ static const struct solver_properties_t solver_lookup[] = {
     SOLVER_SYM_REQUIRES_DIAGONAL | // TODO diagonal only for sym matrices?
     // TODO SOLVES_SYMMETRIC_UPPER_TRIANGULAR // TODO or lower triangular?
     SOLVES_DATA_TYPE_REAL_DOUBLE | // TODO and REAL_COMPLEX
-    SOLVES_RHS_DCOL | SOLVES_RHS_CSR,
+    SOLVES_RHS_DCOL | SOLVES_RHS_VECTOR_ONLY, // TODO | SOLVES_RHS_CSR,
     SOLVER_REQUIRES_OMP | SOLVER_CAN_USE_MPI,
     "    [1] O. Schenk and K. Gärtner, Solving Unsymmetric Sparse Systems of Linear\n"
     "        Equations with PARDISO, Journal of Future Generation Computer Systems,\n"
@@ -282,7 +282,7 @@ static const struct solver_properties_t solver_lookup[] = {
     SOLVER_SYM_REQUIRES_DIAGONAL | // TODO CSC lower triangular, base 1
     // TODO SOLVES_SYMMETRIC_UPPER_TRIANGULAR // TODO solvers
     SOLVES_DATA_TYPE_REAL_DOUBLE | // TODO and REAL_COMPLEX -- 8Byte floating pt, 4 byte ints
-    SOLVES_RHS_DCOL,
+    SOLVES_RHS_DCOL | SOLVES_RHS_VECTOR_ONLY,
     SOLVER_CAN_USE_OMP | SOLVER_REQUIRES_MPI, // TODO: SOLVER_CAN_USE_MPI (select non-MPI solver...) // TODO non-MPI/OMP solvers (switch, based on number of threads/nodes)
     "    [1] A. Gupta, G. Karypis, V. Kumar, A Highly Scalable Parallel Algorithm for\n"
     "        Sparse Matrix Factorization, IEEE Transactions on Parallel and\n"

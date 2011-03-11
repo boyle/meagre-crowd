@@ -358,9 +358,16 @@ void solver_factorize( solver_state_t* s, matrix_t* A ) {
 void solver_evaluate( solver_state_t* s, matrix_t* b, matrix_t* x ) {
   assert( s != NULL );
   const int solver = s->solver;
+  const unsigned int c = solver_lookup[solver].capabilities;
   if(s->mpi_rank == 0) {
     assert( b != NULL );
     assert( x != NULL );
+    if((b->n != 1) && (c & SOLVES_RHS_VECTOR_ONLY)) {
+      // TODO FIXME: for now just do a single column!
+
+      assert(b->n == 1); // can only handle vectors at a time... TODO loop!
+      // TODO might need to make a few MPI calls here to get the other nodes in sync!
+    }
   }
   perftimer_inc( s->timer, "evaluate", -1 );
   if ( _valid_solver( solver ) && ( solver_lookup[solver].evaluate != NULL ) ) {
