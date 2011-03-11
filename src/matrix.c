@@ -819,18 +819,23 @@ int _drow2coo( matrix_t* m, const enum matrix_base_t b ) {
 int _drow2dcol( matrix_t* m );
 int _drow2dcol( matrix_t* m ) {
   assert( m->format == DROW );
+  const unsigned int rows = m->m;
+  const unsigned int cols = m->n;
+
+  // short-circuit
+  // if its already a vector, converting from column-to-row major is a no-op
+  if( (rows == 1) || (cols == 1) ) {
+    m->format = DCOL;
+    return 0;
+  }
+
   void* d_new = malloc(( m->m ) * ( m->n ) * _data_width( m->data_type ) );
   if ( d_new == NULL )
     return -1; // malloc failure
 
-  // TODO dcol == drow if rows or cols == 1, short-circuit in that case and change format
-  // TODO do this going the other way too dcol -> drow
-
   // swaps rows and columns
   unsigned int i, j;
   void* d_old = m->dd;
-  const unsigned int rows = m->m;
-  const unsigned int cols = m->n;
   const size_t dwidth = _data_width( m->data_type );
   for ( i = 0; i < rows; i++ ) {
     for ( j = 0; j < cols; j++ ) {
@@ -852,6 +857,16 @@ int _drow2dcol( matrix_t* m ) {
 int _dcol2drow( matrix_t* m );
 int _dcol2drow( matrix_t* m ) {
   assert( m->format == DCOL );
+  const unsigned int rows = m->m;
+  const unsigned int cols = m->n;
+  // short-circuit
+  // if its already a vector, converting from column-to-row major is a no-op
+  if( (rows == 1) || (cols == 1) ) {
+    m->format = DROW;
+    return 0;
+  }
+
+  // get a new chunk of memory
   void* d_new = malloc(( m->m ) * ( m->n ) * _data_width( m->data_type ) );
   if ( d_new == NULL )
     return -1; // malloc failure
@@ -859,8 +874,6 @@ int _dcol2drow( matrix_t* m ) {
   // swaps rows and columns
   unsigned int i, j;
   void* d_old = m->dd;
-  const unsigned int rows = m->m;
-  const unsigned int cols = m->n;
   const size_t dwidth = _data_width( m->data_type );
   // TODO common code: only swapping roll of i,j and indexing between _dcol2drow and _drow2dcol
   for ( i = 0; i < cols; i++ ) {
