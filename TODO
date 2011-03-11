@@ -28,11 +28,8 @@ These are somewhat arranged in order of priority. Highest at the top.
  - add tests for symmetric positive definite solvers
  - add tests for 'mpirun -n N' with various error messages: only one error message should be printed
  - add tests for matrix conversion: use validate_matrix
- - add tests for copy_matrix -- seems to be broken
-   - then re-instate copy_matrix in printf_matrix
 
  - fix "inline" in matrix.c/h
- - add optimization: DROW <-> DCOL when they're a single vector short-circuit
  - extend tests/unit-matrix.c to push things harder
 
 Fix memory leaks:
