@@ -140,7 +140,7 @@ MPI_BIN=mpirun
 MPI_ARGS=-n 4 
 VALGRIND=${VALGRIND_ENV} ${VALGRIND_BIN} ${VALGRIND_ARGS} ${MPI_BIN} ${MPI_ARGS}
 valgrind: tests/mumps-file
-	cd test && ${VALGRIND} mumps-file
+	cd tests && ${VALGRIND} mumps-file
 
 .PHONY: help
 help:
