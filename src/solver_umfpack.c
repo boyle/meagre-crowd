@@ -48,6 +48,7 @@ void solver_analyze_umfpack( solver_state_t* s, matrix_t* A ) {
   solve_system_umfpack_t* const p = s->specific;
   assert( p != NULL );
 
+
   // TODO could do this smarter by giving UMFPACK the symmetric matrix to solve,
   // instead we're just going straight for the unsymmetric solver
   assert( A->sym == SM_UNSYMMETRIC );
@@ -62,8 +63,9 @@ void solver_analyze_umfpack( solver_state_t* s, matrix_t* A ) {
   assert( A->jj[0] == 0 );
   assert( A->jj[A->n] == A->nz );
 
-  if(s->verbosity >= 3) {
+  if(s->verbosity >= 4) {
     double Control [UMFPACK_CONTROL];
+    umfpack_di_defaults(Control); // set defaults
     Control[UMFPACK_PRL] = 6;
     umfpack_di_report_matrix( A->m, A->n, ( int* ) A->jj, ( int* ) A->ii, A->dd, 0, Control);
   }
@@ -92,6 +94,7 @@ void solver_factorize_umfpack( solver_state_t* s, matrix_t* A ) {
   p->Ajj = ( int* ) A->jj;
   p->Aii = ( int* ) A->ii;
   p->Add = A->dd;
+
   int status = umfpack_di_numeric( p->Ajj, p->Aii, p->Add, p->Symbolic, &( p->Numeric ), NULL, NULL );
   if(status != UMFPACK_OK)
     umfpack_di_report_status(NULL, status);
