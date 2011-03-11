@@ -199,11 +199,7 @@ int main( int argc, char ** argv ) {
         return retval;
       }
       assert( b->m == m ); // rows must match // TODO nice error (user could load some random matrix file, also testcases)
-      assert( b->n == 1 ); // TODO can only handle single column vector currently
 
-      // convert from COO vector to dense format vector
-      // TODO this is redundant, since it needs to be done in the solver ... do it there, remove this later
-      convert_matrix( b, DCOL, FIRST_INDEX_ZERO );
       // TODO but don't remove this here, since we want to test dense-matrix performance? OR do we need a new option! OR do we decide based on matrix sparsity? (EIT is sparse...)
     }
     else {
