@@ -26,6 +26,9 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <mpi.h>
+#include <stdlib.h>
+
 #include "solver_lookup.h"
 
 static inline int _convert_matrix_A( const int solver, matrix_t* A );
@@ -359,23 +362,101 @@ void solver_evaluate( solver_state_t* s, matrix_t* b, matrix_t* x ) {
   assert( s != NULL );
   const int solver = s->solver;
   const unsigned int c = solver_lookup[solver].capabilities;
+
+  // decide if we need to use MPI
+  int is_mpi;
+  int ierr = MPI_Initialized(&is_mpi);
+  assert(ierr == 0);
+
+  matrix_t bb = {0}; // Note that bb is only a shallow copy, it gets thrown away afterwards
+  int loops;
   if(s->mpi_rank == 0) {
     assert( b != NULL );
     assert( x != NULL );
-    if((b->n != 1) && (c & SOLVES_RHS_VECTOR_ONLY)) {
-      // TODO FIXME: for now just do a single column!
+    // ensure the RHS is in column major format
+    // TODO FIXME: not really necessary except that otherwise the code lower down for looping gets messed up -- it is necessary for the SOLVES_RHS_VECTOR_ONLY loops but has to be outside or breaks MUMPS because the MUMPS driver then tries to convert from COO -> DROW and breaks our pointer monkey-business with the looping for SOLVES_RHS_VECTOR_ONLY
+    convert_matrix(b, DCOL, FIRST_INDEX_ZERO);
+    bb = *b; // shallow copy
 
-      assert(b->n == 1); // can only handle vectors at a time... TODO loop!
-      // TODO might need to make a few MPI calls here to get the other nodes in sync!
+    if((b->n != 1) && (c & SOLVES_RHS_VECTOR_ONLY)) {
+      fprintf(stderr, "warning: %s can only handle vector right-hand sides, dropping all but first column (TODO)\n", solver2str(solver));
+      // TODO FIXME: also need to handle non-DCOL format (sparse, etc)
+      // TODO FIXME: this solver can only handle single vectors at a time...
+      //             should loop! probably complications with communicating
+      //             that to the other (non-rank == 0) solvers...
+      // TODO FIXME: for now just do a single column!
+      bb.n = 1; // force to single column
+      loops = b->n;
+    }
+    else { // don't need to do anything special
+      loops = 1;
     }
   }
+
+  // share with all nodes, how many loops do we need to do when we can't handle more than a vector RHS
+  if(is_mpi) {
+    ierr = MPI_Bcast(&loops, 1, MPI_INT, 0, MPI_COMM_WORLD); // Bcast(var, n, datatype, root_rank, communicator)
+    assert(ierr == 0);
+    // TODO should set communicator in solver_initialize() instead of using COMM_WORLD by default
+  }
+
   perftimer_inc( s->timer, "evaluate", -1 );
   if ( _valid_solver( solver ) && ( solver_lookup[solver].evaluate != NULL ) ) {
-    solver_lookup[solver].evaluate( s, b, x );
+    // prepare to receive the results
+    if(s->mpi_rank == 0) {
+      clear_matrix(x);
+      x->format = DCOL;
+      assert(x->dd == NULL);
+      assert(x->n == 0);
+    }
+    // Loops are for handling multiple RHS when the underlying solver can't.
+    //
+    // Note that this loop trickery will be utterly broken if the solver
+    //   converts any of the data internally since we are holding shallow copies.
+    int i;
+    for(i=0; i<loops; i++) {
+      matrix_t *const bb_p = (s->mpi_rank == 0)? &bb : NULL; // only rank-0 has a valid RHS matrix
+      matrix_t xx = {0};
+      solver_lookup[solver].evaluate( s, bb_p, &xx ); // TODO bb should be const const to be protected
+
+      if(s->mpi_rank == 0) {
+        // don't bother mucking with bb if its the last loop
+        if(i != loops -1) {
+	  // for the next loop, advance by a column
+	  assert(bb.format == DCOL);
+	  double* dd = bb.dd;
+	  dd += bb.m; // advance by a column
+	  bb.dd = dd;
+        }
+
+	// collect the results
+	// TODO should probably abstract this into the matrix functions
+	if(x->dd == NULL) {
+	  // if this is the first row we can just steal the pointer
+	  *x = xx;
+	  xx.dd = NULL;
+	}
+	else { // otherwise we need to
+	  x->m = xx.m; // rows
+	  assert(xx.format == DCOL);
+	  //if(xx.format != DCOL) {
+	  //  convert_matrix(&xx, DCOL, FIRST_INDEX_ZERO);
+	  //}
+	  // resize to capture another column
+	  x->dd = realloc(x->dd, (x->m * (x->n + xx.n))*sizeof(double));
+	  assert(x->dd != NULL); // realloc failure
+	  // and copy the data into the newly resized buffer
+	  memcpy(x->dd + (x->m * x->n) * sizeof(double), xx.dd, x->m * xx.n * sizeof(double));
+	  x->n += xx.n; // increment the column count
+	}
+	clear_matrix(&xx); // free any memory we accumulated from the solver
+      }
+    }
   }
   else {
     clear_matrix( x );
     x->format = INVALID;
+    // TODO report an error
   }
   perftimer_inc( s->timer, "done", -1 );
 }
