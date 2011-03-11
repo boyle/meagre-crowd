@@ -1113,15 +1113,16 @@ static inline int _symmetry_both( matrix_t* m ) {
   // so remove anything on the diagonal that occurs in the second set of arrays
   int del = 0;
   int i;
-  for ( i = nz_old;i < m->nz; i++ ) {
-    if ( m->ii[i] == m->jj[i] ) { // on the diagonal
-      del++; // deleting the i-th entry
-      if ( i + 1 != m->nz ) { // unless its the last entry
+  for ( i = nz_old;i < m->nz - del; i++ ) {
+    if ( (m->ii)[i] == (m->jj)[i] ) { // on the diagonal
+      if ( i + 1 < m->nz ) { // unless its the last entry
         // Note: have to use memmove here since potentially the arrays dst and src overlap when we shuffle them downwards
-        memmove( m->ii + i, m->ii + ( i + 1 ), ( m->nz - i - 1 )*sizeof( unsigned int ) );
-        memmove( m->jj + i, m->jj + ( i + 1 ), ( m->nz - i - 1 )*sizeof( unsigned int ) );
-        memmove( m->dd + i * dwidth, m->dd + ( i + 1 ) * dwidth, ( m->nz - i - 1 )*dwidth );
+        memmove( m->ii + i, m->ii + ( i + 1 ), ( m->nz - i - 1 - del )*sizeof( unsigned int ) );
+        memmove( m->jj + i, m->jj + ( i + 1 ), ( m->nz - i - 1 - del )*sizeof( unsigned int ) );
+        memmove( m->dd + i * dwidth, m->dd + ( i + 1 ) * dwidth, ( m->nz - i - 1 - del)*dwidth );
+	i--;
       }
+      del++; // deleting the i-th entry
     }
   }
   _realloc_arrays( m, m->nz - del );
