@@ -379,13 +379,15 @@ void solver_evaluate( solver_state_t* s, matrix_t* b, matrix_t* x ) {
     bb = *b; // shallow copy
 
     if((b->n != 1) && (c & SOLVES_RHS_VECTOR_ONLY)) {
-      fprintf(stderr, "warning: %s can only handle vector right-hand sides, dropping all but first column (TODO)\n", solver2str(solver));
       // TODO FIXME: also need to handle non-DCOL format (sparse, etc)
-      // TODO FIXME: this solver can only handle single vectors at a time...
-      //             should loop! probably complications with communicating
-      //             that to the other (non-rank == 0) solvers...
-      // TODO FIXME: for now just do a single column!
-      bb.n = 1; // force to single column
+      // Force to single column: We do one column at a time and
+      // monkey with the data pointer. Note that if the solver's
+      // wrapper does data conversion internally and reallocates
+      // memory this method will break! For those solvers, we need to
+      // support their desired format so they can't break this wrapper.
+      // This special consideration is only necessary for
+      // SOLVES_RHS_VECTOR_ONLY solvers.
+      bb.n = 1;
       loops = b->n;
     }
     else { // don't need to do anything special
