@@ -116,7 +116,7 @@ static const struct solver_properties_t solver_lookup[] = {
     &solver_finalize_umfpack,
     SOLVES_FORMAT_CSC | SOLVES_BASE_ZERO | SOLVES_UNSYMMETRIC |
     SOLVES_DATA_TYPE_REAL_DOUBLE |
-    SOLVES_SQUARE_ONLY | // TODO is umfpack really restricted to square matrices?
+    SOLVES_SQUARE_ONLY |
     SOLVES_RHS_DCOL | SOLVES_RHS_VECTOR_ONLY,
     SOLVER_SINGLE_THREADED_ONLY,
     // Note: Adjacent constant strings will be concatentated
