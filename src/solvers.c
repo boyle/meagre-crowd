@@ -419,7 +419,8 @@ void solver_evaluate( solver_state_t* s, matrix_t* b, matrix_t* x ) {
     for(i=0; i<loops; i++) {
       matrix_t *const bb_p = (s->mpi_rank == 0)? &bb : NULL; // only rank-0 has a valid RHS matrix
       matrix_t xx = {0};
-      solver_lookup[solver].evaluate( s, bb_p, &xx ); // TODO bb should be const const to be protected
+      matrix_t *const xx_p = (s->mpi_rank == 0)? &xx : NULL; // only rank-0 has a valid solution
+      solver_lookup[solver].evaluate( s, bb_p, xx_p ); // TODO bb should be const const to be protected
 
       if(s->mpi_rank == 0) {
         // don't bother mucking with bb if its the last loop
