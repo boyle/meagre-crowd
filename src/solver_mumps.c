@@ -215,26 +215,28 @@ void solver_factorize_mumps( solver_state_t* s, matrix_t* A ) {
 
 void solver_evaluate_mumps( solver_state_t* s, matrix_t* b, matrix_t* x ) {
   assert( s != NULL );
+  DMUMPS_STRUC_C* const id = s->specific;
+
   if ( s->mpi_rank == 0 ) {
-    assert( b != NULL );
     assert( x != NULL );
+    assert( b != NULL );
+    assert( b->data_type == REAL_DOUBLE );
+    assert( b->m == id->n ); // rows of b match rows of A
+    assert(b->format == DCOL);
+    assert( (b->format == DCOL) || (b->format == SM_CSC) );
+    if(b->format == SM_CSC)
+      assert(b->base == FIRST_INDEX_ONE);
+
+    free( id->rhs ); // no-op if NULL
+    id->lrhs = b->m; // rows of b
+    id->nrhs = b->n; // columns of b
+    id->rhs = malloc( id->n * id->nrhs * sizeof( double ) );
+    assert( id->rhs != NULL ); // malloc failure
+    memcpy( id->rhs, b->dd, id->n * id->nrhs * sizeof( double ) );
   }
   else {
     assert( b == NULL );
     assert( x == NULL );
-  }
-  DMUMPS_STRUC_C* const id = s->specific;
-
-  if ( s->mpi_rank == 0 ) {
-    free( id->rhs ); // no-op if NULL
-    id->rhs = malloc( id->n * sizeof( double ) );
-    assert( id->rhs != NULL ); // malloc failure
-    int ret = convert_matrix( b, DROW, FIRST_INDEX_ZERO ); // TODO MUMPS can handle sparse vectors
-    assert( ret == 0 );
-    assert( b->m == id->n ); // rows of b match columns of A
-    assert( b->n == 1 ); // TOOD MUMPS can handle vectors...
-    assert( b->data_type == REAL_DOUBLE );
-    memcpy( id->rhs, b->dd, id->n * sizeof( double ) );
   }
 
   // solve Ax=b, AX=B OR A^t x=b, A^t X=B
@@ -268,12 +270,14 @@ void solver_evaluate_mumps( solver_state_t* s, matrix_t* b, matrix_t* x ) {
   if ( s->mpi_rank == 0 ) {
     clear_matrix( x );
     x->m = id->n;
-    x->n = 1;
+    x->n = id->nrhs;
     x->nz = x->m * x->n;
-    x->format = DROW;
+    x->format = DCOL;
     x->data_type = REAL_DOUBLE;
-    x->dd = malloc( id->n * sizeof( double ) );
-    assert( x->dd != NULL );
-    memcpy( x->dd, id->rhs, id->n * sizeof( double ) );
+    // we can recycle this pointer:
+    //  1. we allocated it just prior to the solve call, so it doesn't belong to 'b'
+    //  2. the data was copied from 'b' then overwritten in the solve stage so no need to copy again
+    x->dd = id->rhs;
+    id->rhs = NULL; // transfer pointer ownership to x
   }
 }

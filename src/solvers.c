@@ -178,6 +178,144 @@ static inline int _convert_matrix_A( const int solver, matrix_t* A ) {
   return 0; // TODO return error code
 }
 
+static inline int _convert_matrix_b( const int solver, matrix_t* b );
+static inline int _convert_matrix_b( const int solver, matrix_t* b ) {
+  const unsigned int c = solver_lookup[solver].capabilities;
+  // symmetry: don't convert unless we have to
+  // Note: no solvers do expect to see a symmetric right-hand side, so convert to full matrix
+
+  int ierr;
+  if(b->sym != SM_UNSYMMETRIC) {
+    ierr = convert_matrix_symmetry( b, BOTH );
+    assert(ierr == 0);
+  }
+
+  // format: don't convert unless we have to
+
+  // should have at least one of these set in solver_lookup.h
+  assert(c & (SOLVES_BASE_ZERO | SOLVES_BASE_ONE));
+  enum matrix_base_t base = b->base;
+  switch(base) {
+    case FIRST_INDEX_ZERO:
+      if(!(c & SOLVES_BASE_ZERO)) {
+        base = FIRST_INDEX_ONE; // need to convert
+      }
+      break;
+    case FIRST_INDEX_ONE:
+      if(!(c & SOLVES_BASE_ONE)) {
+        base = FIRST_INDEX_ZERO; // need to convert
+      }
+      break;
+  }
+
+  // should have at least one of these set in solver_lookup.h
+  assert(c & (SOLVES_RHS_DROW | SOLVES_RHS_DCOL | SOLVES_RHS_COO | SOLVES_RHS_CSC | SOLVES_RHS_CSR));
+  enum matrix_format_t format = b->format;
+  switch(format) {
+    case INVALID:
+      assert(0); // fail!
+      break;
+    case DROW:
+      if(!(c & SOLVES_RHS_DROW)) {
+        if(c & SOLVES_RHS_DCOL) {
+	  format = DCOL;
+	}
+	else if(c & SOLVES_RHS_COO) {
+	  format = SM_COO;
+	}
+	else if(c & SOLVES_RHS_CSC) {
+	  format = SM_CSC;
+	}
+	else if(c & SOLVES_RHS_CSR) {
+	  format = SM_CSR;
+	}
+	else {
+	  assert(0);
+	}
+      }
+      break;
+    case DCOL:
+      if(!(c & SOLVES_RHS_DCOL)) {
+        if(c & SOLVES_RHS_DROW) {
+	  format = DROW;
+	}
+	else if(c & SOLVES_RHS_COO) {
+	  format = SM_COO;
+	}
+	else if(c & SOLVES_RHS_CSC) {
+	  format = SM_CSC;
+	}
+	else if(c & SOLVES_RHS_CSR) {
+	  format = SM_CSR;
+	}
+	else {
+	  assert(0);
+	}
+      }
+      break;
+    case SM_COO:
+      if(!(c & SOLVES_RHS_COO)) {
+	if(c & SOLVES_RHS_CSC) {
+	  format = SM_CSC;
+	}
+	else if(c & SOLVES_RHS_CSR) {
+	  format = SM_CSR;
+	}
+        else if(c & SOLVES_RHS_DROW) {
+	  format = DROW;
+	}
+	else if(c & SOLVES_RHS_DCOL) {
+	  format = DCOL;
+	}
+	else {
+	  assert(0);
+	}
+      }
+      break;
+    case SM_CSC:
+      if(!(c & SOLVES_RHS_CSC)) {
+	if(c & SOLVES_RHS_COO) {
+	  format = SM_COO;
+	}
+	else if(c & SOLVES_RHS_CSR) {
+	  format = SM_CSR;
+	}
+        else if(c & SOLVES_RHS_DROW) {
+	  format = DROW;
+	}
+	else if(c & SOLVES_RHS_DCOL) {
+	  format = DCOL;
+	}
+	else {
+	  assert(0);
+	}
+      }
+      break;
+    case SM_CSR:
+      if(!(c & SOLVES_RHS_CSR)) {
+	if(c & SOLVES_RHS_COO) {
+	  format = SM_COO;
+	}
+	else if(c & SOLVES_RHS_CSC) {
+	  format = SM_CSC;
+	}
+        else if(c & SOLVES_RHS_DROW) {
+	  format = DROW;
+	}
+	else if(c & SOLVES_RHS_DCOL) {
+	  format = DCOL;
+	}
+	else {
+	  assert(0);
+	}
+      }
+      break;
+  }
+  ierr = convert_matrix( b, format, base );
+  assert( ierr == 0 );
+  return 0; // TODO return error code
+}
+
 static inline int _valid_solver( const int solver );
 static inline int _valid_solver( const int solver ) {
   return ( solver_lookup[solver].shortname != NULL );
@@ -373,10 +511,6 @@ void solver_evaluate( solver_state_t* s, matrix_t* b, matrix_t* x ) {
   if(s->mpi_rank == 0) {
     assert( b != NULL );
     assert( x != NULL );
-    // ensure the RHS is in column major format
-    // TODO FIXME: not really necessary except that otherwise the code lower down for looping gets messed up -- it is necessary for the SOLVES_RHS_VECTOR_ONLY loops but has to be outside or breaks MUMPS because the MUMPS driver then tries to convert from COO -> DROW and breaks our pointer monkey-business with the looping for SOLVES_RHS_VECTOR_ONLY
-    convert_matrix(b, DCOL, FIRST_INDEX_ZERO);
-    bb = *b; // shallow copy
 
     if((b->n != 1) && (c & SOLVES_RHS_VECTOR_ONLY)) {
       // TODO FIXME: also need to handle non-DCOL format (sparse, etc)
@@ -387,10 +521,16 @@ void solver_evaluate( solver_state_t* s, matrix_t* b, matrix_t* x ) {
       // support their desired format so they can't break this wrapper.
       // This special consideration is only necessary for
       // SOLVES_RHS_VECTOR_ONLY solvers.
-      bb.n = 1;
+      // ensure the RHS is in column major format
+      assert(c & SOLVES_RHS_DCOL);
+      convert_matrix(b, DCOL, FIRST_INDEX_ZERO);
+      bb = *b; // shallow copy
+      bb.n = 1; // pretend this right-hand side is only one column
       loops = b->n;
     }
     else { // don't need to do anything special
+      _convert_matrix_b(s->solver, b);
+      bb = *b; // shallow copy
       loops = 1;
     }
   }
@@ -428,7 +568,7 @@ void solver_evaluate( solver_state_t* s, matrix_t* b, matrix_t* x ) {
 	  // for the next loop, advance by a column
 	  assert((bb.format == DCOL) || (bb.format == DROW));
 	  assert(bb.n == 1);
-	  convert_matrix(&xx, DCOL, FIRST_INDEX_ZERO);
+	  convert_matrix(&bb, DCOL, FIRST_INDEX_ZERO);
 	  // as a short-circuit conversion DROW->DCOL, this doesn't
 	  // actually replace the memory pointers, so we're safe to
 	  // continue with the monkey-ing with pointers (it converts

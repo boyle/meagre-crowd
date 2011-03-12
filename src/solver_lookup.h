@@ -145,7 +145,7 @@ static const struct solver_properties_t solver_lookup[] = {
     SOLVES_SQUARE_ONLY |
     // TODO is mumps really restricted to square matrices?
     // TODO mumps can handle sparse rhs and can solve multiple right hand sides
-    SOLVES_RHS_DCOL | SOLVES_RHS_VECTOR_ONLY,
+    SOLVES_RHS_DCOL, // TODO SOLVES_RHS_CSC
     SOLVER_REQUIRES_MPI,
     "    [1] P. R. Amestoy, I. S. Duff, J. Koster and J.-Y. L'Excellent,\n"
     "        A fully asynchronous multifrontal solver using distributed dynamic scheduling,\n"
