@@ -296,18 +296,15 @@ void solver_evaluate_wsmp( solver_state_t* s, matrix_t* b, matrix_t* x ) {
       clear_matrix(x);
       matrix_t* t = copy_matrix(b);
       // push copied t contents into x
-      x->format = t->format;
-      x->sym = t->sym;
-      x->data_type = b->data_type;
+      *x = *t;
+      t->dd = NULL; // transfer dd pointer ownership to x
       x->m = p->Arows;
       x->n = b->n;
       x->nz = x->m * x->n;
-      x->dd = t->dd;
       free(t);
-      if(b->nz > x->nz) {
-	double *t = realloc(x->dd, b->nz * sizeof( double ));
+      if(x->nz > b->nz) {
+	x->dd = realloc(x->dd, x->nz * sizeof( double ));
 	assert(t != NULL); // realloc failure -- TODO proper error code
-	x->dd = t;
       }
       assert(x->dd != NULL);
     }
