@@ -282,7 +282,7 @@ static const struct solver_properties_t solver_lookup[] = {
     SOLVER_SYM_REQUIRES_DIAGONAL | // TODO CSC lower triangular, base 1
     // TODO SOLVES_SYMMETRIC_UPPER_TRIANGULAR // TODO solvers
     SOLVES_DATA_TYPE_REAL_DOUBLE | // TODO and REAL_COMPLEX -- 8Byte floating pt, 4 byte ints
-    SOLVES_RHS_DCOL | SOLVES_RHS_VECTOR_ONLY,
+    SOLVES_RHS_DCOL,
     SOLVER_CAN_USE_OMP | SOLVER_REQUIRES_MPI, // TODO: SOLVER_CAN_USE_MPI (select non-MPI solver...) // TODO non-MPI/OMP solvers (switch, based on number of threads/nodes)
     "    [1] A. Gupta, G. Karypis, V. Kumar, A Highly Scalable Parallel Algorithm for\n"
     "        Sparse Matrix Factorization, IEEE Transactions on Parallel and\n"

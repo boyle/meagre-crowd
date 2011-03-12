@@ -265,13 +265,9 @@ void solver_evaluate_wsmp( solver_state_t* s, matrix_t* b, matrix_t* x ) {
     assert( b != NULL );
     assert( b != x ); // TODO allow this form
 
-    // TODO move this conversion logic to solver.c
     // and we have a valid 'x' and 'b'
-    int ierr = convert_matrix( b, DCOL, FIRST_INDEX_ONE ); // TODO support for sparse rhs too
-    assert( ierr == 0 );
+    assert( b->format == DCOL );
     assert( b->data_type == REAL_DOUBLE ); // don't handle complex... yet TODO
-
-    // TODO if solver only handles single rhs, loops solver and collect answers...
 
     // allocate data space // TODO if required
     // TODO move this to master function
@@ -320,15 +316,10 @@ void solver_evaluate_wsmp( solver_state_t* s, matrix_t* b, matrix_t* x ) {
     double* B = x->dd; // N x NRHS
     int LDB = b->m;  // rows of B, must be >= N
     int NRHS = b->n; // columns of B
-    assert(&N != NULL);
     assert(p->Aii != NULL);
     assert(p->Ajj != NULL);
     assert(p->Add != NULL);
     assert(B != NULL);
-    assert(&LDB != NULL);
-    assert(&NRHS != NULL);
-    assert(p->iparm != NULL);
-    assert(p->dparm != NULL);
     pwgsmp_( &N, ( int* ) p->Aii, ( int* ) p->Ajj, p->Add, B, &LDB, &NRHS, NULL, p->iparm, p->dparm);
   }
   else {
