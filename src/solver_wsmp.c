@@ -85,8 +85,8 @@ void solver_init_wsmp( solver_state_t* s ) {
   // TODO should use specific MPI for myrinet, infiniband, etc (vendor supplied)
 
   p->IPARM( 1 ) = 1; // 0: fill in default values (4..64), 2,3 MUST be set .. this will overwrite the following config with defaults (it mostly here for documentation)
-  p->IPARM( 2 ) = 2; // start task, on output has next task (end task +1)
-  p->IPARM( 3 ) = 1; // end task
+  p->IPARM( 2 ) = WSMP_INIT; // start task, on output has next task (end task +1)
+  p->IPARM( 3 ) = WSMP_INIT; // end task
   p->IPARM( 4 ) = 0; // matrix format (0:CSR, 1: CSC)
   p->IPARM( 5 ) = 1; // numbering style (base 0 or 1)
   p->IPARM( 6 ) = 3; // max iterative refinement steps
@@ -174,30 +174,38 @@ void solver_init_wsmp( solver_state_t* s ) {
 // TODO split analyze stage into ordering and symbolic factorization stages?
 void solver_analyze_wsmp( solver_state_t* s, matrix_t* A ) {
   assert( s != NULL );
-  assert( A != NULL );
   solve_system_wsmp_t* const p = s->specific;
   assert( p != NULL );
-
-  // TODO could do this smarter by giving WSMP the symmetric matrix to solve,
-  // instead we're just going straight for the unsymmetric solver
-  assert( A->sym == SM_UNSYMMETRIC );
-  // TODO for SYMMETRIC matrices: wsmp wants all diagonal entries to exist in A, even if they are zero
-
-  // prepare the matrix
-  assert( A->format == SM_CSR );
-  assert( A->base == FIRST_INDEX_ONE );
-  assert( A->data_type == REAL_DOUBLE ); // don't handle complex... yet TODO
-  assert( A->m == A->n ); // TODO can only handle square matrices at present???
-
-  // Compressed Row Format
-  assert( A->ii[0] == 1 );
-  assert( A->ii[A->n] == A->nz + 1 );
-
-  int N = A->m; // rows of A
   p->IPARM(2) = WSMP_ANALYZE;
   p->IPARM(3) = WSMP_ANALYZE;
-  int TEST = 1;
-  pwgsmp_( &N, ( int* ) A->ii, ( int* ) A->jj, A->dd, NULL, &TEST, &TEST, NULL, p->iparm, p->dparm);
+
+  int TEST = 1; // Note: WSMP needs this value or it dies trying to read a NULL value
+  if(s->mpi_rank == 0) {
+    assert( A != NULL );
+
+    // TODO could do this smarter by giving WSMP the symmetric matrix to solve,
+    // instead we're just going straight for the unsymmetric solver
+    assert( A->sym == SM_UNSYMMETRIC );
+    // TODO for SYMMETRIC matrices: wsmp wants all diagonal entries to exist in A, even if they are zero
+
+    // prepare the matrix
+    assert( A->format == SM_CSR );
+    assert( A->base == FIRST_INDEX_ONE );
+    assert( A->data_type == REAL_DOUBLE ); // don't handle complex... yet TODO
+    assert( A->m == A->n ); // TODO can only handle square matrices at present???
+
+    // Compressed Row Format
+    assert( A->ii[0] == 1 );
+    assert( A->ii[A->n] == A->nz + 1 );
+
+    int N = A->m; // rows of A
+    pwgsmp_( &N, ( int* ) A->ii, ( int* ) A->jj, A->dd, NULL, &TEST, NULL, NULL, p->iparm, p->dparm);
+  }
+  else {
+    assert( A == NULL );
+    int N = 0;
+    pwgsmp_( &N, NULL, NULL, NULL, NULL, &TEST, NULL, NULL, p->iparm, p->dparm);
+  }
   const int error_code = p->IPARM(64);
   if ( error_code != NO_ERROR )
     fprintf( stderr, "error: wsmp analyze code %d\n", error_code ); // TODO decode
@@ -206,32 +214,38 @@ void solver_analyze_wsmp( solver_state_t* s, matrix_t* A ) {
 
 void solver_factorize_wsmp( solver_state_t* s, matrix_t* A ) {
   assert( s != NULL );
-  assert( A != NULL );
   solve_system_wsmp_t* const p = s->specific;
   assert( p != NULL );
-
-  // TODO symmetric matrix handling
-  assert( A->sym == SM_UNSYMMETRIC );
-
-  // prepare the matrix
-  assert( A->format == SM_CSR );
-  assert( A->base == FIRST_INDEX_ONE );
-  assert( A->data_type == REAL_DOUBLE ); // don't handle complex... yet TODO
-  assert( A->m == A->n ); // TODO can only handle square matrices at present (UMFPACK?)
-
-
-  // save A for the solve step.. needed for iterative refinement // TODO add A to solve stage to allow iterative refinement!, remove this (and from other solvers)
-  p->Arows = A->m;
-  p->Acols = A->n;
-  p->Ajj = ( int* ) A->jj;
-  p->Aii = ( int* ) A->ii;
-  p->Add = A->dd;
-
-  int N = A->m; // rows of A
   p->IPARM(2) = WSMP_FACTORIZE;
   p->IPARM(3) = WSMP_FACTORIZE;
+
   int TEST = 1;
-  pwgsmp_( &N, ( int* ) A->ii, ( int* ) A->jj, A->dd, NULL, &TEST, &TEST, NULL, p->iparm, p->dparm);
+  if(s->mpi_rank == 0) {
+    // TODO symmetric matrix handling
+    assert( A != NULL );
+    assert( A->sym == SM_UNSYMMETRIC );
+
+    // prepare the matrix
+    assert( A->format == SM_CSR );
+    assert( A->base == FIRST_INDEX_ONE );
+    assert( A->data_type == REAL_DOUBLE ); // don't handle complex... yet TODO
+    assert( A->m == A->n ); // TODO can only handle square matrices at present (UMFPACK?)
+
+
+    // save A for the solve step.. needed for iterative refinement // TODO add A to solve stage to allow iterative refinement!, remove this (and from other solvers)
+    p->Arows = A->m;
+    p->Acols = A->n;
+    p->Ajj = ( int* ) A->jj;
+    p->Aii = ( int* ) A->ii;
+    p->Add = A->dd;
+
+    int N = A->m; // rows of A
+    pwgsmp_( &N, ( int* ) A->ii, ( int* ) A->jj, A->dd, NULL, &TEST, NULL, NULL, p->iparm, p->dparm);
+  }
+  else {
+    int N = 0; // rows of A
+    pwgsmp_( &N, NULL, NULL, NULL, NULL, &TEST, NULL, NULL, p->iparm, p->dparm);
+  }
   const int error_code = p->IPARM(64);
   if ( error_code != NO_ERROR )
     fprintf( stderr, "error: wsmp factorize code %d\n", error_code ); // TODO decode
@@ -242,80 +256,87 @@ void solver_factorize_wsmp( solver_state_t* s, matrix_t* A ) {
 // TODO can b be a matrix (vs a vector)?
 void solver_evaluate_wsmp( solver_state_t* s, matrix_t* b, matrix_t* x ) {
   assert( s != NULL );
-  assert( b != NULL );
-  assert( b != x ); // TODO allow this form
   solve_system_wsmp_t* const p = s->specific;
   assert( p != NULL );
+  p->IPARM(2) = WSMP_EVALUATE;
+  p->IPARM(3) = WSMP_ITERATIVE_REFINEMENT; // TODO split into seperate stage
 
-  // and we have a valid 'x' and 'b'
-  int ierr = convert_matrix( b, DCOL, FIRST_INDEX_ONE ); // TODO support for sparse rhs too
-  assert( ierr == 0 );
-  assert( b->data_type == REAL_DOUBLE ); // don't handle complex... yet TODO
+  if(s->mpi_rank == 0) {
+    assert( b != NULL );
+    assert( b != x ); // TODO allow this form
 
-  // TODO if solver only handles single rhs, loops solver and collect answers...
+    // TODO move this conversion logic to solver.c
+    // and we have a valid 'x' and 'b'
+    int ierr = convert_matrix( b, DCOL, FIRST_INDEX_ONE ); // TODO support for sparse rhs too
+    assert( ierr == 0 );
+    assert( b->data_type == REAL_DOUBLE ); // don't handle complex... yet TODO
 
-  // allocate data space // TODO if required
-  // TODO move this to master function
-  if(b == x) {
-    // go ahead, we're expecting b to be destroyed
-    // need to put data from b into x, clear x's ptr
-    clear_matrix( x );
-    x->format = DCOL;
-    x->sym = SM_UNSYMMETRIC;
-    x->data_type = b->data_type;
-    x->m = p->Arows;
-    x->n = b->n;
-    x->nz = x->m * x->n;
-    if(b->nz > x->nz) {
-      x->dd = malloc(b->nz * sizeof( double ));
+    // TODO if solver only handles single rhs, loops solver and collect answers...
+
+    // allocate data space // TODO if required
+    // TODO move this to master function
+    if(b == x) {
+      // go ahead, we're expecting b to be destroyed
+      // need to put data from b into x, clear x's ptr
+      clear_matrix( x );
+      x->format = DCOL;
+      x->sym = SM_UNSYMMETRIC;
+      x->data_type = b->data_type;
+      x->m = p->Arows;
+      x->n = b->n;
+      x->nz = x->m * x->n;
+      if(b->nz > x->nz) {
+	x->dd = malloc(b->nz * sizeof( double ));
+      }
+      else {
+	x->dd = malloc(x->nz * sizeof( double ));
+      }
+      x->dd = b->dd;
+      b->dd = NULL;
+      clear_matrix(b);
     }
     else {
-      x->dd = malloc(x->nz * sizeof( double ));
+      // need to copy b since it's destroyed in the process
+      clear_matrix(x);
+      matrix_t* t = copy_matrix(b);
+      // push copied t contents into x
+      x->format = t->format;
+      x->sym = t->sym;
+      x->data_type = b->data_type;
+      x->m = p->Arows;
+      x->n = b->n;
+      x->nz = x->m * x->n;
+      x->dd = t->dd;
+      free(t);
+      if(b->nz > x->nz) {
+	double *t = realloc(x->dd, b->nz * sizeof( double ));
+	assert(t != NULL); // realloc failure -- TODO proper error code
+	x->dd = t;
+      }
+      assert(x->dd != NULL);
     }
-    x->dd = b->dd;
-    b->dd = NULL;
-    clear_matrix(b);
+
+    int N = p->Arows; // rows of A
+    double* B = x->dd; // N x NRHS
+    int LDB = b->m;  // rows of B, must be >= N
+    int NRHS = b->n; // columns of B
+    assert(&N != NULL);
+    assert(p->Aii != NULL);
+    assert(p->Ajj != NULL);
+    assert(p->Add != NULL);
+    assert(B != NULL);
+    assert(&LDB != NULL);
+    assert(&NRHS != NULL);
+    assert(p->iparm != NULL);
+    assert(p->dparm != NULL);
+    pwgsmp_( &N, ( int* ) p->Aii, ( int* ) p->Ajj, p->Add, B, &LDB, &NRHS, NULL, p->iparm, p->dparm);
   }
   else {
-    // need to copy b since it's destroyed in the process
-    clear_matrix(x);
-    matrix_t* t = copy_matrix(b);
-    // push copied t contents into x
-    x->format = t->format;
-    x->sym = t->sym;
-    x->data_type = b->data_type;
-    x->m = p->Arows;
-    x->n = b->n;
-    x->nz = x->m * x->n;
-    x->dd = t->dd;
-    free(t);
-    if(b->nz > x->nz) {
-      double *t = realloc(x->dd, b->nz * sizeof( double ));
-      assert(t != NULL); // realloc failure -- TODO proper error code
-      x->dd = t;
-    }
-    assert(x->dd != NULL);
+    int N = 0;
+    int LDB = 1;
+    int NRHS = 1;
+    pwgsmp_( &N, NULL, NULL, NULL, NULL, &LDB, &NRHS, NULL, p->iparm, p->dparm);
   }
-
-  int N = p->Arows; // rows of A
-  double* B = x->dd; // N x NRHS
-  int LDB = b->m;  // rows of B, must be >= N
-  int NRHS = b->n; // columns of B
-  p->IPARM(2) = WSMP_EVALUATE;
-//  p->IPARM(3) = WSMP_ITERATIVE_REFINEMENT; // TODO split into seperate stage
-  p->IPARM(3) = WSMP_EVALUATE; // TODO split into seperate stage
-  double TEST = 1;
-  assert(&N != NULL);
-  assert(p->Aii != NULL);
-  assert(p->Ajj != NULL);
-  assert(p->Add != NULL);
-  assert(B != NULL);
-  assert(&LDB != NULL);
-  assert(&NRHS != NULL);
-  assert(&TEST != NULL);
-  assert(p->iparm != NULL);
-  assert(p->dparm != NULL);
-  pwgsmp_( &N, ( int* ) p->Aii, ( int* ) p->Ajj, p->Add, B, &LDB, &NRHS, &TEST, p->iparm, p->dparm);
   const int error_code = p->IPARM(64);
   if ( error_code != NO_ERROR )
     fprintf( stderr, "error: wsmp evaluate code %d\n", error_code ); // TODO decode
