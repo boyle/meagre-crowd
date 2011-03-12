@@ -86,7 +86,15 @@ typedef struct matrix_t {
   // CSC: ii=row indices, jj=per-column ptrs into ii
   //   Note: swaps the row and column vs. CSR
   void* dd; // data (size of entries defined by 'data_type', is float or double)
+  // TODO support single precision (float) and double precision (double) in real and complex (paired) and complex (split)
+  //      for complex (split) use the same pointer (2*nz) but have { x1, x2, i y1, i y2 } -- this is "zomplex" ala MATLAB?
+  //        (this can be treated as seperate pointers by those who need to, though it can't be safely free'd as two pointers...)
+  //      for complex (paired) use { x1, i y1, x2, i y2 }
   unsigned int* ii;
+  // TODO support int/uint 8, 16, 32, 64 and conversion between (limited by max rows/columns values - fail if it could be exceeded)
+  //      allow this to be upsized if the matrix grows
+  //      allow these to be converted to match a specific solver
+  //      minimize memory footprint for small matrices == faster solutions! (unless copying it around takes longer...)
   unsigned int* jj; // max is UINT_MAX (limits.h), at least 4,294,967,295
 } matrix_t;
 // Note: initializing via 'matrix_t A = {0};' should get the most common defaults and a valid but empty matrix
