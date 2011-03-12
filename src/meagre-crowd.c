@@ -186,7 +186,7 @@ int main( int argc, char ** argv ) {
       perftimer_inc( timer, "load", -1 );
 
     if (( retval = load_matrix( args->input, A ) ) != 0 ) {
-      return retval;
+      return 1;
     }
     assert( validate_matrix( A ) == 0 );
     m = matrix_rows( A );
@@ -196,7 +196,7 @@ int main( int argc, char ** argv ) {
     // TODO warn if there is already a rhs loaded
     if ( args->rhs != NULL ) {
       if (( retval = load_matrix( args->rhs, b ) ) != 0 ) {
-        return retval;
+        return 1;
       }
       assert( b->m == m ); // rows must match // TODO nice error (user could load some random matrix file, also testcases)
 
@@ -227,7 +227,7 @@ int main( int argc, char ** argv ) {
     if ( args->expected != NULL ) {
       // TODO refactor: this is a cut and paste of the loader for 'b'
       if (( retval = load_matrix( args->expected, expected ) ) != 0 ) {
-        return retval;
+        return 1;
       }
       assert( expected->m == m ); // rows must match // TODO nice error (user could load some random matrix file, also testcases)
       assert( expected->n == 1 ); // TODO can only handle single column vector currently

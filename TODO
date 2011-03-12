@@ -22,13 +22,26 @@ These are somewhat arranged in order of priority. Highest at the top.
  - make -v work with --list-solvers in any option order (execute after processing args)
  - better cores/threads output (indicate if MPI and/or openMP are being used, give non-zero number of threads/cores)
 
- - add tests mpirun -n 2 for MPI solvers (mumps is broken!)
+ - add tests mpirun -n 2 for MPI solvers (mumps was broken for a while before catching it!)
  - add tests for single-threaded only solvers (clean error message)
  - add tests for symmetric solvers
  - add tests for symmetric positive definite solvers
  - add tests for 'mpirun -n N' with various error messages: only one error message should be printed
  - add tests for matrix conversion: use validate_matrix
  - add tests for multiple right-hand sides for all solvers
+
+ - file IO:
+   - add unit-tests for MatrixMarket format
+   - rewrite MatrixMarket file writer
+   - add support for MatrixMarket symmetric matrices
+   - clean up error handling for file read/write
+   - determine matrix type from file's header rather than file extension
+     - detect and report a nice error when we get a format we can't handle
+   - add support for
+     - Rutherford-Boeing
+     - Harwell-Boeing (CSC)
+     - MATLAB's various formats
+     - coordinate format
 
  - fix "inline" in matrix.c/h
  - extend tests/unit-matrix.c to push things harder

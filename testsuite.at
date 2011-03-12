@@ -265,13 +265,19 @@ AT_KEYWORDS([func])
 MC_DATA_FILE_TEST_MM
 AT_CHECK(AT_PACKAGE_NAME -i unsym.mm,0,ignore)
 MC_DATA_FILE_TEST_RB
-AT_CHECK(AT_PACKAGE_NAME -i test.rb,1,,[input error: Sorry Rutherford-Boeing reader is broken
+dnl AT_CHECK(AT_PACKAGE_NAME -i test.rb,1,,[input error: Sorry Rutherford-Boeing reader is broken
+dnl ])
+AT_CHECK(AT_PACKAGE_NAME -i test.rb,1,,[input error: Failed to load matrix
 ])
 MC_DATA_FILE_TEST_HB
-AT_CHECK(AT_PACKAGE_NAME -i test.hb,1,,[input error: Sorry Harwell-Boeing reader is broken
+dnl AT_CHECK(AT_PACKAGE_NAME -i test.hb,1,,[input error: Sorry Harwell-Boeing reader is broken
+dnl ])
+AT_CHECK(AT_PACKAGE_NAME -i test.rb,1,,[input error: Failed to load matrix
 ])
 MC_DATA_FILE_TEST_MAT
-AT_CHECK(AT_PACKAGE_NAME -i test.mat,1,,[input error: Sorry Matlab reader is broken
+dnl AT_CHECK(AT_PACKAGE_NAME -i test.mat,1,,[input error: Sorry Matlab reader is broken
+dnl ])
+AT_CHECK(AT_PACKAGE_NAME -i test.rb,1,,[input error: Failed to load matrix
 ])
 AT_CLEANUP
 
