@@ -222,17 +222,26 @@ void solver_evaluate_mumps( solver_state_t* s, matrix_t* b, matrix_t* x ) {
     assert( b != NULL );
     assert( b->data_type == REAL_DOUBLE );
     assert( b->m == id->n ); // rows of b match rows of A
-    assert(b->format == DCOL);
     assert( (b->format == DCOL) || (b->format == SM_CSC) );
-    if(b->format == SM_CSC)
-      assert(b->base == FIRST_INDEX_ONE);
 
-    free( id->rhs ); // no-op if NULL
     id->lrhs = b->m; // rows of b
     id->nrhs = b->n; // columns of b
     id->rhs = malloc( id->n * id->nrhs * sizeof( double ) );
     assert( id->rhs != NULL ); // malloc failure
-    memcpy( id->rhs, b->dd, id->n * id->nrhs * sizeof( double ) );
+    if(b->format == SM_CSC) { // sparse RHS
+      assert(b->base == FIRST_INDEX_ONE);
+      id->ICNTL(20) = 1;
+      id->nz_rhs = b->nz;             // non-zeros
+      id->rhs_sparse = b->dd;         // data
+      // TODO check the cast is safe: rows < max_int, nz < max_int, so we don't muck it up when we drop the signed-ness
+      id->irhs_sparse = (int*) b->ii; // row indices
+      id->irhs_ptr = (int*) b->jj;    // column ptrs
+    }
+    else { // dense RHS
+      // need to copy 'b' in since it gets destroyed
+      // TODO unless x == b && b != CSC
+      memcpy( id->rhs, b->dd, id->n * id->nrhs * sizeof( double ) );
+    }
   }
   else {
     assert( b == NULL );
