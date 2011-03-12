@@ -309,8 +309,7 @@ void solver_evaluate_pardiso( solver_state_t* s, matrix_t* b, matrix_t* x ) {
   assert( p != NULL );
 
   // and we have a valid 'x' and 'b'
-  int ierr = convert_matrix( b, DCOL, FIRST_INDEX_ONE ); // TODO support for sparse rhs too
-  assert( ierr == 0 );
+  assert( b->format == DCOL );
   assert( b->data_type == REAL_DOUBLE ); // don't handle complex... yet TODO
 
   // TODO if solver only handles single rhs, loops solver and collect answers...
