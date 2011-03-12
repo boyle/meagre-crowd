@@ -313,6 +313,10 @@ void solver_evaluate_wsmp( solver_state_t* s, matrix_t* b, matrix_t* x ) {
     double* B = x->dd; // N x NRHS
     int LDB = b->m;  // rows of B, must be >= N
     int NRHS = b->n; // columns of B
+
+    // have to share number of rhs with other workers
+    MPI_Bcast(&NRHS, 1, MPI_INT, 0, MPI_COMM_WORLD); // TODO pass in MPI communicator
+
     assert(p->Aii != NULL);
     assert(p->Ajj != NULL);
     assert(p->Add != NULL);
@@ -322,7 +326,8 @@ void solver_evaluate_wsmp( solver_state_t* s, matrix_t* b, matrix_t* x ) {
   else {
     int N = 0;
     int LDB = 1;
-    int NRHS = 1;
+    int NRHS; // need to get NRHS from master
+    MPI_Bcast(&NRHS, 1, MPI_INT, 0, MPI_COMM_WORLD); // TODO pass in MPI communicator
     pwgsmp_( &N, NULL, NULL, NULL, NULL, &LDB, &NRHS, NULL, p->iparm, p->dparm);
   }
   const int error_code = p->IPARM(64);
