@@ -425,7 +425,14 @@ void solver_evaluate( solver_state_t* s, matrix_t* b, matrix_t* x ) {
         // don't bother mucking with bb if its the last loop
         if(i != loops -1) {
 	  // for the next loop, advance by a column
-	  assert(bb.format == DCOL);
+	  assert((bb.format == DCOL) || (bb.format == DROW));
+	  assert(bb.n == 1);
+	  convert_matrix(&xx, DCOL, FIRST_INDEX_ZERO);
+	  // as a short-circuit conversion DROW->DCOL, this doesn't
+	  // actually replace the memory pointers, so we're safe to
+	  // continue with the monkey-ing with pointers (it converts
+	  // to the correct index-ing and changes from DROW -> DCOL)
+
 	  double* dd = bb.dd;
 	  dd += bb.m; // advance by a column
 	  bb.dd = dd;
@@ -440,10 +447,8 @@ void solver_evaluate( solver_state_t* s, matrix_t* b, matrix_t* x ) {
 	}
 	else { // otherwise we need to
 	  x->m = xx.m; // rows
-	  assert(xx.format == DCOL);
-	  //if(xx.format != DCOL) {
-	  //  convert_matrix(&xx, DCOL, FIRST_INDEX_ZERO);
-	  //}
+	  convert_matrix(&xx, DCOL, FIRST_INDEX_ZERO);
+
 	  // resize to capture another column
 	  x->dd = realloc(x->dd, (x->m * (x->n + xx.n))*sizeof(double));
 	  assert(x->dd != NULL); // realloc failure
