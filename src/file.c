@@ -205,6 +205,7 @@ int readmm(char const *const filename, matrix_t *const A, char** comments) {
   A->n = cols;
   A->nz = nz;
   A->base = FIRST_INDEX_ONE;
+  A->location = LOWER_TRIANGULAR; // TODO test for this at the end and report error
   switch(format) {
     case 0: // array
       ret = readmm_data_dense(f, A, datatype, symmetry, rows, cols, nz);

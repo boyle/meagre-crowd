@@ -57,22 +57,26 @@ int results_match( matrix_t* expected_matrix, matrix_t* result_matrix, const dou
   assert( result_matrix->data_type == REAL_DOUBLE );
   assert( result_matrix->m == expected_matrix->m );
   assert( result_matrix->n == expected_matrix->n );
-  assert( result_matrix->n == 1 );
 
   int ret;
-  ret = convert_matrix( expected_matrix, DROW, FIRST_INDEX_ZERO );
+  ret = convert_matrix( expected_matrix, DCOL, FIRST_INDEX_ZERO );
   assert( ret == 0 );
-  ret = convert_matrix( result_matrix,   DROW, FIRST_INDEX_ZERO );
+  ret = convert_matrix( result_matrix,   DCOL, FIRST_INDEX_ZERO );
   assert( ret == 0 );
 
   const double* expected = expected_matrix->dd;
   const double* result = result_matrix->dd;
-  const unsigned int n = result_matrix->m;
-  int i;
-  for ( i = 0;i < n;i++ ) {
-    if (( result[i] < ( expected[i] - precision ) ) ||
-        ( result[i] > ( expected[i] + precision ) ) ) {
-      return 0;
+  int i, j;
+  for ( i = 0;i < result_matrix->m; i++ ) {
+    for ( j = 0; j< result_matrix->n; j++ ) {
+
+      const unsigned int n = j * result_matrix->m + i;
+      if (( result[n] < ( expected[n] - precision ) ) ||
+	  ( result[n] > ( expected[n] + precision ) ) ) {
+	  //printf("unexpected answer: expected(%d,%d)=%lg vs result=%lg\n",
+	  //  i, j, expected[n], result[n]);
+	   return 0;
+      }
     }
   }
   return 1;
@@ -229,13 +233,8 @@ int main( int argc, char ** argv ) {
       if (( retval = load_matrix( args->expected, expected ) ) != 0 ) {
         return 1;
       }
-      assert( expected->m == m ); // rows must match // TODO nice error (user could load some random matrix file, also testcases)
-      assert( expected->n == 1 ); // TODO can only handle single column vector currently
-
-      // convert from COO vector to dense format vector
-      // TODO this is redundant, since it needs to be done in the solver ... do it there, remove this later
-      convert_matrix( b, DCOL, FIRST_INDEX_ZERO );
       assert( validate_matrix( expected ) == 0 );
+      assert( expected->m == m ); // rows must match // TODO nice error (user could load some random matrix file, also testcases)
     }
 
 
