@@ -297,9 +297,23 @@ int readmm_data_dense(FILE* f, matrix_t* A, int datatype, int symmetry, int rows
 // TODO refactor and merge with readmm_data_dense?
 int readmm_data_sparse(FILE* f, matrix_t* A, int datatype, int symmetry, int rows, int cols, int nz) {
   A->format = SM_COO;
-
-  assert(symmetry == 0); // TODO handle other symmetries, adjust nz
-  A->sym = SM_UNSYMMETRIC;
+  
+  switch(symmetry) { // 0 general, 1 symmetric, 2 skew-symmetric, 3 hermitian
+    case 0:
+      A->sym = SM_UNSYMMETRIC;
+      break;
+    case 1:
+      A->sym = SM_SYMMETRIC;
+      break;
+    case 2:
+      A->sym = SM_SKEW_SYMMETRIC;
+      break;
+    case 3:
+      A->sym = SM_HERMITIAN;
+      break;
+    default:
+      assert(0); // shouldn't be able to get here (checked before now)
+  }
 
   // allocate memory
   A->ii = malloc(nz * sizeof(unsigned int));
