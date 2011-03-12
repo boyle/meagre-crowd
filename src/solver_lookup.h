@@ -252,7 +252,7 @@ static const struct solver_properties_t solver_lookup[] = {
     // TODO SOLVES_SYMMETRIC_UPPER_TRIANGULAR // TODO or lower triangular?
     SOLVES_DATA_TYPE_REAL_DOUBLE | // TODO and REAL_COMPLEX
     SOLVES_RHS_DCOL | SOLVES_RHS_VECTOR_ONLY, // TODO | SOLVES_RHS_CSR,
-    SOLVER_REQUIRES_OMP | SOLVER_CAN_USE_MPI,
+    SOLVER_SINGLE_THREADED_ONLY, // TODO FIXME (currently broken, waiting reply to support emails 2011-03-11) SOLVER_REQUIRES_OMP | SOLVER_CAN_USE_MPI,
     "    [1] O. Schenk and K. Gärtner, Solving Unsymmetric Sparse Systems of Linear\n"
     "        Equations with PARDISO, Journal of Future Generation Computer Systems,\n"
     "        20(3):475--487, 2004.\n"
