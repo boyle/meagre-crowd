@@ -21,6 +21,7 @@ These are somewhat arranged in order of priority. Highest at the top.
 
  - make -v work with --list-solvers in any option order (execute after processing args)
  - better cores/threads output (indicate if MPI and/or openMP are being used, give non-zero number of threads/cores)
+ - clean up output so its easier to parse, more uniform (memory usage, etc)
 
  - add tests mpirun -n 2 for MPI solvers (mumps was broken for a while before catching it!)
  - add tests for single-threaded only solvers (clean error message)
@@ -48,9 +49,6 @@ These are somewhat arranged in order of priority. Highest at the top.
 
 Fix memory leaks:
  - Run valgrind. Find bad allocations and uninitialized variables.
- - there is a leak in one of the shared libraries atexit() - probably
-   the BeBop sparse matrix loader library, maybe rewrite/extract the bits
-   I need and clean it up, it seems to be only partially functional from my tests
 
 For the immediate future:
  - For EIT simulations we're interested in square matrices.
