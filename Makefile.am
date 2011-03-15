@@ -51,7 +51,7 @@ EXTRA_DIST = get_dependencies $(bin_SCRIPTS) \
 	     tests/rhs1.mm \
 	     tests/unsym-default-ans.mm tests/sym-default-ans.mm tests/sym_posdef-default-ans.mm \
 	     tests/unsym-rhs1-ans.mm tests/sym-rhs1-ans.mm tests/sym_posdef-rhs1-ans.mm \
-	     tests/test.hb tests/test.rb \
+	     tests/test.hb tests/test.rb tests/test.mat \
              ChangeLog README NEWS INSTALL LICENSE COPYING COPYING.LESSER
 
 # the tests
