@@ -23,14 +23,39 @@ AUTOMAKE_OPTIONS = gnu
 # the actual program to be installed at the end
 bin_PROGRAMS = meagre-crowd
 meagre_crowd_SOURCES = src/meagre-crowd.c \
-    src/perftimer.c src/matrix.c src/args.c src/file.c \
-    src/solvers.c \
-    src/solver_mumps.c \
-    src/solver_umfpack.c \
-    src/solver_cholmod.c \
-    src/solver_taucs.c \
-    src/solver_pardiso.c \
-    src/solver_wsmp.c
+    src/perftimer.c src/matrix.c src/args.c src/file.c src/solvers.c
+
+# the tests
+BUILT_TESTS = tests/file tests/helloworld-mpi tests/unit-perftimer tests/unit-matrix
+
+if HAVE_MUMPS
+meagre_crowd_SOURCES += src/solver_mumps.c
+BUILT_TESTS += tests/helloworld-mumps
+BUILT_TESTS += tests/mumps-file
+endif
+
+if HAVE_UMFPACK
+meagre_crowd_SOURCES += src/solver_umfpack.c
+BUILT_TESTS += tests/hello-umfpack
+endif
+
+if HAVE_CHOLMOD
+meagre_crowd_SOURCES += src/solver_cholmod.c
+endif
+
+if HAVE_TAUCS
+meagre_crowd_SOURCES += src/solver_taucs.c
+endif
+
+if HAVE_PARDISO
+meagre_crowd_SOURCES += src/solver_pardiso.c
+BUILT_TESTS += tests/hello-pardiso
+endif
+
+if HAVE_WSMP
+meagre_crowd_SOURCES += src/solver_wsmp.c
+BUILT_TESTS += tests/helloworld-wsmp
+endif
 
 # TODO make openMP optional... OPENMP_CFLAGS, PTHREADS and FLIBS are all required only for Paradiso!
 AM_LIBS = $(PTHREAD_LIBS) $(LIBS) $(FLIBS)
@@ -54,10 +79,8 @@ EXTRA_DIST = get_dependencies $(bin_SCRIPTS) \
 	     tests/test.hb tests/test.rb tests/test.mat \
              ChangeLog README NEWS INSTALL LICENSE COPYING COPYING.LESSER
 
-# the tests
-BUILT_TESTS = tests/file tests/helloworld-mpi tests/helloworld-mumps tests/hello-pardiso tests/helloworld-wsmp tests/mumps-file tests/unit-perftimer tests/unit-matrix tests/hello-umfpack
 #TESTS = $(BUILT_TESTS)
-check_PROGRAMS = $(BUILT_TESTS) 
+check_PROGRAMS = $(BUILT_TESTS)
 tests_unit_perftimer_SOURCES = tests/unit-perftimer.c src/perftimer.c
 tests_unit_perftimer_CPPFLAGS = -I$(srcdir)/src
 tests_unit_matrix_SOURCES = tests/unit-matrix.c src/matrix.c
@@ -102,10 +125,10 @@ $(srcdir)/package.m4: $(top_srcdir)/configure.ac
 
 EXTRA_DIST += testsuite.at $(srcdir)/package.m4 $(TESTSUITE) atlocal.in
 TESTSUITE = $(srcdir)/testsuite
- 
+
 check-local: atconfig atlocal $(TESTSUITE)
 	$(SHELL) '$(TESTSUITE)' $(TESTSUITEFLAGS)
- 
+
 installcheck-local: atconfig atlocal $(TESTSUITE)
 	$(SHELL) '$(TESTSUITE)' AUTOTEST_PATH='$(bindir)' \
 	  $(TESTSUITEFLAGS) -k '!hello,!unit'
@@ -120,7 +143,7 @@ clean-local-check:
 
 atconfig: $(srcdir)/config.status
 	$(srcdir)/config.status
- 
+
 AUTOM4TE = $(SHELL) $(abs_srcdir)/build-aux/missing --run autom4te
 AUTOTEST = $(AUTOM4TE) --language=autotest
 $(TESTSUITE): $(srcdir)/testsuite.at $(srcdir)/package.m4
@@ -135,9 +158,9 @@ MPI_PLATFORM=amd64-linux
 VALGRIND_BIN=valgrind
 VALGRIND_ENV=MPIWRAP_DEBUG=${MPIWRAP_DEBUG_ARGS} LD_PRELOAD=${MPI_PREFIX}/lib/valgrind/libmpiwrap-${MPI_PLATFORM}.so
 VALGRIND_ARGS=--trace-children=yes --track-origins=yes --leak-check=full
-#--db-attach=yes 
+#--db-attach=yes
 MPI_BIN=mpirun
-MPI_ARGS=-n 4 
+MPI_ARGS=-n 4
 VALGRIND=${VALGRIND_ENV} ${VALGRIND_BIN} ${VALGRIND_ARGS} ${MPI_BIN} ${MPI_ARGS}
 valgrind: tests/mumps-file
 	cd tests && ${VALGRIND} mumps-file

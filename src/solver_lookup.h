@@ -19,12 +19,24 @@
 #ifndef _SOLVER_LOOKUP_H_
 #define _SOLVER_LOOKUP_H_
 
-#include "solver_mumps.h"
-#include "solver_umfpack.h"
-#include "solver_cholmod.h"
-#include "solver_taucs.h"
-#include "solver_pardiso.h"
-#include "solver_wsmp.h"
+#ifdef HAVE_MUMPS
+  #include "solver_mumps.h"
+#endif
+#ifdef HAVE_UMFPACK
+  #include "solver_umfpack.h"
+#endif
+#ifdef HAVE_CHOLMOD
+  #include "solver_cholmod.h"
+#endif
+#ifdef HAVE_TAUCS
+  #include "solver_taucs.h"
+#endif
+#ifdef HAVE_PARDISO
+  #include "solver_pardiso.h"
+#endif
+#ifdef HAVE_WSMP
+  #include "solver_wsmp.h"
+#endif
 
 
 // the static solver lookup
@@ -106,6 +118,7 @@ struct  solver_properties_t {
 #define SOLVER_SHORTNAME_MAX_LEN 15
 
 static const struct solver_properties_t solver_lookup[] = {
+#ifdef HAVE_UMFPACK
   { "umfpack", "UMFPACK", "Tim Davis et al", "University of Florida", "5.5.0", "GPL",
     "http://www.cise.ufl.edu/research/sparse/umfpack",
     // TODO 5.5.1 is available
@@ -132,7 +145,9 @@ static const struct solver_properties_t solver_lookup[] = {
     "    * An unsymmetric-pattern multifrontal method for sparse LU factorization,\n"
     "      T. A. Davis and I. S. Duff, SIAM Journal on Matrix Analysis and Applications,\n"
     "      vol 18, no. 1, pp. 140-158, Jan. 1997.\n" },
+#endif
 
+#ifdef HAVE_MUMPS
   { "mumps", "MUMPS", "Patrick Amestoy et al", "Université de Toulouse, et. al", "4.9.2", "public domain",
     "http://graal.ens-lyon.fr/MUMPS",
     &solver_init_mumps,
@@ -153,7 +168,9 @@ static const struct solver_properties_t solver_lookup[] = {
     "    [2] P. R. Amestoy and A. Guermouche and J.-Y. L'Excellent and S. Pralet,\n"
     "        Hybrid scheduling for the parallel solution of linear systems.\n"
     "        Parallel Computing Vol 32 (2), pp 136-156 (2006).\n" },
+#endif
 
+#ifdef HAVE_CHOLMOD
   { "cholmod", "CHOLMOD", "Tim Davis, William Hager", "University of Florida", "1.7.1", "LGPL",
     // version 1.7.3 is available...
     "http://www.cise.ufl.edu/research/sparse/cholmod",
@@ -190,8 +207,9 @@ static const struct solver_properties_t solver_lookup[] = {
     "    * Modifying a sparse Cholesky factorization, T. A. Davis and W. W.\n"
     "      Hager, SIAM Journal on Matrix Analysis and Applications, vol. 20,\n"
     "      no. 3, pp. 606-627, 1999.\n" },
+#endif
 
-
+#ifdef HAVE_TAUCS
   // "Matlab 7 will use TAUCS' in-core sparse Cholesky factorization within the backslash linear solver." (TODO true?)
   // effectively single threaded
   // mostly symmetric solvers: out-of-core and in-core, multithreaded w/ CILK (SMP -- taucs.cilk.nproc=N) + 1 out-of-core unsym solver (slow?)...
@@ -209,8 +227,9 @@ static const struct solver_properties_t solver_lookup[] = {
     SOLVES_RHS_DCOL | SOLVES_RHS_VECTOR_ONLY,
     0, // uses CILK? not MPI or openMP
     "        TODO citations\n" }, // TODO
+#endif
 
-
+#ifdef HAVE_PARDISO
   // can calculate bit-identical solution on multicore vs. clusters of multicores
   // MPI based solver is for symmetric indefinite!
   // supports: unsymmetric, structurally symmetric, real/complex, hermitian
@@ -270,7 +289,9 @@ static const struct solver_properties_t solver_lookup[] = {
     "        Nonconvex Interior-Point Optimization. Journal of Computational\n"
     "        Optimization and Applications, pp. 321-341, Volume 36, Numbers 2-3 /\n"
     "        April, 2007.\n" },
+#endif
 
+#ifdef HAVE_WSMP
   { "wsmp", "WSMP", "Anshul Gupta", "IBM/Univ. Minnesota", "11.01.19", "commercial?",
     "http://www-users.cs.umn.edu/~agupta/wsmp.html",
     &solver_init_wsmp,
@@ -287,6 +308,7 @@ static const struct solver_properties_t solver_lookup[] = {
     "    [1] A. Gupta, G. Karypis, V. Kumar, A Highly Scalable Parallel Algorithm for\n"
     "        Sparse Matrix Factorization, IEEE Transactions on Parallel and\n"
     "        Distributed Systems, 8(5):502–520, May 1997.\n" },
+#endif
 
   // Note: MUST have null entry at the end of the list!
   {0}

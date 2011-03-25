@@ -82,22 +82,63 @@ AM_PROG_CC_C_O
 
 # Checks for libraries.
 AC_SEARCH_LIBS([load_sparse_matrix], [sparse_matrix_converter],,AC_MSG_ERROR([missing BeBOP sparse matrix I/O library]))
-AC_SEARCH_LIBS([dmumps_c], [dmumps],,AC_MSG_ERROR([missing solver: MUMPS (double precision)]))
-AC_SEARCH_LIBS([umfpack_di_symbolic], [umfpack],,AC_MSG_ERROR([missing solver: UMFPACK]))
+
+m4_define([MC_WITH_LIB],[
+
+dnl ---------------------------------
+dnl $1
+dnl arguments parsing: handle enabling or disabling various solver libraries
+dnl  - behaviour is to try to detect the library, if it works, great... if it fails
+m4_define(MC_FULLNAME, $1)
+m4_define(MC_LOWERNAME, m4_translit(MC_FULLNAME, [A-Z], [a-z]))
+m4_define(MC_UPPERNAME, m4_translit(MC_FULLNAME, [a-z], [A-Z]))
+m4_define(MC_FUNC, $2)
+m4_define(MC_LIB, $3)
+m4_define(MC_EXTRA_CODE, $4)
+m4_define(MC_EXTRA_FLAGS, $5)
+
+AC_ARG_WITH(MC_LOWERNAME,
+    AS_HELP_STRING([--without-]MC_LOWERNAME, [Ignore presence of ]MC_FULLNAME[ solver and disable it]))
+
+MC_EXTRA_CODE
+AS_IF([test "x$with_]MC_LOWERNAME[" != "xno"],
+      [
+        AC_SEARCH_LIBS(]MC_FUNC[,]MC_LIB[,have_]MC_LOWERNAME[=yes], [have_]MC_LOWERNAME[=no],MC_EXTRA_FLAGS[)
+      ],
+      [have_]MC_LOWERNAME[=no
+      AC_MSG_CHECKING(for library containing ]MC_FUNC[)
+      AC_MSG_RESULT(<skipped>)]
+      )
+
+AS_IF([test "x$have_]MC_LOWERNAME[" = "xyes"],
+      [AC_DEFINE(HAVE_]MC_UPPERNAME[,1,]MC_FULLNAME[ solver is available)],
+      [AS_IF([test "x$with_]MC_LOWERNAME[" = "xyes"],
+             [AC_MSG_ERROR(MC_FULLNAME[ solver requested but not found])
+      ])
+])
+
+AM_CONDITIONAL([HAVE_]MC_UPPERNAME,[test "x$have_]MC_LOWERNAME[" = "xyes"])
+AC_SUBST([have_]MC_LOWERNAME)
+
+m4_undefine([MC_FULLNAME])
+m4_undefine([MC_LOWERNAME])
+m4_undefine([MC_UPPERNAME])
+m4_undefine([MC_FUNC])
+m4_undefine([MC_LIB])
+m4_undefine([MC_EXTRA_CODE])
+m4_undefine([MC_EXTRA_FLAGS])
+])
+
+MC_WITH_LIB([MUMPS],   [dmumps_c],      [dmumps])
+MC_WITH_LIB([UMFPACK], [umfpack_di_symbolic], [umfpack])
 # might not be needed, if already included through another solver
-AC_SEARCH_LIBS([cholmod_solve], [cholmod],,AC_MSG_ERROR([missing solver: CHOLMOD]))
+MC_WITH_LIB([CHOLMOD], [cholmod_solve], [cholmod])
 # has a 30 day license!
-# TODO reduce extra libs
-
 # TODO TAUCS depends on CILK?
-AC_SEARCH_LIBS([taucs_linsolve],[taucs],,AC_MSG_ERROR([missing solver: TAUCS]))
-
+MC_WITH_LIB([TAUCS],   [taucs_linsolve],[taucs])
 # TODO (others: gfortran, pthread, m?)     AX_OPENMP([ACTION-IF-FOUND[, ACTION-IF-NOT-FOUND]])
-AC_OPENMP
-AX_PTHREAD
-AC_F77_LIBRARY_LDFLAGS
-AC_SEARCH_LIBS([pardisoinit],[pardiso],,AC_MSG_ERROR([missing solver: Pardiso]), $FLIBS $OPENMP_CFLAGS $LIB_PTHREAD)
-AC_SEARCH_LIBS([pwgsmp_],[pwsmp],,AC_MSG_ERROR([missing solver: WSMP]), $FLIBS $OPENMP_CFLAGS $LIB_PTHREAD)
+MC_WITH_LIB([Pardiso], [pardisoinit],   [pardiso], [[AC_OPENMP AX_PTHREAD AC_F77_LIBRARY_LDFLAGS]], $FLIBS $OPENMP_CFLAGS $LIB_PTHREAD)
+MC_WITH_LIB([WSMP],    [pwgsmp_],       [pwsmp],   [[AC_OPENMP AX_PTHREAD AC_F77_LIBRARY_LDFLAGS]], $FLIBS $OPENMP_CFLAGS $LIB_PTHREAD)
 
 # Checks for header files.
 AC_CHECK_HEADERS([float.h stdlib.h string.h sys/time.h])

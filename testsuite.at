@@ -69,12 +69,14 @@ AT_CLEANUP
 
 AT_SETUP([mumps])
 AT_KEYWORDS([mumps hello])
+AT_SKIP_IF([test "x$have_mumps" != "xyes"])
 AT_CHECK([mpirun -n 4 helloworld-mumps],0,[Solution is ( 1.00; 2.00 ): PASS
 ])
 AT_CLEANUP
 
 AT_SETUP([umfpack])
 AT_KEYWORDS([umfpack hello])
+AT_SKIP_IF([test "x$have_umfpack" != "xyes"])
 AT_CHECK([hello-umfpack],0,[[x [0] = 1
 x [1] = 2
 x [2] = 3
@@ -86,6 +88,7 @@ AT_CLEANUP
 
 AT_SETUP([pardiso])
 AT_KEYWORDS([pardiso hello])
+AT_SKIP_IF([test "x$have_pardiso" != "xyes"])
 AT_CHECK([OMP_NUM_THREADS=1 hello-pardiso  | tail -8],0,[[ x [0] =  0.142857
  x [1] =  0.500000
  x [2] = -1.338095
@@ -99,6 +102,7 @@ AT_CLEANUP
 
 AT_SETUP([wsmp])
 AT_KEYWORDS([wsmp hello])
+AT_SKIP_IF([test "x$have_wsmp" != "xyes"])
 AT_CHECK([WSMPLICPATH=~ helloworld-wsmp],0,[],ignore)
 AT_CLEANUP
 
@@ -117,6 +121,7 @@ AT_CLEANUP
 AT_SETUP([file-based mumps])
 AT_KEYWORDS([mumps-file hello])
 MC_DATA_FILE_TEST_MM
+AT_SKIP_IF([test "x$have_mumps" != "xyes"])
 AT_CHECK(mpirun -n 4 mumps-file,0,ignore)
 AT_CLEANUP
 
@@ -352,6 +357,7 @@ MC_DATA_FILE_ANS1_MM_SYM_POSDEF
 MC_DATA_FILE_ANS2_MM_SYM_POSDEF
 dnl TODO add more testcases: different size matrices, known results
 dnl check solver gives the expected result (i.e. it is linked and configured correctly)
+AT_SKIP_IF([test "x$have_$1" != "xyes"])
 MC_SOLVER_UNSYM_TESTS($1,$2)
 MC_SOLVER_SYM_TESTS($1,$2)
 MC_SOLVER_SYM_POSDEF_TESTS($1,$2)
@@ -369,6 +375,7 @@ MC_DATA_FILE_ANS2_MM_SYM
 MC_DATA_FILE_TEST_MM_SYM_POSDEF
 MC_DATA_FILE_ANS1_MM_SYM_POSDEF
 MC_DATA_FILE_ANS2_MM_SYM_POSDEF
+AT_SKIP_IF([test "x$have_$1" != "xyes"])
 MC_SOLVER_SYM_TESTS($1,$2)
 MC_SOLVER_SYM_POSDEF_TESTS($1,$2)
 dnl TODO test clean failures for unsupported types  (unsym, etc)
@@ -382,6 +389,7 @@ MC_DATA_FILE_TEST_MM_SYM_POSDEF
 MC_DATA_FILE_RHS1_MM
 MC_DATA_FILE_ANS1_MM_SYM_POSDEF
 MC_DATA_FILE_ANS2_MM_SYM_POSDEF
+AT_SKIP_IF([test "x$have_$1" != "xyes"])
 MC_SOLVER_SYM_POSDEF_TESTS($1,$2)
 dnl TODO test clean failures for unsupported types  (unsym, etc)
 AT_CLEANUP
