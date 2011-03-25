@@ -24,7 +24,7 @@ CCOLAMD_VER=2.7.2 # required by CHOLMOD
 COLAMD_VER=2.7.2
   UFPACK_VER=3.5.0
 PARMETIS_VER=3.1.1
-METIS_VER=4.0
+METIS_VER=4.0.3
 SCOTCH_VER="5.1.10b"
 CHOLMOD_VER=1.7.1 # can use Metis-4
 # solvers
@@ -300,108 +300,94 @@ fi
 if [[ -n $BLAS_BUILD ]]; then
   info "BLAS"
   BLAS_LIB=${INSTALL_LIB_DIR}/libblas.a
-  if [[ ! -d ${S}/blas || ${S}/blas -nt ${INSTALL_LIB_DIR} ]]; then
-    cd ${S}
-    case ${BLAS} in
-      "atlas" )
-        get_and_unpack blas http://sourceforge.net/projects/math-atlas/files/Stable/${ATLAS_BLAS_VER}/atlas${ATLAS_BLAS_VER}.tar.gz
-        cd ${S}/blas/atlas-${ATLAS_BLAS_VER} || err blas "wrong dir"
-        mkdir build-${MACHINE} # build dir
-        BUILD_DIR=${S}/blas/atlas-${ATLAS_BLAS_VER}/build-${MACHINE}
-        cd ${BUILD_DIR}
-     #TODO   # turn off throttling
-        #/usr/bin/cpufreq-selector -g performance
-        #cp /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor \
-        #      /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor
-        # OR disable throttling check: ./configure -Si cputhrchk 0
-        #../configure  -b 64 -D c -DPentiumCPS=2400 --prefix=/home/whaley/lib/atlas
-        # TODO config options
-        info "  configure"
-        ../configure  -b 64 -D c --prefix=${INSTALL_LIB_DIR}
-        info "  build"
-        ${MAKE} build || err blas "build failed"
-        info "  check"
-        ${MAKE} check || err blas "check failed"
-        info "  time"
-        ${MAKE} time  || err blas "time failed"
-        info " install"
-        ${MAKE} install || err blas "install failed"
-      ;;
-      "netlib" )
-        get_and_unpack blas http://www.netlib.org/blas/blas.tgz
-        cd ${S}/blas/BLAS
-        sed -i s/_LINUX/-${MACHINE}/ make.inc
-        sed -i s/g77/gfortran/ make.inc
-        sed -i "s/\(^OPTS *=\) .*/\1 -O3 -fPIC/" make.inc
-        info "  build"
-        ${MAKE} all &> /dev/null || err blas "build failed"
-        cp blas-${MACHINE}.a  ${INSTALL_LIB_DIR}/libblas.a
-        a2so ${INSTALL_LIB_DIR}/libblas.a -lgfortran -lm
-        BLAS_LIB=${INSTALL_LIB_DIR}/libblas.a
-      ;;
-      *) err ${BLAS} "bad blas choice";;
-    esac
-    for i in ${BLAS_LIB}; do
-      [ ! -f ${i} ] && err blas "missing lib ${BLAS_LIB}"
-    done
-  else
-    info "  up-to-date"
-  fi
+  cd ${S}
+  case ${BLAS} in
+    "atlas" )
+      get_and_unpack blas http://sourceforge.net/projects/math-atlas/files/Stable/${ATLAS_BLAS_VER}/atlas${ATLAS_BLAS_VER}.tar.gz
+      cd ${S}/blas/atlas-${ATLAS_BLAS_VER} || err blas "wrong dir"
+      mkdir build-${MACHINE} # build dir
+      BUILD_DIR=${S}/blas/atlas-${ATLAS_BLAS_VER}/build-${MACHINE}
+      cd ${BUILD_DIR}
+   #TODO   # turn off throttling
+      #/usr/bin/cpufreq-selector -g performance
+      #cp /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor \
+      #      /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor
+      # OR disable throttling check: ./configure -Si cputhrchk 0
+      #../configure  -b 64 -D c -DPentiumCPS=2400 --prefix=/home/whaley/lib/atlas
+      # TODO config options
+      info "  configure"
+      ../configure  -b 64 -D c --prefix=${INSTALL_LIB_DIR}
+      info "  build"
+      ${MAKE} build || err blas "build failed"
+      info "  check"
+      ${MAKE} check || err blas "check failed"
+      info "  time"
+      ${MAKE} time  || err blas "time failed"
+      info " install"
+      ${MAKE} install || err blas "install failed"
+    ;;
+    "netlib" )
+      get_and_unpack blas http://www.netlib.org/blas/blas.tgz
+      cd ${S}/blas/BLAS
+      sed -i s/_LINUX/-${MACHINE}/ make.inc
+      sed -i s/g77/gfortran/ make.inc
+      sed -i "s/\(^OPTS *=\) .*/\1 -O3 -fPIC/" make.inc
+      info "  build"
+      ${MAKE} all &> /dev/null || err blas "build failed"
+      cp blas-${MACHINE}.a  ${INSTALL_LIB_DIR}/libblas.a
+      a2so ${INSTALL_LIB_DIR}/libblas.a -lgfortran -lm
+      BLAS_LIB=${INSTALL_LIB_DIR}/libblas.a
+    ;;
+    *) err ${BLAS} "bad blas choice";;
+  esac
 fi
 # find blas install dir, prefer local install
-if [[ -f ${INSTALL_BASE_DIR}/lib/libblas.so ]]; then
-  BLAS_PATH=${INSTALL_BASE_DIR}
+if [[ -f ${INSTALL_LIB_DIR}/libblas.so ]]; then
+  BLAS_PATH=${INSTALL_LIB_DIR}
 else
-  BLAS_PATH=/usr
+  BLAS_PATH=/usr/lib
 fi
-[[ ! -f ${BLAS_PATH}/lib/libblas.so ]] && err blas "can't find libblas.so at ${BLAS_PATH}"
-BLAS_DLIB="-L${BLAS_PATH}/lib -lblas"
-info "  using ${BLAS_PATH}/lib/libblas.so"
+[[ ! -f ${BLAS_PATH}/libblas.so ]] && err blas "can't find libblas.so at ${BLAS_PATH}"
+BLAS_DLIB="-L${BLAS_PATH} -lblas"
+info "  using ${BLAS_PATH}/libblas.so"
 
 
 
 if [[ -n $LAPACK_BUILD ]]; then
   info "LAPACK"
   LAPACK_LIB=${INSTALL_LIB_DIR}/liblapack.a
-  if [[ ! -d ${S}/lapack || ${S}/lapack -nt ${INSTALL_LIB_DIR} ]]; then
-    cd ${S}
-    case ${LAPACK} in
-      "netlib" )
-        get_and_unpack lapack http://www.netlib.org/lapack/lapack-${LAPACK_VER}.tgz
-        # compile blas
-        cd ${S}/lapack/lapack-${LAPACK_VER} || err lapack "unexpected version"
-        cp INSTALL/make.inc.gfortran make.inc
-        sed -i s/_LINUX/-${MACHINE}/ make.inc
-        sed -i "s/\(^OPTS.*=\).*/\1 -O2 -fPIC/" make.inc
-        sed -i "s/\(^NOOPT.*=\).*/\1 -O0 -fPIC/" make.inc
-        sed -i "s/\(BLASLIB *=\) .*/\1 -Wl,-rpath,${BLAS_DIR//\//\\/} ${BLAS_DLIB//\//\\/}/" make.inc
-        info "  build"
-        ${MAKE} all > /dev/null || err lapack "build failed"
-        cp lapack-${MACHINE}.a  ${INSTALL_LIB_DIR}/liblapack.a
-        a2so ${INSTALL_LIB_DIR}/liblapack.a ${BLAS_DLIB} -lgfortran -lm
-        LAPACK_LIB=${INSTALL_LIB_DIR}/liblapack.a
-      ;;
-      "local" )
-        info "Assuming local version of LAPACK"
-        LAPACK_LIB=/usr/lib/liblapack.a
-      ;;
-      *) err ${LAPACK} "bad lapack choice";;
-    esac
-    for i in ${LAPACK_LIB}; do
-      [ ! -f ${i} ] && err lapack "missing lib ${LAPACK_LIB}"
-    done
-  else
-    info "  up-to-date"
-  fi
+  cd ${S}
+  case ${LAPACK} in
+    "netlib" )
+      get_and_unpack lapack http://www.netlib.org/lapack/lapack-${LAPACK_VER}.tgz
+      # compile blas
+      cd ${S}/lapack/lapack-${LAPACK_VER} || err lapack "unexpected version"
+      cp INSTALL/make.inc.gfortran make.inc
+      sed -i s/_LINUX/-${MACHINE}/ make.inc
+      sed -i "s/\(^OPTS.*=\).*/\1 -O2 -fPIC/" make.inc
+      sed -i "s/\(^NOOPT.*=\).*/\1 -O0 -fPIC/" make.inc
+      sed -i "s/^\(BLASLIB *=\).*/\1 -Wl,-rpath,${BLAS_PATH//\//\\/} ${BLAS_DLIB//\//\\/}/" make.inc
+      info "  build"
+      ${MAKE} all > /dev/null || err lapack "build failed"
+      cp lapack-${MACHINE}.a  ${INSTALL_LIB_DIR}/liblapack.a
+      a2so ${INSTALL_LIB_DIR}/liblapack.a ${BLAS_DLIB} -lgfortran -lm
+      LAPACK_LIB=${INSTALL_LIB_DIR}/liblapack.a
+    ;;
+    "local" )
+      info "Assuming local version of LAPACK"
+      LAPACK_LIB=/usr/lib/liblapack.a
+    ;;
+    *) err ${LAPACK} "bad lapack choice";;
+  esac
 fi
-if [[ -f ${INSTALL_BASE_DIR}/lib/liblapack.so ]]; then
-  LAPACK_PATH=${INSTALL_BASE_DIR}
+if [[ -f ${INSTALL_LIB_DIR}/liblapack.so ]]; then
+  LAPACK_PATH=${INSTALL_LIB_DIR}
 else
-  LAPACK_PATH=/usr
+  LAPACK_PATH=/usr/lib
 fi
-[[ ! -f ${LAPACK_PATH}/lib/liblapack.so ]] && err lapack "can't find liblapack.so at ${LAPACK_PATH}"
+[[ ! -f ${LAPACK_PATH}/liblapack.so ]] && err lapack "can't find liblapack.so at ${LAPACK_PATH}"
 LAPACK_DLIB="-L${LAPACK_PATH} -llapack"
-info "  using ${LAPACK_PATH}/lib64/liblapack.so"
+info "  using ${LAPACK_PATH}/liblapack.so"
 
 if [[ -n $BLACS ]]; then
   # get BLACS [ScaLAPACK communications]
@@ -510,7 +496,7 @@ if [[ -n $SCALAPACK ]]; then
   MAKE=${MAKE_SAVE}
 fi
 SCALAPACK_PATH=${INSTALL_LIB_DIR}
-[[ ! -f ${SCALAPACK_PATH}/libscalapack.so ]] && err blacs "can't find libscalapack.so at ${SCALAPACK_PATH}"
+[[ ! -f ${SCALAPACK_PATH}/libscalapack.so ]] && err scalapack "can't find libscalapack.so at ${SCALAPACK_PATH}"
 info "  using ${SCALAPACK_PATH}/libscalapack.so"
 SCALAPACK_DLIB="-L${SCALAPACK_PATH} -lscalapack"
 
@@ -608,9 +594,9 @@ if [[ -n $METIS_BUILD ]]; then
       cd ${S}/metis/metis-${METIS_VER} || err metis "bad dir"
       sed -i "s/\(^COPTIONS *= \).*/\1 -DNDEBUG -fPIC/" Makefile.in
       sed -i '/CC/d' Makefile.in
-      # for some reason metis redefines log2 -- its in glibc
-      sed -i "s/log2\([^_]\)/log2_local\1/g" $(grep -lr log2 .)
-      sed -i "s/log2\$/log2_local/g" $(grep -lr log2 .)
+      # for some reason metis redefines log2_local -- its in glibc
+      sed -i "s/log2_local\([^_]\)/log2_local\1/g" $(grep -lr log2_local .)
+      sed -i "s/log2_local\$/log2_local/g" $(grep -lr log2_local .)
       info "  build"
       ${MAKE} &> /dev/null || err metis "build failed"
       cp libmetis.a ${INSTALL_LIB_DIR}/
@@ -620,14 +606,14 @@ if [[ -n $METIS_BUILD ]]; then
   esac
 fi
 # find blas install dir, prefer local install
-if [[ -f ${INSTALL_BASE_DIR}/lib/lib${METIS}.so ]]; then
-  METIS_PATH=${INSTALL_BASE_DIR}
+if [[ -f ${INSTALL_LIB_DIR}/lib${METIS}.so ]]; then
+  METIS_PATH=${INSTALL_LIB_DIR}
 else
-  METIS_PATH=/usr
+  METIS_PATH=/usr/lib
 fi
-[[ ! -f ${METIS_PATH}/lib/lib${METIS}.so ]] && err metis "can't find lib${METIS}.so at ${METIS_PATH}"
-METIS_DLIB="-L${METIS_PATH}/lib -l${METIS}"
-info "  using ${METIS_PATH}/lib/lib${METIS}.so"
+[[ ! -f ${METIS_PATH}/lib${METIS}.so ]] && err metis "can't find lib${METIS}.so at ${METIS_PATH}"
+METIS_DLIB="-L${METIS_PATH} -l${METIS}"
+info "  using ${METIS_PATH}/lib${METIS}.so"
 
 if [[ -n $SCOTCH ]]; then
   # Note: parallel make broken for esmumps releases
@@ -675,15 +661,17 @@ if [[ -n $CHOLMOD ]]; then
   get_and_unpack cholmod http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/metis-${METIS_VER}.tar.gz
   info "  config"
   cd ${S}/cholmod/metis-${METIS_VER}
-  # for some reason metis redefines log2 -- its in glibc
-  sed -i "s/log2\([^_]\)/log2_local\1/g" $(grep -lr log2 .)
-  sed -i "s/log2\$/log2_local/g" $(grep -lr log2 .)
+  # for some reason metis redefines log2_local -- its in glibc
+  #sed -i "s/log2_local\([^_]\)/log2_local\1/g" $(grep -lr log2_local .)
+  #sed -i "s/log2_local\$/log2_local/g" $(grep -lr log2_local .)
   cd ${S}/cholmod; mkdir -p AMD; cd AMD; ln -s ${INSTALL_INC_DIR} Include
   cd ${S}/cholmod; mkdir -p COLAMD; cd COLAMD; ln -s ${INSTALL_INC_DIR} Include
   cd ${S}/cholmod; mkdir -p CCOLAMD; cd CCOLAMD; ln -s ${INSTALL_INC_DIR} Include
   cd ${S}/cholmod; mkdir -p CAMD; cd CAMD; ln -s ${INSTALL_INC_DIR} Include
   cd ${S}/cholmod/CHOLMOD || err cholmod "bad dir"
   echo "CFLAGS = -O3 -fexceptions -fPIC" >> ../UFconfig/UFconfig.mk
+  sed -i "s/\(METIS_PATH =\).*/\1 ..\/..\/metis-$METIS_VER/" ../UFconfig/UFconfig.mk
+  sed -i "s/\(METIS =\).*/\1 \$(METIS_PATH)\/libmetis.a/" ../UFconfig/UFconfig.mk
   sed -i '/CC/d' ../UFconfig/UFconfig.mk
   info "  build"
   ${MAKE} library &> /dev/null || err cholmod "build failed"
@@ -791,7 +779,7 @@ if [[ -n $WSMP_BUILD ]]; then
 #  F=${S}/dl/wsmp-Linux64.tar.gz
   F=${S}/dl/libpwsmpGNU64ompi.a.gz
   if [[ ! -f ${F} ]]; then
-    echo "  Need to download tar.gz from http://www.pardiso-project.org/branch (licensing required)"
+    echo "  Need to download tar.gz from http://www-users.cs.umn.edu/~agupta/wsmp.html (licensing required)"
   else
     rm -rf ${S}/wsmp
     cd ${S}
@@ -803,9 +791,10 @@ if [[ -n $WSMP_BUILD ]]; then
 #    cd ${S}/wsmp/wsmp-Linux64
 #    echo -n "*   "
 #    cat VERSION | head -1
-    [[ ! -f ${HOME}/wsmp.lic ]] && [[ ! -f ${S}/wsmp.lic ]] && \
-      cp wsmp.lic ${S}/
-    LIBS="-L${INSTALL_LIB_DIR} ${BLAS_DLIB} -lmpi_f77" 
+#    [[ ! -f ${HOME}/wsmp.lic ]] && [[ ! -f ${S}/wsmp.lic ]] && \
+#      cp wsmp.lic ${S}/
+    # getting "undefined reference to `__isoc99_sscanf'": add -D_GNU_SOURCE
+    LIBS="-D_GNU_SOURCE ${BLAS_DLIB} -L${MPI_PATH}/lib -lmpi_f77"
     if [[ ${MPI} == "openmpi" ]]; then
       info "  selected OpenMPI version of libpwsmp"
 #      cp ${S}/wsmp/wsmp-Linux64/lib/GNU/openmpi/libpwsmp64.a ${INSTALL_LIB_DIR}/libpwsmp-openmpi-64b.a

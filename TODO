@@ -23,6 +23,9 @@ These are somewhat arranged in order of priority. Highest at the top.
  - better cores/threads output (indicate if MPI and/or openMP are being used, give non-zero number of threads/cores)
  - clean up output so its easier to parse, more uniform (memory usage, etc)
 
+ - improve get_dependencies, so it only checks for the requested dependencies
+   and won't fail on dependencies for things we're skipping
+
  - add tests mpirun -n 2 for MPI solvers (mumps was broken for a while before catching it!)
  - add tests for single-threaded only solvers (clean error message)
  - add tests for symmetric solvers
