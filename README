@@ -34,7 +34,7 @@ and would like to install it in your home directory)
 If you've used the get_dependancies script then you probably
 want to run configure with
 
-  ./configure LDFLAGS="-L$PWD/$(gcc -dumpmachine)/lib -Wl,-rpath,$PWD/$(gcc -dumpmachine)/lib" CPPFLAGS="-I $PWD/$(gcc -dumpmachine)/include" --prefix=$PWD/installed --enable-debug=yes
+  ./configure LDFLAGS="-L$PWD/$(gcc -dumpmachine)/lib -Wl,-rpath,$PWD/$(gcc -dumpmachine)/lib" CPPFLAGS="-I $PWD/$(gcc -dumpmachine)/include" --prefix=$PWD/installed --enable-debug=yes --with-all-solvers
 
 or something similar. The -L and -I directories should be
 current locations for the files, while the -rpath should

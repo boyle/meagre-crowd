@@ -50,6 +50,9 @@ These are somewhat arranged in order of priority. Highest at the top.
  - fix "inline" in matrix.c/h
  - extend tests/unit-matrix.c to push things harder
 
+ - configure:
+   - allow compile with no solvers (--without-all-solvers) (adds requirement for MPI, openMP dependencies)
+
 Fix memory leaks:
  - Run valgrind. Find bad allocations and uninitialized variables.
 

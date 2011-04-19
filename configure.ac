@@ -78,10 +78,11 @@ AC_CONFIG_FILES([Makefile])
 # Checks for programs.
 AC_PROG_CC
 AM_PROG_CC_C_O
-#AC_OPENMP
 
 # Checks for libraries.
 AC_SEARCH_LIBS([load_sparse_matrix], [sparse_matrix_converter],,AC_MSG_ERROR([missing BeBOP sparse matrix I/O library]))
+
+AC_ARG_WITH(all-solvers, AS_HELP_STRING(--with-all-solvers, Force presence of all solvers))
 
 m4_define([MC_WITH_LIB],[
 
@@ -100,22 +101,31 @@ m4_define(MC_EXTRA_FLAGS, $5)
 AC_ARG_WITH(MC_LOWERNAME,
     AS_HELP_STRING([--without-]MC_LOWERNAME, [Ignore presence of ]MC_FULLNAME[ solver and disable it]))
 
+dnl force value for all solvers if --with-all-solvers
+AS_IF([test "x$with_all_solvers" = "xyes"],
+      [with_]MC_LOWERNAME[=yes],
+      [test "x$with_all_solvers" = "xno"],
+      [with_]MC_LOWERNAME[=no]
+      )
+
+dnl test for library unless explicitly disabled
 MC_EXTRA_CODE
 AS_IF([test "x$with_]MC_LOWERNAME[" != "xno"],
       [
-        AC_SEARCH_LIBS(]MC_FUNC[,]MC_LIB[,have_]MC_LOWERNAME[=yes], [have_]MC_LOWERNAME[=no],MC_EXTRA_FLAGS[)
+        AC_SEARCH_LIBS(]MC_FUNC[,]MC_LIB[,have_]MC_LOWERNAME[=yes,have_]MC_LOWERNAME[=no,]MC_EXTRA_FLAGS[)
       ],
       [have_]MC_LOWERNAME[=no
       AC_MSG_CHECKING(for library containing ]MC_FUNC[)
       AC_MSG_RESULT(<skipped>)]
       )
 
+dnl if its found, then all good
+dnl if it wasn't found and it was required, then error
 AS_IF([test "x$have_]MC_LOWERNAME[" = "xyes"],
       [AC_DEFINE(HAVE_]MC_UPPERNAME[,1,]MC_FULLNAME[ solver is available)],
-      [AS_IF([test "x$with_]MC_LOWERNAME[" = "xyes"],
-             [AC_MSG_ERROR(MC_FULLNAME[ solver requested but not found])
-      ])
-])
+      [test "x$with_]MC_LOWERNAME[" = "xyes"],
+      [AC_MSG_ERROR(]MC_FULLNAME[ solver requested but not found)]
+      )
 
 AM_CONDITIONAL([HAVE_]MC_UPPERNAME,[test "x$have_]MC_LOWERNAME[" = "xyes"])
 AC_SUBST([have_]MC_LOWERNAME)
