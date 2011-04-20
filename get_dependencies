@@ -774,45 +774,41 @@ if [[ -n $PARDISO ]]; then
   fi
 fi
 
+# tar or file
+WSMP_SRC=file
 if [[ -n $WSMP_BUILD ]]; then
   info "WSMP"
-#  F=${S}/dl/wsmp-Linux64.tar.gz
-  F=${S}/dl/libpwsmpGNU64ompi.a.gz
+  [[ $WSMP_SRC == "tar"  ]] && F=${S}/dl/wsmp-Linux64.tar.gz
+  [[ $WSMP_SRC == "file" ]] && F=${S}/dl/libpwsmpGNU64ompi.a.gz
   if [[ ! -f ${F} ]]; then
     echo "  Need to download tar.gz from http://www-users.cs.umn.edu/~agupta/wsmp.html (licensing required)"
   else
     rm -rf ${S}/wsmp
     cd ${S}
-    mkdir wsmp
-    cd ${S}/wsmp
-#    tar zxvf $F > /dev/null
-    cp $F .
-    gunzip libpwsmpGNU64ompi.a.gz
-#    cd ${S}/wsmp/wsmp-Linux64
-#    echo -n "*   "
-#    cat VERSION | head -1
-#    [[ ! -f ${HOME}/wsmp.lic ]] && [[ ! -f ${S}/wsmp.lic ]] && \
-#      cp wsmp.lic ${S}/
+    if [[ $WSMP_SRC == "tar"  ]]; then
+      tar zxvf $F > /dev/null
+      cd ${S}/wsmp/wsmp-Linux64
+      echo -n "*   "
+      cat VERSION | head -1
+      [[ ! -f ${HOME}/wsmp.lic ]] && [[ ! -f ${S}/wsmp.lic ]] && cp wsmp.lic ${S}/
+    else
+      mkdir wsmp
+      cd ${S}/wsmp
+      cp $F .
+      gunzip libpwsmpGNU64ompi.a.gz
+    fi
     # getting "undefined reference to `__isoc99_sscanf'": add -D_GNU_SOURCE
     LIBS="-D_GNU_SOURCE ${BLAS_DLIB} -L${MPI_PATH}/lib -lmpi_f77"
     if [[ ${MPI} == "openmpi" ]]; then
       info "  selected OpenMPI version of libpwsmp"
-#      cp ${S}/wsmp/wsmp-Linux64/lib/GNU/openmpi/libpwsmp64.a ${INSTALL_LIB_DIR}/libpwsmp-openmpi-64b.a
-      cp ${S}/wsmp/libpwsmpGNU64ompi.a ${INSTALL_LIB_DIR}/libpwsmp-openmpi-64b.a
+      [[ $WSMP_SRC == "tar"  ]] && cp ${S}/wsmp/wsmp-Linux64/lib/GNU/openmpi/libpwsmp64.a ${INSTALL_LIB_DIR}/libpwsmp-openmpi-64b.a
+      [[ $WSMP_SRC == "file" ]] && cp ${S}/wsmp/libpwsmpGNU64ompi.a ${INSTALL_LIB_DIR}/libpwsmp-openmpi-64b.a
       a2so ${INSTALL_LIB_DIR}/libpwsmp-openmpi-64b.a ${LIBS}
       cd ${INSTALL_LIB_DIR}
       ln -sf libpwsmp-openmpi-64b.so libpwsmp.so
     else
        err wsmp "not a working version... TODO"
-#      info "  selected mpich2 version of libpwsmp"
-#      cp ${S}/wsmp/wsmp-Linux64/lib/GNU/mpi2/libpwsmp64.a ${INSTALL_LIB_DIR}/libpwsmp-mpi2-64b.a
-#      a2so ${INSTALL_LIB_DIR}/libpwsmp-mpi2-64b.a    ${LIBS}
-#      cd ${INSTALL_LIB_DIR}
-#      ln -sf libpwsmp-mpi2-64b.so libpwsmp.so
     fi
-#    cp ${S}/wsmp/wsmp-Linux64/lib/GNU/libwsmp64.a ${INSTALL_LIB_DIR}/libwsmp-64b.a
-#    a2so ${INSTALL_LIB_DIR}/libwsmp-64b.a -L${INSTALL_LIB_DIR} ${BLAS_DLIB} -lpthread
-#    ln -sf libwsmp-64b.so libwsmp.so
     info "  installed libwsmp"
   fi
 fi
