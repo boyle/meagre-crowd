@@ -45,7 +45,7 @@ function info() {
 
 function help() {
   echo "$(basename $0) [options]"
-  echo "  all: blas lapack blacs scalapack amd camd ccolamd colamd metis scotch cholmod mumps umfpack pardiso wsmp taucs bebop"
+  echo "  all: mpi blas lapack blacs scalapack amd camd ccolamd colamd metis scotch cholmod mumps umfpack pardiso wsmp taucs bebop"
   echo "  nopar - parallel make is disabled"
   echo "  clean - remove build directories"
   echo "  distclean - clean + remove generated files too"
