@@ -32,6 +32,7 @@ MUMPS_VER=4.9.2
 # Note: no versionable downloads for netlib BLAS, ScaLAPACK
 UMFPACK_VER=5.5.0
 TAUCS_VER=2.2
+SUPERLU_VER=2.5
 
 # necessary functions
 function err() {
@@ -43,9 +44,10 @@ function info() {
   echo "* $*"
 }
 
+DEP_DIRS="mpi blas lapack blacs scalapack amd camd ccolamd colamd metis scotch cholmod mumps umfpack pardiso wsmp taucs superlu bebop"
 function help() {
   echo "$(basename $0) [options]"
-  echo "  all: mpi blas lapack blacs scalapack amd camd ccolamd colamd metis scotch cholmod mumps umfpack pardiso wsmp taucs bebop"
+  echo "  all: ${DEP_DIRS}"
   echo "  nopar - parallel make is disabled"
   echo "  clean - remove build directories"
   echo "  distclean - clean + remove generated files too"
@@ -54,7 +56,6 @@ function help() {
 S=${PWD}
 MACHINE=$(gcc -dumpmachine)
 INSTALL_BASE_DIR=${PWD}/${MACHINE}
-DEP_DIRS="blas blacs lapack mpi mumps scalapack amd ccolamd camd cholmod colamd metis scotch umfpack bebop"
 
 [ $# -eq 0 ] && help && exit 2
 
@@ -79,6 +80,7 @@ while [ $# != 0 ]; do
     "pardiso") PARDISO=1;;
     "wsmp") WSMP_BUILD=1;;
     "taucs") TAUCS=1;;
+    "superlu") SUPERLU=1;;
     "bebop") BEBOP=1;;
     "nopar") PARALLEL_MAKE_DISABLED=yes;;
     "clean") echo "cleaning..." && rm -rf ${DEP_DIRS} && exit 0;;
@@ -107,6 +109,7 @@ if [[ -n $ALL ]]; then
   PARDISO=1
   WSMP_BUILD=1
   TAUCS=1
+  SUPERLU=1
   BEBOP=1
 fi
 
@@ -708,7 +711,6 @@ if [[ -n $UMFPACK ]]; then
   a2so ${INSTALL_LIB_DIR}/libumfpack.a ${CHOLMOD_DLIB} -lm
 fi
 
-
 if [[ -n $MUMPS ]]; then
   # get mumps
   info "MUMPS"
@@ -868,6 +870,52 @@ EOF
   a2so ${INSTALL_LIB_DIR}/libtaucs.a ${BLAS_DLIB} ${LAPACK_DLIB} ${METIS_DLIB}
   cp ${S}/taucs/build/linux/*.h ${INSTALL_INC_DIR}/
   cp ${S}/taucs/src/taucs*.h ${INSTALL_INC_DIR}/
+fi
+
+if [[ -n $SUPERLU ]]; then
+  # get superlu
+  info "SuperLU"
+  get_and_unpack superlu http://crd.lbl.gov/~xiaoye/SuperLU/superlu_dist_${SUPERLU_VER}.tar.gz
+  cd ${S}/superlu/SuperLU_DIST_${SUPERLU_VER}
+  cp MAKE_INC/make.xt4 ./make.inc
+  sed -i "s/\(^PLAT.*=\).*/\1 ${MACHINE}/" make.inc
+  sed -i "s/\(^DSuperLUroot.*=\).*/\1 ${INSTALL_BASE_DIR//\//\\/}/" make.inc
+  sed -i "s/\(^BLASDEF.*=\).*/\1 -DUSE_VENDOR_BLAS/" make.inc
+  sed -i "s/\(^BLASLIB.*=\).*/\1  ${BLAS_DLIB//\//\\/}/" make.inc
+  sed -i "s/\(^METISLIB.*=\).*/\1 ${METIS_DLIB//\//\\/}/" make.inc
+  sed -i "s/\(^PARMETISLIB.*=\).*/\1 ${METIS_DLIB//\//\\/}/" make.inc
+  sed -i "s/\(^FLIBS.*=\).*/\1/" make.inc
+  sed -i "s/\(^ARCH.*=\).*/\1 ar/" make.inc
+  sed -i "s/\(^ARCHFLAGS.*=\).*/\1 cr/" make.inc
+  sed -i "s/\(^RANLIB.*=\).*/\1 ranlib/" make.inc
+  sed -i "s/\(^CC.*=\).*/\1 ${MPICC//\//\\/}/"  make.inc
+  #   The following CPP definitions can be set in CFLAGS.
+  #      o -D_LONGINT
+  #        use 64-bit integers for indexing sparse matrices. (default is 32 bit)
+  #      o -DPRNTlevel=[0,1,2,...]
+  #        printing level to show solver's execution details. (default is 0)
+  #      o -DDEBUGlevel=[0,1,2,...]
+  #        diagnostic printing level for debugging purpose. (default is 0)
+  sed -i "s/\(^CFLAGS *=\).*/\1 -pipe -O2 -fPIC/"  make.inc
+  sed -i "s/\(^NOOPTS.*=\).*/\1 -fPIC/"  make.inc
+  sed -i "s/\(^FORTRAN.*=\).*/\1 ${MPIF77//\//\\/}/" make.inc
+  # rename wrong variable F90FLAGS -> FFLAGS (FFLAGS is used in the actual makefiles...)
+  sed -i "s/\(^F90FLAGS.*=\).*/FFLAGS = -fPIC/"  make.inc
+  sed -i "s/\(^LOADER.*=\).*/\1 ${MPIF77//\//\\/}/" make.inc
+  sed -i "s/\(^LOADOPTS.*=\).*/\1 -fPIC/"  make.inc
+  #   The possible options for CDEFS are:
+  #     o -DAdd_: Fortran expects a C routine to have an underscore
+  #               postfixed to the name;
+  #     o -DNoChange: Fortran expects a C routine name to be identical to
+  #                   that compiled by C;
+  #     o -DUpCase: Fortran expects a C routine name to be all uppercase.
+  sed -i "s/\(^CDEFS.*=\).*/\1 -DAdd__/"  make.inc
+  # d: double precision real (default), c: complex double, s: single precision real, z: single precision complex
+  info "  build"
+  ${MAKE} &> /dev/null || err superlu "build failed"
+  info "  install"
+  a2so ${INSTALL_LIB_DIR}/libsuperlu_dist_${SUPERLU_VER}.a -L${INSTALL_LIB_DIR} ${METIS_DLIB} ${BLAS_DLIB}
+  cd ${INSTALL_LIB_DIR} && ln -sf libsuperlu_dist_${SUPERLU_VER}.so libsuperlu_dist.so
 fi
 
 info "== I/O =="
