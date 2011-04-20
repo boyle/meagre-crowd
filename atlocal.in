@@ -5,4 +5,4 @@ have_cholmod=@have_cholmod@
 have_taucs=@have_taucs@
 have_pardiso=@have_pardiso@
 have_wsmp=@have_wsmp@
-
+have_superlu_dist=@have_superlu_dist@

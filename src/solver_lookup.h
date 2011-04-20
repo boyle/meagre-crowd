@@ -31,6 +31,9 @@
 #ifdef HAVE_TAUCS
   #include "solver_taucs.h"
 #endif
+#ifdef HAVE_SUPERLU_DIST
+  #include "solver_superlu_dist.h"
+#endif
 #ifdef HAVE_PARDISO
   #include "solver_pardiso.h"
 #endif
@@ -308,6 +311,27 @@ static const struct solver_properties_t solver_lookup[] = {
     "    [1] A. Gupta, G. Karypis, V. Kumar, A Highly Scalable Parallel Algorithm for\n"
     "        Sparse Matrix Factorization, IEEE Transactions on Parallel and\n"
     "        Distributed Systems, 8(5):502–520, May 1997.\n" },
+#endif
+
+#ifdef HAVE_SUPERLU_DIST
+  { "superlu", "SuperLU_DIST", "X. Sherry Li et al", "Lawrence Berkeley National Lab/Univ. of California, Berkley", "2.5", "BSD-new",
+    "http://crd.lbl.gov/~xiaoye/SuperLU/",
+    &solver_init_superlu_dist,
+    &solver_analyze_superlu_dist,
+    &solver_factorize_superlu_dist,
+    &solver_evaluate_superlu_dist,
+    &solver_finalize_superlu_dist,
+    SOLVES_FORMAT_CSC | SOLVES_BASE_ZERO | SOLVES_UNSYMMETRIC |
+    // TODO SOLVES_FORMAT_CSR
+    SOLVES_DATA_TYPE_REAL_DOUBLE | // TODO and COMPLEX (single and double precision)
+    SOLVES_RHS_DCOL,
+    SOLVER_REQUIRES_MPI, // TODO: SOLVER_CAN_USE_MPI (select non-MPI solver...) // TODO non-MPI/OMP solvers (switch, based on number of threads/nodes)
+    "    [1] Xiaoye S. Li, James W. Demmel, SuperLU_DIST: A Scalable Distributed-Memory\n"
+    "        Sparse Direct Solver for Unsymmetric Linear Systems, ACM Trans.\n"
+    "        Mathematical Software, vol 29, no 2, pp110--140, June 2003\n"
+    "    [2] L. Grigori, James W. Demmel, Xiaoye S. Li, Parallel Symbolic Factorization\n"
+    "        for Sparse LU with Static Pivoting, SIAM J. Scientific Computing,\n"
+    "        vol 29, no 3, pp1289--1314, 2007\n" },
 #endif
 
   // Note: MUST have null entry at the end of the list!

@@ -357,10 +357,10 @@ MC_DATA_FILE_ANS1_MM_SYM_POSDEF
 MC_DATA_FILE_ANS2_MM_SYM_POSDEF
 dnl TODO add more testcases: different size matrices, known results
 dnl check solver gives the expected result (i.e. it is linked and configured correctly)
-AT_SKIP_IF([test "x$have_$1" != "xyes"])
-MC_SOLVER_UNSYM_TESTS($1,$2)
-MC_SOLVER_SYM_TESTS($1,$2)
-MC_SOLVER_SYM_POSDEF_TESTS($1,$2)
+AT_SKIP_IF([test "x$have_$2" != "xyes"])
+MC_SOLVER_UNSYM_TESTS($1,$3)
+MC_SOLVER_SYM_TESTS($1,$3)
+MC_SOLVER_SYM_POSDEF_TESTS($1,$3)
 AT_CLEANUP
 ])
 
@@ -375,9 +375,9 @@ MC_DATA_FILE_ANS2_MM_SYM
 MC_DATA_FILE_TEST_MM_SYM_POSDEF
 MC_DATA_FILE_ANS1_MM_SYM_POSDEF
 MC_DATA_FILE_ANS2_MM_SYM_POSDEF
-AT_SKIP_IF([test "x$have_$1" != "xyes"])
-MC_SOLVER_SYM_TESTS($1,$2)
-MC_SOLVER_SYM_POSDEF_TESTS($1,$2)
+AT_SKIP_IF([test "x$have_$2" != "xyes"])
+MC_SOLVER_SYM_TESTS($1,$3)
+MC_SOLVER_SYM_POSDEF_TESTS($1,$3)
 dnl TODO test clean failures for unsupported types  (unsym, etc)
 AT_CLEANUP
 ])
@@ -389,18 +389,19 @@ MC_DATA_FILE_TEST_MM_SYM_POSDEF
 MC_DATA_FILE_RHS1_MM
 MC_DATA_FILE_ANS1_MM_SYM_POSDEF
 MC_DATA_FILE_ANS2_MM_SYM_POSDEF
-AT_SKIP_IF([test "x$have_$1" != "xyes"])
-MC_SOLVER_SYM_POSDEF_TESTS($1,$2)
+AT_SKIP_IF([test "x$have_$2" != "xyes"])
+MC_SOLVER_SYM_POSDEF_TESTS($1,$3)
 dnl TODO test clean failures for unsupported types  (unsym, etc)
 AT_CLEANUP
 ])
 
-MC_SOLVERS_UNSYM([umfpack])
-MC_SOLVERS_UNSYM([mumps])
-MC_SOLVERS_UNSYM([taucs])
-MC_SOLVERS_UNSYM([pardiso])
-MC_SOLVERS_UNSYM([wsmp],[WSMPLICPATH=~])
+MC_SOLVERS_UNSYM([umfpack],[umfpack])
+MC_SOLVERS_UNSYM([mumps],[mumps])
+MC_SOLVERS_UNSYM([taucs],[taucs])
+MC_SOLVERS_UNSYM([superlu],[superlu_dist])
+MC_SOLVERS_UNSYM([pardiso],[pardiso])
+MC_SOLVERS_UNSYM([wsmp],[wsmp],[WSMPLICPATH=~])
 dnl Note: cholmod is symmetric positive definite matrices ONLY
 dnl posdef only?
-MC_SOLVERS_SYM_POSDEF([cholmod])
+MC_SOLVERS_SYM_POSDEF([cholmod],[cholmod])
 
