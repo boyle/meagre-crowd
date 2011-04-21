@@ -23,7 +23,7 @@ AUTOMAKE_OPTIONS = gnu
 # the actual program to be installed at the end
 bin_PROGRAMS = meagre-crowd
 meagre_crowd_SOURCES = src/meagre-crowd.c \
-    src/perftimer.c src/matrix.c src/args.c src/file.c src/solvers.c
+    src/perftimer.c src/matrix.c src/matrix_share.c src/args.c src/file.c src/solvers.c
 
 # the tests
 BUILT_TESTS = tests/file tests/helloworld-mpi tests/unit-perftimer tests/unit-matrix
@@ -68,7 +68,7 @@ AM_CFLAGS = $(CFLAGS) $(OPENMP_CFLAGS) $(PTHREAD_CFLAGS) -Werror #-Wextra
 #meagre_crowd_CC = $(PTHREAD_CC)
 
 # header files that need to be distributed but not installed
-noinst_HEADERS = src/perftimer.h src/matrix.h src/args.h src/file.h \
+noinst_HEADERS = src/perftimer.h src/matrix.h src/matrix_share.h src/args.h src/file.h \
                  src/solvers.h src/solver_lookup.h \
 		 src/solver_mumps.h src/solver_umfpack.h src/solver_cholmod.h \
 		 src/solver_pardiso.h src/solver_taucs.h src/solver_wsmp.h \

@@ -321,7 +321,7 @@ static const struct solver_properties_t solver_lookup[] = {
     &solver_factorize_superlu_dist,
     &solver_evaluate_superlu_dist,
     &solver_finalize_superlu_dist,
-    SOLVES_FORMAT_CSC | SOLVES_BASE_ZERO | SOLVES_UNSYMMETRIC |
+    SOLVES_FORMAT_CSC | SOLVES_BASE_ZERO | SOLVES_UNSYMMETRIC | SOLVES_SQUARE_ONLY |
     // TODO SOLVES_FORMAT_CSR
     SOLVES_DATA_TYPE_REAL_DOUBLE | // TODO and COMPLEX (single and double precision)
     SOLVES_RHS_DCOL,

@@ -19,7 +19,8 @@
 #include "solver_superlu_dist.h"
 #include "solvers.h"
 #include "matrix.h"
-//#include <superlu_dist.h>
+#include "matrix_share.h"
+#include <superlu_ddefs.h>
 
 #include <stdlib.h> // malloc, free
 #include <string.h> // memcpy
@@ -28,17 +29,17 @@
 #include <unistd.h> // dup -> redirect stdout temporarily
 
 #include <mpi.h>
+#include <math.h>
 
 typedef struct {
-  int Arows;
-  int Acols;
-  int* Aii; // these are pointers to existing data (DON'T free)
-  int* Ajj;
-  double* Add;
-
-  // Paradiso config
-  int *iparm; // int * 64 - config
-  double *dparm; // double * 64 - config
+  superlu_options_t options;
+  gridinfo_t grid;
+  int active; // is this node active in the superlu grid?
+  int rank0; // who is the old rank0 in the new communicator
+  SuperMatrix A;
+  ScalePermstruct_t permute;
+  LUstruct_t lu;
+  SuperLUStat_t stat;
 } solve_system_superlu_dist_t;
 
 void solver_init_superlu_dist( solver_state_t* s ) {
@@ -47,10 +48,31 @@ void solver_init_superlu_dist( solver_state_t* s ) {
   assert( p != NULL );
   s->specific = p;
 
-  p->iparm = calloc( 64, sizeof( int ) );
-  p->dparm = calloc( 64, sizeof( double ) );
+  // set default options
+  set_default_options_dist(p->options);
+  if((s->mpi_rank == 0) && (s->verbosity >= 3))
+    print_options_dist(p->options);
 
-  // TODO init
+  // determine the size of the MPI communicator
+  const MPI_Comm initial_comm = MPI_COMM_WORLD; // TODO pass in communicator instead of assuming MPI_COMM_WORLD
+  int size;
+  int ret = MPI_Comm_size(initial_comm, &size);
+  assert(ret != MPI_SUCCESS);
+
+  // determine size: a 2D grid
+  int nprow = floor(sqrt(size));
+  int npcol = nprow;
+  superlu_gridinit(initial_comm, nprow, npcol, &(p->grid));
+  p->active = (p->grid.iam < nprow * npcol);
+  if(s->mpi_rank == 0) {
+    assert(p->active); // must have the rank=0 node active or we're broken (A is only loaded on rank=0)
+    p->rank0 = p->grid.iam;
+  }
+  ret = MPI_Bcast(&(p->rank0), 1, MPI_INT, p->grid.comm);
+  assert(ret == MPI_SUCCESS);
+
+  // initialize stats
+  PStatInit(&(p->stat));
 }
 
 // TODO split analyze stage into ordering and symbolic factorization stages?
@@ -58,167 +80,102 @@ void solver_analyze_superlu_dist( solver_state_t* s, matrix_t* A ) {
   assert( s != NULL );
   solve_system_superlu_dist_t* const p = s->specific;
   assert( p != NULL );
-//  p->IPARM(2) = WSMP_ANALYZE;
-//  p->IPARM(3) = WSMP_ANALYZE;
-/*
-  int TEST = 1; // Note: WSMP needs this value or it dies trying to read a NULL value
+
+  if( !p->active ) // check if this grid node is active
+    return;
+
+  // setup the A matrix, shared globally
+  matrix_t* AA;
   if(s->mpi_rank == 0) {
-    assert( A != NULL );
-
-    // TODO could do this smarter by giving WSMP the symmetric matrix to solve,
-    // instead we're just going straight for the unsymmetric solver
-    assert( A->sym == SM_UNSYMMETRIC );
-    // TODO for SYMMETRIC matrices: superlu_dist wants all diagonal entries to exist in A, even if they are zero
-
-    // prepare the matrix
-    assert( A->format == SM_CSR );
-    assert( A->base == FIRST_INDEX_ONE );
-    assert( A->data_type == REAL_DOUBLE ); // don't handle complex... yet TODO
-    assert( A->m == A->n ); // TODO can only handle square matrices at present???
-
-    // Compressed Row Format
-    assert( A->ii[0] == 1 );
-    assert( A->ii[A->n] == A->nz + 1 );
-
-    int N = A->m; // rows of A
-//    pwgsmp_( &N, ( int* ) A->ii, ( int* ) A->jj, A->dd, NULL, &TEST, NULL, NULL, p->iparm, p->dparm);
+    AA = copy_matrix(A);
   }
   else {
-    assert( A == NULL );
-    int N = 0;
-//    pwgsmp_( &N, NULL, NULL, NULL, NULL, &TEST, NULL, NULL, p->iparm, p->dparm);
+    AA = malloc_matrix();
   }
-  const int error_code = p->IPARM(64);
-  if ( error_code != NO_ERROR )
-    fprintf( stderr, "error: superlu_dist analyze code %d\n", error_code ); // TODO decode
-  assert( error_code == NO_ERROR );
-*/
+  matrix_bcast(AA, p->rank0, p->grid.comm);
+  dCreate_CompCol_Matrix(&(p->A), &(AA->m), &(AA->n), &(AA->nz),
+                         AA->dd, AA->ii, AA->jj, SLU_NC, SLU_D, SLU_GE);
+  AA->ii = NULL;
+  AA->jj = NULL;
+  AA->dd = NULL;
+  free_matrix(AA);
+  AA = NULL;
+
+  // TODO analyze  
 }
 
 void solver_factorize_superlu_dist( solver_state_t* s, matrix_t* A ) {
-  assert( s != NULL );
-  solve_system_superlu_dist_t* const p = s->specific;
-  assert( p != NULL );
-//  p->IPARM(2) = WSMP_FACTORIZE;
-//  p->IPARM(3) = WSMP_FACTORIZE;
-/*
-  int TEST = 1;
-  if(s->mpi_rank == 0) {
-    // TODO symmetric matrix handling
-    assert( A != NULL );
-    assert( A->sym == SM_UNSYMMETRIC );
-
-    // prepare the matrix
-    assert( A->format == SM_CSR );
-    assert( A->base == FIRST_INDEX_ONE );
-    assert( A->data_type == REAL_DOUBLE ); // don't handle complex... yet TODO
-    assert( A->m == A->n ); // TODO can only handle square matrices at present (UMFPACK?)
-
-
-    // save A for the solve step.. needed for iterative refinement // TODO add A to solve stage to allow iterative refinement!, remove this (and from other solvers)
-    p->Arows = A->m;
-    p->Acols = A->n;
-    p->Ajj = ( int* ) A->jj;
-    p->Aii = ( int* ) A->ii;
-    p->Add = A->dd;
-
-    int N = A->m; // rows of A
-//    pwgsmp_( &N, ( int* ) A->ii, ( int* ) A->jj, A->dd, NULL, &TEST, NULL, NULL, p->iparm, p->dparm);
-  }
-  else {
-    int N = 0; // rows of A
-//    pwgsmp_( &N, NULL, NULL, NULL, NULL, &TEST, NULL, NULL, p->iparm, p->dparm);
-  }
-  const int error_code = p->IPARM(64);
-  if ( error_code != NO_ERROR )
-    fprintf( stderr, "error: superlu_dist factorize code %d\n", error_code ); // TODO decode
-  assert( error_code == NO_ERROR );
-*/
+  // TODO factorize
 }
 
-// TODO b can be sparse... ??
-// TODO can b be a matrix (vs a vector)?
 void solver_evaluate_superlu_dist( solver_state_t* s, matrix_t* b, matrix_t* x ) {
   assert( s != NULL );
   solve_system_superlu_dist_t* const p = s->specific;
   assert( p != NULL );
-//  p->IPARM(2) = WSMP_EVALUATE;
-//  p->IPARM(3) = WSMP_ITERATIVE_REFINEMENT; // TODO split into seperate stage
-/*
-  if(s->mpi_rank == 0) {
-    assert( b != NULL );
-    assert( b != x ); // TODO allow this form
+  if( p->active ) // check if this grid node is active
+    return;
 
-    // and we have a valid 'x' and 'b'
-    assert( b->format == DCOL );
-    assert( b->data_type == REAL_DOUBLE ); // don't handle complex... yet TODO
+  assert(b->format == DCOL);
+  assert(b->data_type = REAL_DOUBLE);
 
-    // allocate data space // TODO if required
-    // TODO move this to master function
-    if(b == x) {
-      // go ahead, we're expecting b to be destroyed
-      // need to put data from b into x, clear x's ptr
-      clear_matrix( x );
-      x->format = DCOL;
-      x->sym = SM_UNSYMMETRIC;
-      x->data_type = b->data_type;
-      x->m = p->Arows;
-      x->n = b->n;
-      x->nz = x->m * x->n;
-      if(b->nz > x->nz) {
-	x->dd = malloc(b->nz * sizeof( double ));
-      }
-      else {
-	x->dd = malloc(x->nz * sizeof( double ));
-      }
-      x->dd = b->dd;
-      b->dd = NULL;
-      clear_matrix(b);
-    }
-    else {
-      // need to copy b since it's destroyed in the process
-      clear_matrix(x);
-      matrix_t* t = copy_matrix(b);
-      // push copied t contents into x
-      *x = *t;
-      t->dd = NULL; // transfer dd pointer ownership to x
-      x->m = p->Arows;
-      x->n = b->n;
-      x->nz = x->m * x->n;
-      free(t);
-      if(x->nz > b->nz) {
-	x->dd = realloc(x->dd, x->nz * sizeof( double ));
-	assert(t != NULL); // realloc failure -- TODO proper error code
-      }
-      assert(x->dd != NULL);
-    }
+  // initialize structures
+  ScalePermstructInit(p->A.m, p->A.n, &(p->scale_permute));
+  LUstructInit(p->A.m, p->A.n, &(p->lu));
+  PStatInit(&stat);
 
-    int N = p->Arows; // rows of A
-    double* B = x->dd; // N x NRHS
-    int LDB = b->m;  // rows of B, must be >= N
-    int NRHS = b->n; // columns of B
-
-    // have to share number of rhs with other workers
-    MPI_Bcast(&NRHS, 1, MPI_INT, 0, MPI_COMM_WORLD); // TODO pass in MPI communicator
-
-    assert(p->Aii != NULL);
-    assert(p->Ajj != NULL);
-    assert(p->Add != NULL);
-    assert(B != NULL);
-//    pwgsmp_( &N, ( int* ) p->Aii, ( int* ) p->Ajj, p->Add, B, &LDB, &NRHS, NULL, p->iparm, p->dparm);
+  // setup for solver
+  int ldb; // TODO
+  int nrhs; // TODO
+  if(p->mpi_rank == 0) {
+    nrhs = b->n;
+    ldb = b->m;
   }
-  else {
-    int N = 0;
-    int LDB = 1;
-    int NRHS; // need to get NRHS from master
-    MPI_Bcast(&NRHS, 1, MPI_INT, 0, MPI_COMM_WORLD); // TODO pass in MPI communicator
-//    pwgsmp_( &N, NULL, NULL, NULL, NULL, &LDB, &NRHS, NULL, p->iparm, p->dparm);
+  int ret;
+  ret = MPI_Bcast(&nrhs, 1, MPI_INT, p->rank0, p->grid.comm);
+  assert(ret == MPI_SUCCESS);
+  ret = MPI_Bcast(&ldb, 1, MPI_INT, p->rank0, p->grid.comm);
+  assert(ret == MPI_SUCCESS);
+  // now we know the size of the rhs on all nodes, allocate space
+  double *bb = doubleMalloc_dist(nrhs*ldb);
+  double* berr = doubleMalloc_dist(nrhs*ldb);
+  assert(bb != NULL);
+  assert(berr != NULL);
+  // share the rhs to all nodes
+  if(p->mpi_rank == 0) {
+    memcpy(bb, b->dd, sizeof(double)*nrhs*ldb);
   }
-  const int error_code = p->IPARM(64);
-  if ( error_code != NO_ERROR )
-    fprintf( stderr, "error: superlu_dist evaluate code %d\n", error_code ); // TODO decode
-  assert( error_code == NO_ERROR );
-*/
+  ret = MPI_Bcast(&bb, nrhs*ldb, MPI_DOUBLE, p->rank0, p->grid.comm);
+  assert(ret == MPI_SUCCESS);
+  
+  // call solver
+  pdgssvx_ABglobal(&(p->options), &(p->A), &(p->scale_permute), bb, ldb, nhrs, &(p->grid),
+                   &(p->lu), &solve, berr, &stat, &info);
+
+  // TODO calculate inf_norm
+
+  // print statistics
+  if(s->verbosity >= 3)
+    PStatPrint(&(p->options), &stat, &(p->grid));
+
+  // release structures
+  ScalePermstructFree(&(p->scale_permute));
+  Destroy_LU(p->A.m, &(p->grid), &(p->lu));
+  LUstructFree(&(p->lu));
+  if(p->options.SolveInitialized)
+    dSolveFinalize(&(p->options), &solve);
+
+  // copy the anser into x
+  clear_matrix(x);
+  x->format = DCOL;
+  x->m = ldb; // since the A matrix is square, the rows in b match the columns in A, which match the rows in x
+  x->n = nrhs; // matches the b's columns
+  x->dd = malloc(sizeof(double)*(x->m)*(x->n));
+  assert(x->dd != NULL);
+  memcpy(x->dd, bb, sizeof(double)*(x->m)*(x->n));
+
+  // release data
+  SUPERLU_FREE(bb);
+  SUPERLU_FREE(berr);
 }
 
 void solver_finalize_superlu_dist( solver_state_t* s ) {
@@ -229,17 +186,16 @@ void solver_finalize_superlu_dist( solver_state_t* s ) {
 
   // release memory
   if ( p != NULL ) {
-    int error_code = 0;
 
-    // for symmetric matrices its wssmp/pwssmp
-    // superlu_dist_clear(); // for SMP or
-//    psuperlu_dist_clear(); // MPI
-    if ( error_code != 0 )
-      fprintf( stderr, "error: superlu_dist finalize code %d\n", error_code ); // TODO decode
-    assert( error_code == 0 );
+    // release the A matrix
+    if( p->active ) 
+      Destroy_CompCol_Matrix(&(p->A));
 
-    free( p->iparm );
-    free( p->dparm );
+    // release the statistics list
+    PStatFree(&(p->stat));
+
+    // shutdown the MPI grid for superlu
+    superlu_gridexit(&(p->grid));
   }
   free( p );
   s->specific = NULL;

@@ -33,6 +33,7 @@ These are somewhat arranged in order of priority. Highest at the top.
  - add tests for 'mpirun -n N' with various error messages: only one error message should be printed
  - add tests for matrix conversion: use validate_matrix
  - add tests for multiple right-hand sides for all solvers
+ - add tests for matrix share (matrix_bcast, etc) (MPI wrappers)
 
  - file IO:
    - add unit-tests for MatrixMarket format

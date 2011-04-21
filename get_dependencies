@@ -916,6 +916,8 @@ if [[ -n $SUPERLU ]]; then
   info "  install"
   a2so ${INSTALL_LIB_DIR}/libsuperlu_dist_${SUPERLU_VER}.a -L${INSTALL_LIB_DIR} ${METIS_DLIB} ${BLAS_DLIB}
   cd ${INSTALL_LIB_DIR} && ln -sf libsuperlu_dist_${SUPERLU_VER}.so libsuperlu_dist.so
+  chmod -x ${S}/superlu/SuperLU_DIST_${SUPERLU_VER}/SRC/*.h
+  cp ${S}/superlu/SuperLU_DIST_${SUPERLU_VER}/SRC/*.h ${INSTALL_INC_DIR}/
 fi
 
 info "== I/O =="
