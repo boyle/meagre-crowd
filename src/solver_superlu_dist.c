@@ -37,9 +37,8 @@ typedef struct {
   int active; // is this node active in the superlu grid?
   int rank0; // who is the old rank0 in the new communicator
   SuperMatrix A;
-  ScalePermstruct_t permute;
+  ScalePermstruct_t scale_permute;
   LUstruct_t lu;
-  SuperLUStat_t stat;
 } solve_system_superlu_dist_t;
 
 void solver_init_superlu_dist( solver_state_t* s ) {
@@ -49,15 +48,20 @@ void solver_init_superlu_dist( solver_state_t* s ) {
   s->specific = p;
 
   // set default options
-  set_default_options_dist(p->options);
-  if((s->mpi_rank == 0) && (s->verbosity >= 3))
-    print_options_dist(p->options);
+  set_default_options_dist(&(p->options));
+  if((s->mpi_rank == 0) && (s->verbosity >= 3)) {
+    p->options.PrintStat = YES;
+    print_options_dist(&(p->options));
+  }
+  else {
+    p->options.PrintStat = NO;
+  }
 
   // determine the size of the MPI communicator
   const MPI_Comm initial_comm = MPI_COMM_WORLD; // TODO pass in communicator instead of assuming MPI_COMM_WORLD
   int size;
   int ret = MPI_Comm_size(initial_comm, &size);
-  assert(ret != MPI_SUCCESS);
+  assert(ret == MPI_SUCCESS);
 
   // determine size: a 2D grid
   int nprow = floor(sqrt(size));
@@ -68,11 +72,8 @@ void solver_init_superlu_dist( solver_state_t* s ) {
     assert(p->active); // must have the rank=0 node active or we're broken (A is only loaded on rank=0)
     p->rank0 = p->grid.iam;
   }
-  ret = MPI_Bcast(&(p->rank0), 1, MPI_INT, p->grid.comm);
+  ret = MPI_Bcast(&(p->rank0), 1, MPI_INT, p->rank0, p->grid.comm);
   assert(ret == MPI_SUCCESS);
-
-  // initialize stats
-  PStatInit(&(p->stat));
 }
 
 // TODO split analyze stage into ordering and symbolic factorization stages?
@@ -80,7 +81,6 @@ void solver_analyze_superlu_dist( solver_state_t* s, matrix_t* A ) {
   assert( s != NULL );
   solve_system_superlu_dist_t* const p = s->specific;
   assert( p != NULL );
-
   if( !p->active ) // check if this grid node is active
     return;
 
@@ -93,15 +93,19 @@ void solver_analyze_superlu_dist( solver_state_t* s, matrix_t* A ) {
     AA = malloc_matrix();
   }
   matrix_bcast(AA, p->rank0, p->grid.comm);
-  dCreate_CompCol_Matrix(&(p->A), &(AA->m), &(AA->n), &(AA->nz),
-                         AA->dd, AA->ii, AA->jj, SLU_NC, SLU_D, SLU_GE);
+  dCreate_CompCol_Matrix_dist(&(p->A), AA->m, AA->n, AA->nz,
+                              AA->dd, (int*) AA->ii, (int*) AA->jj, SLU_NC, SLU_D, SLU_GE);
+  // last 3 enums are: stype=column-wise(no super-nodes), dtype=double, mtype=general);
+
+  // clear the data pointers since these are now held by p->A and
+  // release the rest of the AA matrix pointer
   AA->ii = NULL;
   AA->jj = NULL;
   AA->dd = NULL;
   free_matrix(AA);
   AA = NULL;
 
-  // TODO analyze  
+  // TODO analyze
 }
 
 void solver_factorize_superlu_dist( solver_state_t* s, matrix_t* A ) {
@@ -112,21 +116,22 @@ void solver_evaluate_superlu_dist( solver_state_t* s, matrix_t* b, matrix_t* x )
   assert( s != NULL );
   solve_system_superlu_dist_t* const p = s->specific;
   assert( p != NULL );
-  if( p->active ) // check if this grid node is active
+  if( !p->active ) // check if this grid node is active
     return;
 
   assert(b->format == DCOL);
-  assert(b->data_type = REAL_DOUBLE);
+  assert(b->data_type == REAL_DOUBLE);
 
   // initialize structures
-  ScalePermstructInit(p->A.m, p->A.n, &(p->scale_permute));
-  LUstructInit(p->A.m, p->A.n, &(p->lu));
+  SuperLUStat_t stat;
+  ScalePermstructInit(p->A.nrow, p->A.ncol, &(p->scale_permute));
+  LUstructInit(p->A.nrow, p->A.ncol, &(p->lu));
   PStatInit(&stat);
 
   // setup for solver
-  int ldb; // TODO
-  int nrhs; // TODO
-  if(p->mpi_rank == 0) {
+  int ldb;
+  int nrhs;
+  if(s->mpi_rank == 0) {
     nrhs = b->n;
     ldb = b->m;
   }
@@ -141,15 +146,16 @@ void solver_evaluate_superlu_dist( solver_state_t* s, matrix_t* b, matrix_t* x )
   assert(bb != NULL);
   assert(berr != NULL);
   // share the rhs to all nodes
-  if(p->mpi_rank == 0) {
+  if(s->mpi_rank == 0) {
     memcpy(bb, b->dd, sizeof(double)*nrhs*ldb);
   }
   ret = MPI_Bcast(&bb, nrhs*ldb, MPI_DOUBLE, p->rank0, p->grid.comm);
   assert(ret == MPI_SUCCESS);
-  
+
   // call solver
-  pdgssvx_ABglobal(&(p->options), &(p->A), &(p->scale_permute), bb, ldb, nhrs, &(p->grid),
-                   &(p->lu), &solve, berr, &stat, &info);
+  int info;
+  pdgssvx_ABglobal(&(p->options), &(p->A), &(p->scale_permute), bb, ldb, nrhs, &(p->grid),
+                   &(p->lu), berr, &stat, &info);
 
   // TODO calculate inf_norm
 
@@ -159,21 +165,23 @@ void solver_evaluate_superlu_dist( solver_state_t* s, matrix_t* b, matrix_t* x )
 
   // release structures
   ScalePermstructFree(&(p->scale_permute));
-  Destroy_LU(p->A.m, &(p->grid), &(p->lu));
-  LUstructFree(&(p->lu));
-  if(p->options.SolveInitialized)
-    dSolveFinalize(&(p->options), &solve);
+  Destroy_LU(p->A.nrow, &(p->grid), &(p->lu));
 
   // copy the anser into x
-  clear_matrix(x);
-  x->format = DCOL;
-  x->m = ldb; // since the A matrix is square, the rows in b match the columns in A, which match the rows in x
-  x->n = nrhs; // matches the b's columns
-  x->dd = malloc(sizeof(double)*(x->m)*(x->n));
-  assert(x->dd != NULL);
-  memcpy(x->dd, bb, sizeof(double)*(x->m)*(x->n));
+  if(s->mpi_rank == 0) {
+    clear_matrix(x);
+    x->format = DCOL;
+    x->m = ldb; // since the A matrix is square, the rows in b match the columns in A, which match the rows in x
+    x->n = nrhs; // matches the b's columns
+    x->nz = ldb * nrhs;
+    x->dd = malloc(sizeof(double)*(x->m)*(x->n));
+    assert(x->dd != NULL);
+    memcpy(x->dd, bb, sizeof(double)*(x->m)*(x->n));
+    assert(validate_matrix(x) == 0);
+  }
 
   // release data
+  PStatFree(&stat);
   SUPERLU_FREE(bb);
   SUPERLU_FREE(berr);
 }
@@ -188,11 +196,8 @@ void solver_finalize_superlu_dist( solver_state_t* s ) {
   if ( p != NULL ) {
 
     // release the A matrix
-    if( p->active ) 
-      Destroy_CompCol_Matrix(&(p->A));
-
-    // release the statistics list
-    PStatFree(&(p->stat));
+    if( p->active )
+      Destroy_CompCol_Matrix_dist(&(p->A));
 
     // shutdown the MPI grid for superlu
     superlu_gridexit(&(p->grid));

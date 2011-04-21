@@ -66,7 +66,7 @@ static inline void _matrix2cholmodsparse( matrix_t* A, cholmod_sparse* B )  {
   // (complex is split into real and imag components)
   B->z = NULL;
 
-  if ( A->location == BOTH )
+  if ( A->location == MC_STORE_BOTH )
     B->stype = 0; // TODO optimization: could be +1 or -1, then other half would be *ignored*
   else if ( A->location == UPPER_TRIANGULAR )
     B->stype = + 1;
@@ -128,7 +128,7 @@ static inline void _cholmodsparse2matrix( cholmod_sparse* B, matrix_t* A )  {
   // Note: can't handle other types of symmetry
   A->sym = SM_SYMMETRIC;
   if ( B->stype == 0 )
-    A->location = BOTH;
+    A->location = MC_STORE_BOTH;
   else if ( B->stype > 0 )
     A->location = UPPER_TRIANGULAR;
   else  // B->stype < 0

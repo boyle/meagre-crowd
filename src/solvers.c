@@ -42,7 +42,7 @@ static inline int _convert_matrix_A( const int solver, matrix_t* A ) {
     case SM_SYMMETRIC:
       if(c & SOLVES_SYMMETRIC) {
         switch(A->location) {
-	  case BOTH:
+	  case MC_STORE_BOTH:
 	    if(!(c & SOLVES_SYMMETRIC_BOTH)) {
 	      if(c & SOLVES_SYMMETRIC_UPPER_TRIANGULAR) {
 	        int ierr = convert_matrix_symmetry( A, UPPER_TRIANGULAR );
@@ -65,7 +65,7 @@ static inline int _convert_matrix_A( const int solver, matrix_t* A ) {
 		assert(ierr == 0);
 	      }
 	      else if(c & SOLVES_SYMMETRIC_BOTH) {
-	        int ierr = convert_matrix_symmetry( A, BOTH );
+	        int ierr = convert_matrix_symmetry( A, MC_STORE_BOTH );
 		assert(ierr == 0);
 	      }
 	      else {
@@ -81,7 +81,7 @@ static inline int _convert_matrix_A( const int solver, matrix_t* A ) {
 		assert(ierr == 0);
 	      }
 	      else if(c & SOLVES_SYMMETRIC_BOTH) {
-	        int ierr = convert_matrix_symmetry( A, BOTH );
+	        int ierr = convert_matrix_symmetry( A, MC_STORE_BOTH );
 		assert(ierr == 0);
 	      }
 	      else {
@@ -93,7 +93,7 @@ static inline int _convert_matrix_A( const int solver, matrix_t* A ) {
       }
       else if(c & SOLVES_UNSYMMETRIC) {
         // so we can convert it to an unsymmetric matrix
-	int ierr = convert_matrix_symmetry( A, BOTH );
+	int ierr = convert_matrix_symmetry( A, MC_STORE_BOTH );
 	assert(ierr == 0);
 	A->sym = SM_UNSYMMETRIC; // forget we were symmetric
       }
@@ -186,7 +186,7 @@ static inline int _convert_matrix_b( const int solver, matrix_t* b ) {
 
   int ierr;
   if(b->sym != SM_UNSYMMETRIC) {
-    ierr = convert_matrix_symmetry( b, BOTH );
+    ierr = convert_matrix_symmetry( b, MC_STORE_BOTH );
     assert(ierr == 0);
   }
 

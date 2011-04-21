@@ -1080,7 +1080,7 @@ static inline void _symmetry_swap( matrix_t* m );
 static inline void _symmetry_swap( matrix_t* m ) {
   assert( m->format == SM_COO );
   assert( m->sym = SM_SYMMETRIC );
-  assert( m->location != BOTH );
+  assert( m->location != MC_STORE_BOTH );
 
   // swap ii and jj (rows and column indices)
   // an item at (1,2) is moved to (2,1) -- the other side of the triangle
@@ -1102,7 +1102,7 @@ static inline int _symmetry_both( matrix_t* m );
 static inline int _symmetry_both( matrix_t* m ) {
   assert( m->format == SM_COO );
   assert( m->sym = SM_SYMMETRIC );
-  assert( m->location != BOTH );
+  assert( m->location != MC_STORE_BOTH );
 
   const size_t dwidth = _data_width( m->data_type );
   const size_t nz_old = m->nz;
@@ -1119,7 +1119,7 @@ static inline int _symmetry_both( matrix_t* m ) {
   memcpy( m->dd + nz_old * dwidth, m->dd, nz_old*dwidth );
 
   // update ptrs
-  m->location = BOTH;
+  m->location = MC_STORE_BOTH;
   // TODO clean this up!
   // TODO -- better to strip out entries on the diagonal as we go! (doing it the current way means copying the data multiple times
   // but now we might have duplicate entries if there were any on the diagonal
@@ -1218,13 +1218,13 @@ static inline void _coo_merge_duplicate_entries( matrix_t* m ) {
 }
 
 
-// convert from symmetry BOTH -> LOWER_TRIANGULAR
+// convert from symmetry MC_STORE_BOTH -> LOWER_TRIANGULAR
 // note that realloc might fail but we can carry on: no failure cases
 static inline void _symmetry_lower( matrix_t* m );
 static inline void _symmetry_lower( matrix_t* m ) {
   assert( m->format == SM_COO );
   assert( m->sym == SM_SYMMETRIC );
-  assert( m->location == BOTH );
+  assert( m->location == MC_STORE_BOTH );
 
   // remove redundant entries in the upper triangle
   const size_t dwidth = _data_width( m->data_type );
@@ -1261,9 +1261,9 @@ int convert_matrix_symmetry( matrix_t* m, enum matrix_symmetric_storage_t loc ) 
 
   int ret1 = 0;
   switch ( m->location ) {
-    case BOTH:
+    case MC_STORE_BOTH:
       switch ( loc ) {
-        case BOTH: // nothing to do
+        case MC_STORE_BOTH: // nothing to do
           break;
         case UPPER_TRIANGULAR:
           _symmetry_lower( m );
@@ -1276,7 +1276,7 @@ int convert_matrix_symmetry( matrix_t* m, enum matrix_symmetric_storage_t loc ) 
       break;
     case UPPER_TRIANGULAR:
       switch ( loc ) {
-        case BOTH:
+        case MC_STORE_BOTH:
           ret1 = _symmetry_both( m );
           break;
         case UPPER_TRIANGULAR:
@@ -1288,7 +1288,7 @@ int convert_matrix_symmetry( matrix_t* m, enum matrix_symmetric_storage_t loc ) 
       break;
     case LOWER_TRIANGULAR:
       switch ( loc ) {
-        case BOTH:
+        case MC_STORE_BOTH:
           ret1 = _symmetry_both( m );
           break;
         case UPPER_TRIANGULAR:
@@ -1360,7 +1360,7 @@ int detect_matrix_symmetry( matrix_t* m ) {
 
   if ( pattern_is_symmetric ) {
     m->sym = SM_SYMMETRIC;
-    m->location = BOTH;
+    m->location = MC_STORE_BOTH;
   }
 
   // return to original format

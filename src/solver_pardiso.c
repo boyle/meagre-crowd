@@ -273,7 +273,7 @@ void solver_factorize_pardiso( solver_state_t* s, matrix_t* A ) {
   int MAXFCT = 1;
   int MNUM = 1; // use which of MAXFACT stored factorizations in solution phase
   if ( p->MTYPE == REAL_UNSYM ) {
-    assert(( A->sym == SM_UNSYMMETRIC ) || (( A->sym == SM_SYMMETRIC ) && ( A->location == BOTH ) ) );
+    assert(( A->sym == SM_UNSYMMETRIC ) || (( A->sym == SM_SYMMETRIC ) && ( A->location == MC_STORE_BOTH ) ) );
     assert( A->data_type == REAL_DOUBLE );
   }
   else {

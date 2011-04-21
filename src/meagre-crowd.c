@@ -276,7 +276,7 @@ int main( int argc, char ** argv ) {
           case LOWER_TRIANGULAR:
             location = " (lower)";
             break;
-          case BOTH:
+          case MC_STORE_BOTH:
             location = "";
             break; // nothing
           default:

@@ -93,7 +93,7 @@ void test_symmetry( matrix_t* a ) {
 
   // de-symmetrize the matrix and check it gets detected correctly
   assert( a->sym == SM_SYMMETRIC );
-  assert( convert_matrix_symmetry( a, BOTH ) == 0 );
+  assert( convert_matrix_symmetry( a, MC_STORE_BOTH ) == 0 );
   a->sym = SM_UNSYMMETRIC;
   print_matrix( a );
   assert( detect_matrix_symmetry( a ) == 0 );

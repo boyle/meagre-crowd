@@ -45,8 +45,8 @@ enum matrix_format_t { INVALID = 0, DROW, DCOL, SM_COO, SM_CSC, SM_CSR }; // TOD
 // matrix symmetry
 enum matrix_symmetry_t { SM_UNSYMMETRIC = 0, SM_SYMMETRIC, SM_SKEW_SYMMETRIC, SM_HERMITIAN }; //  TODO remove SM prefixes (bebop conflict)
 // and where the data is stored (upper or lower triangular)
-//   if !BOTH, then storage locations can be validated
-enum matrix_symmetric_storage_t { BOTH = 0, UPPER_TRIANGULAR, LOWER_TRIANGULAR };
+//   if !MC_STORE_BOTH, then storage locations can be validated
+enum matrix_symmetric_storage_t { MC_STORE_BOTH = 0, UPPER_TRIANGULAR, LOWER_TRIANGULAR };
 
 // data type
 // REAL_SINGLE: C float, single-precision floating point number
@@ -74,7 +74,7 @@ typedef struct matrix_t {
   enum matrix_base_t   base;   // FIRST_INDEX_ZERO, FIRST_INDEX_ONE (default zero index, 'one' supports Fortran)
   enum matrix_format_t format; //
   enum matrix_symmetry_t sym;  // UNSYMMETRIC, SYMMETRIC, SKEW_SYMMETRIC, HERMITIAN
-  enum matrix_symmetric_storage_t location; // BOTH, UPPER_TRIANGULAR, LOWER_TRIANGULAR
+  enum matrix_symmetric_storage_t location; // MC_STORE_BOTH, UPPER_TRIANGULAR, LOWER_TRIANGULAR
   enum matrix_data_type_t data_type; // REAL, COMPLEX, etc
   // data storage (meaning varies by format)
   // DENSE: ii and jj are ignored
