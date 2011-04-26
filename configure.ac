@@ -20,7 +20,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.65])
-AC_INIT([meagre-crowd],[0.4.5],[<meagre-crowd@googlegroups.com>])
+AC_INIT([meagre-crowd],[0.4.6],[<meagre-crowd@googlegroups.com>])
 
 AC_COPYRIGHT([Copyright (C) 2010, 2011 Alistair Boyle])
 
