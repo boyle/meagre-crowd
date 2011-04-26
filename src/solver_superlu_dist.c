@@ -64,15 +64,15 @@ void solver_init_superlu_dist( solver_state_t* s ) {
   assert(ret == MPI_SUCCESS);
 
   // determine size: a 2D grid
-  int nprow = floor(sqrt(size));
-  int npcol = nprow;
+  int npcol = floor(sqrt(size));
+  int nprow = floor(size/npcol);
   superlu_gridinit(initial_comm, nprow, npcol, &(p->grid));
   p->active = (p->grid.iam < nprow * npcol);
   if(s->mpi_rank == 0) {
     assert(p->active); // must have the rank=0 node active or we're broken (A is only loaded on rank=0)
     p->rank0 = p->grid.iam;
   }
-  ret = MPI_Bcast(&(p->rank0), 1, MPI_INT, p->rank0, p->grid.comm);
+  ret = MPI_Bcast(&(p->rank0), 1, MPI_INT, 0, initial_comm);
   assert(ret == MPI_SUCCESS);
 }
 
@@ -119,9 +119,6 @@ void solver_evaluate_superlu_dist( solver_state_t* s, matrix_t* b, matrix_t* x )
   if( !p->active ) // check if this grid node is active
     return;
 
-  assert(b->format == DCOL);
-  assert(b->data_type == REAL_DOUBLE);
-
   // initialize structures
   SuperLUStat_t stat;
   ScalePermstructInit(p->A.nrow, p->A.ncol, &(p->scale_permute));
@@ -141,15 +138,17 @@ void solver_evaluate_superlu_dist( solver_state_t* s, matrix_t* b, matrix_t* x )
   ret = MPI_Bcast(&ldb, 1, MPI_INT, p->rank0, p->grid.comm);
   assert(ret == MPI_SUCCESS);
   // now we know the size of the rhs on all nodes, allocate space
-  double *bb = doubleMalloc_dist(nrhs*ldb);
+  double* bb = doubleMalloc_dist(nrhs*ldb);
   double* berr = doubleMalloc_dist(nrhs*ldb);
   assert(bb != NULL);
   assert(berr != NULL);
   // share the rhs to all nodes
   if(s->mpi_rank == 0) {
+    assert(b->format == DCOL);
+    assert(b->data_type == REAL_DOUBLE);
     memcpy(bb, b->dd, sizeof(double)*nrhs*ldb);
   }
-  ret = MPI_Bcast(&bb, nrhs*ldb, MPI_DOUBLE, p->rank0, p->grid.comm);
+  ret = MPI_Bcast(bb, nrhs*ldb, MPI_DOUBLE, p->rank0, p->grid.comm); // TODO broken
   assert(ret == MPI_SUCCESS);
 
   // call solver

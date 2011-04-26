@@ -69,7 +69,7 @@ int matrix_bcast(matrix_t* A, int root, MPI_Comm comm) {
   assert(ret == MPI_SUCCESS);
   ret = MPI_Bcast(&(A->data_type), 1, MPI_INT, root, comm);
   assert(ret == MPI_SUCCESS);
-  
+
   // allocate memory where required
   if(myrank != root) {
     // TODO refactor: this could be a generic matrix_realloc(A, m_new, n_new, nz_new)
@@ -87,7 +87,7 @@ int matrix_bcast(matrix_t* A, int root, MPI_Comm comm) {
   assert(ret == MPI_SUCCESS);
   ret = MPI_Bcast(A->jj, (A->n) +1, MPI_INT, root, comm);
   assert(ret == MPI_SUCCESS);
-  ret = MPI_Bcast(A->ii, A->nz, MPI_DOUBLE, root, comm);
+  ret = MPI_Bcast(A->dd, A->nz, MPI_DOUBLE, root, comm);
   assert(ret == MPI_SUCCESS);
 
   return ret;
