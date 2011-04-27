@@ -82,6 +82,16 @@ int results_match( matrix_t* expected_matrix, matrix_t* result_matrix, const dou
   return 1;
 }
 
+void mpi_sum(void* in, void* inout, int *len, MPI_Datatype *dptr);
+void mpi_sum(void* in, void* inout, int *len, MPI_Datatype *dptr) {
+  assert(*dptr == MPI_DOUBLE);
+  double* const din = in;
+  double* const dinout = inout;
+  int i;
+  for(i=0;i<*len;i++) {
+    dinout[i] += din[i];
+  }
+}
 
 int main( int argc, char ** argv ) {
   int retval;
@@ -370,31 +380,11 @@ int main( int argc, char ** argv ) {
 
   solver_finalize( state );
 
-  // clean up matrices
-  free_matrix( b );
-  free_matrix( expected );
-  free_matrix( A );
-  free_matrix( rhs );
-
-  // close down MPI
-  if ( extra_timing && args->rep == 0 ) {
-    perftimer_inc( timer, "clean up", -1 );
-    perftimer_adjust_depth( timer, + 1 );
-
-    perftimer_inc( timer, "MPI", -1 );
-  }
-
-  if ( is_mpi ) {
-    int ierr = MPI_Finalize();
-    assert( ierr == 0 );
-  }
-
-
   // we can report on memory usage per-process
   // RUSAGE_SELF includes the usage for all threads and children
   struct rusage usage;
   int rr = getrusage(RUSAGE_SELF, &usage);
-  if((rr == 0) && (args->verbosity >= 1)) {
+  if((rr == 0) && (args->verbosity >= 2)) {
     if(args->verbosity >= 4)
       printf("user %ld:%ld, sys: %ld:%ld,  maxrss: %ld, ixrss: %ld, idrss: %ld, isrss: %ld minflt: %ld, majflt: %ld, nswap: %ld, inblock: %ld, outblock: %ld, msgsnd: %ld, msgrcv: %ld, signals: %ld, nvcsw: %ld, nivcsw: %ld\n",
 	usage.ru_utime.tv_sec, usage.ru_utime.tv_usec, /* user time used */
@@ -425,15 +415,60 @@ int main( int argc, char ** argv ) {
     perftimer_adjust_depth( timer, -1 );
     perftimer_inc( timer, "finished", -1 );
   }
+
+  // collect memory total
+  double mem_sum;
+  if(is_mpi) {
+    double mem_ind = usage.ru_maxrss/1e3;
+    MPI_Op sum_f;
+    int ret;
+    ret = MPI_Op_create(&mpi_sum, 1, &sum_f); // addition is a commutative operation (order doesn't matter)
+    assert(ret == MPI_SUCCESS);
+    ret = MPI_Reduce(&mem_ind, &mem_sum, 1, MPI_DOUBLE, sum_f, 0, MPI_COMM_WORLD);
+    assert(ret == MPI_SUCCESS);
+  }
+  else {
+    mem_sum = usage.ru_maxrss/1e3;
+  }
+
   if ( args->mpi_rank == 0 ) {
     if ( args->timing_enabled == 1 ) {
+      printf("status, solver, threads, rows, max. memory (MB),  total memory (MB), ");
       perftimer_printf_csv_header( timer, 2 );
+      printf("%s, %s, %d, %zd, %lg, %lg, ",
+             retval==100?"FAIL":"PASS",
+             solver2str( args->solver ),
+	     c_mpi,
+	     A->m,
+	     usage.ru_maxrss/1e3,
+	     mem_sum );
       perftimer_printf_csv_body( timer, 2 );
     }
     else if ( args->timing_enabled != 0 ) {
       perftimer_printf( timer, args->timing_enabled - 2 );
     }
   }
+
+  // close down MPI
+  if ( extra_timing && args->rep == 0 ) {
+    perftimer_inc( timer, "clean up", -1 );
+    perftimer_adjust_depth( timer, + 1 );
+
+    perftimer_inc( timer, "MPI", -1 );
+  }
+
+  if ( is_mpi ) {
+    int ierr = MPI_Finalize();
+    assert( ierr == 0 );
+  }
+
+
+  // clean up matrices
+  free_matrix( b );
+  free_matrix( expected );
+  free_matrix( A );
+  free_matrix( rhs );
+
   perftimer_free( timer );
   free( args );
   return retval;
