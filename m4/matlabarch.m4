@@ -1,7 +1,6 @@
-dnl matlabarch.m4 --- check for MATLAB machine architecture.
+dnl matlabarch.m4 --- check for Matlab machine architecture.
 dnl
 dnl Copyright (C) 2002, 2003 Ralph Schleicher
-dnl Copyright (C) 2009 Dynare Team
 dnl
 dnl This program is free software; you can redistribute it and/or
 dnl modify it under the terms of the GNU General Public License as
@@ -13,8 +12,10 @@ dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
 dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 dnl GNU General Public License for more details.
 dnl
-dnl You should have received a copy of the GNU General Public License along
-dnl with this program. If not, see <http://www.gnu.org/licenses/>.
+dnl You should have received a copy of the GNU General Public License
+dnl along with this program; see the file COPYING.  If not, write to
+dnl the Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+dnl Boston, MA 02111-1307, USA.
 dnl
 dnl As a special exception to the GNU General Public License, if
 dnl you distribute this file as part of a program that contains a
@@ -26,36 +27,42 @@ dnl Code:
 
 # AX_MATLAB_ARCH
 # --------------
-# Check for MATLAB machine architecture.
+# Check for Matlab machine architecture.
 AC_DEFUN([AX_MATLAB_ARCH],
 [dnl
 AC_PREREQ([2.50])
 AC_REQUIRE([AX_MEXEXT])
-AC_CACHE_CHECK([for MATLAB machine architecture], [ax_cv_matlab_arch],
+AC_CACHE_CHECK([for Matlab machine architecture], [ax_cv_matlab_arch],
 [if test "${MATLAB_ARCH+set}" = set ; then
     ax_cv_matlab_arch="$MATLAB_ARCH"
 else
     case $MEXEXT in
-      *dll | *mexw32)
+      dll)
 	ax_cv_matlab_arch=win32
 	;;
-      *mexw64)
-	ax_cv_matlab_arch=win64
+      mex)
+	ax_cv_matlab_arch=mac
 	;;
-      *mexglx)
+      mexaxp)
+	ax_cv_matlab_arch=alpha
+	;;
+      mexglx)
 	ax_cv_matlab_arch=glnx86
 	;;
-      *mexa64)
-	ax_cv_matlab_arch=glnxa64
+      mexhp7)
+	ax_cv_matlab_arch=hp700
 	;;
-      *mexs64)
-	ax_cv_matlab_arch=sol64
+      mexhpux)
+	ax_cv_matlab_arch=hpux
 	;;
-      *mexmaci)
-	ax_cv_matlab_arch=maci
+      mexrs6)
+	ax_cv_matlab_arch=ibm_rs
 	;;
-      *mexmaci64)
-	ax_cv_matlab_arch=maci64
+      mexsg)
+	ax_cv_matlab_arch=sgi
+	;;
+      mexsol)
+	ax_cv_matlab_arch=sol2
 	;;
       *)
 	ax_cv_matlab_arch=unknown
@@ -67,7 +74,3 @@ AC_SUBST([MATLAB_ARCH])
 ])
 
 dnl matlabarch.m4 ends here
-
-dnl Local variables:
-dnl tab-width: 8
-dnl End:

@@ -1,7 +1,6 @@
-dnl ax_mexext.m4 --- check for MEX-file suffix.
+dnl mexext.m4 --- check for MEX-file suffix.
 dnl
 dnl Copyright (C) 2000--2003 Ralph Schleicher
-dnl Copyright (C) 2009 Dynare Team
 dnl
 dnl This program is free software; you can redistribute it and/or
 dnl modify it under the terms of the GNU General Public License as
@@ -13,8 +12,10 @@ dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
 dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 dnl GNU General Public License for more details.
 dnl
-dnl You should have received a copy of the GNU General Public License along
-dnl with this program. If not, see <http://www.gnu.org/licenses/>.
+dnl You should have received a copy of the GNU General Public License
+dnl along with this program; see the file COPYING.  If not, write to
+dnl the Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+dnl Boston, MA 02111-1307, USA.
 dnl
 dnl As a special exception to the GNU General Public License, if
 dnl you distribute this file as part of a program that contains a
@@ -30,26 +31,41 @@ dnl Code:
 AC_DEFUN([AX_MEXEXT],
 [dnl
 AC_PREREQ([2.50])
-AC_REQUIRE([AX_MATLAB])
-AC_REQUIRE([AX_MATLAB_VERSION])
-AC_REQUIRE([AC_CANONICAL_BUILD])
+AC_REQUIRE([AX_PATH_MEX])
 AC_CACHE_CHECK([for MEX-file suffix], [ax_cv_mexext],
 [if test "${MEXEXT+set}" = set ; then
     ax_cv_mexext="$MEXEXT"
 else
-    # The mexext script appeared in MATLAB 7.1
-    AX_COMPARE_VERSION([$MATLAB_VERSION], [lt], [7.1], [AC_MSG_ERROR([I can't determine the MEX file extension. Please explicitly indicate it to the configure script with the MEXEXT variable.])])
-    case $build_os in
-      *cygwin*)
-        ax_cv_mexext=`$MATLAB/bin/mexext.bat | sed 's/\r//'`
-        ;;
-      *mingw*)
-        ax_cv_mexext=`cd $MATLAB/bin && cmd /c mexext.bat | sed 's/\r//'`
-        ;;
-      *)
-        ax_cv_mexext=`$MATLAB/bin/mexext`
-        ;;
-    esac
+    echo 'mexFunction () {}' > ax_c_test.c
+    $MEX $MEXOPTS $MEXFLAGS -output ax_c_test ax_c_test.c $MEXLDADD 2> /dev/null 1>&2
+    ax_cv_mexext=`ls ax_c_test.* | grep -v '\.c' | sed 's/ax_c_test\.//'`
+    if test -f ax_c_test.$ax_cv_mexext ; then
+        ax_cv_mexext_allgood=x
+    dnl fall back on older tests that aren't as robust
+    elif test -f ax_c_test.dll ; then
+	ax_cv_mexext=dll
+    elif test -f ax_c_test.mex ; then
+	ax_cv_mexext=mex
+    elif test -f ax_c_test.mexaxp ; then
+	ax_cv_mexext=mexaxp
+    elif test -f ax_c_test.mexglx ; then
+	ax_cv_mexext=mexglx
+    elif test -f ax_c_test.mexhp7 ; then
+	ax_cv_mexext=mexhp7
+    elif test -f ax_c_test.mexhpux ; then
+	ax_cv_mexext=mexhpux
+    elif test -f ax_c_test.mexrs6 ; then
+	ax_cv_mexext=mexrs6
+    elif test -f ax_c_test.mexsg ; then
+	ax_cv_mexext=mexsg
+    elif test -f ax_c_test.mexsol ; then
+	ax_cv_mexext=mexsol
+    elif test -f ax_c_test.mexa64 ; then
+        ax_cv_mexext=mexa64
+    else
+	ax_cv_mexext=unknown
+    fi
+    rm -f ax_c_test*
 fi])
 MEXEXT="$ax_cv_mexext"
 AC_SUBST([MEXEXT])
@@ -74,8 +90,4 @@ case $MEXEXT in
 esac
 ])
 
-dnl ax_mexext.m4 ends here
-
-dnl Local variables:
-dnl tab-width: 8
-dnl End:
+dnl mexext.m4 ends here

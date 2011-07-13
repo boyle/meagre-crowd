@@ -49,6 +49,11 @@ echo "get macros"
 [ ! -d m4 ] && mkdir m4
 [ ! -f m4/ax_pthread.m4 ] && wget "http://git.savannah.gnu.org/gitweb/?p=autoconf-archive.git;a=blob_plain;f=m4/ax_pthread.m4" --output-document=m4/ax_pthread.m4
 [ ! -f m4/ax_compare_version.m4 ] && wget "http://git.savannah.gnu.org/gitweb/?p=autoconf-archive.git;a=blob_plain;f=m4/ax_compare_version.m4" --output-document=m4/ax_compare_version.m4
+#[ ! -f m4/ax_matlab.m4 ] && \
+#  wget http://home.allgaeu.org/rschleic/rs/pub/m-config/m-config-4.0.tar.gz && \
+#  tar zxvf m-config-4.0.tar.gz && \
+#  cp m-config-4.0/*.m4 m4/ && \
+#  rm -rf m-config*
 
 echo "update configure.ac, etc"
 cd ${distdir} && autoreconf --install --warnings=all --include=m4 $*

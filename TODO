@@ -7,6 +7,9 @@ at any patches or discuss potential solutions.
 
 These are somewhat arranged in order of priority. Highest at the top.
 
+ - create matlab interface (/opt/matlab_r2007a/bin/mex CFLAGS='-std=c99 -fPIC' mcsolve.c)
+ - move perftimer out of the shared lib
+ - clean up autoreconf warnings (obsolete, etc)
  - add input list option to launcher (what matrices to run)
  ?? are there any other stats we'd like to collect?
  - Add type tests: condition number, singularity, symmetric, hermitian, real, complex

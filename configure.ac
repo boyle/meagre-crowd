@@ -33,7 +33,9 @@ AC_CONFIG_HEADERS([src/config.h])
 
 AC_USE_SYSTEM_EXTENSIONS
 
-
+# libtool
+LT_PREREQ([2.2])
+LT_INIT([disable-static link_all_deplibs=no])
 
 # debugging
 
@@ -80,7 +82,6 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 
 # Checks for libraries.
-AC_SEARCH_LIBS([load_sparse_matrix], [sparse_matrix_converter],,AC_MSG_ERROR([missing BeBOP sparse matrix I/O library]))
 
 AC_ARG_WITH(all-solvers, AS_HELP_STRING(--with-all-solvers, Force presence of all solvers))
 
@@ -139,6 +140,9 @@ m4_undefine([MC_EXTRA_CODE])
 m4_undefine([MC_EXTRA_FLAGS])
 ])
 
+back_LIBS=${LIBS}
+LIBS=
+AC_SEARCH_LIBS([load_sparse_matrix], [sparse_matrix_converter],,AC_MSG_ERROR([missing BeBOP sparse matrix I/O library]))
 MC_WITH_LIB([MUMPS],   [dmumps_c],      [dmumps])
 MC_WITH_LIB([UMFPACK], [umfpack_di_symbolic], [umfpack])
 # might not be needed, if already included through another solver
@@ -151,12 +155,21 @@ MC_WITH_LIB([SuperLU_DIST], [superlu_gridinit],[superlu_dist])
 # TODO FIXME any MC_WITH_LIBS that come after pardiso is detected will fail if they don't have $OPENMP_CFLAGS since the .so doesn't have the dependency it needs
 MC_WITH_LIB([Pardiso], [pardisoinit],   [pardiso], [[AC_OPENMP AX_PTHREAD AC_F77_LIBRARY_LDFLAGS]], $FLIBS $OPENMP_CFLAGS $LIB_PTHREAD)
 MC_WITH_LIB([WSMP],    [pwgsmp_],       [pwsmp],   [[AC_OPENMP AX_PTHREAD AC_F77_LIBRARY_LDFLAGS]], $FLIBS $OPENMP_CFLAGS $LIB_PTHREAD)
+SOLVER_LIBS="${LIBS} ${FLIBS}"
+LIBS=${back_LIBS}
+AC_SUBST(SOLVER_LIBS)
+# output of finding the solver libraries is stored in SOLVER_LIBS
 
 # matlab interface
+# TODO must force matlab version since the check doesn't find it (see m4/matlabver.m4)
+MATLAB_VERSION=7.4.0.287
 AX_MATLAB
 #if test x$ax_enable_matlab = xyes
 #AS_IF([test "x$ax_enable_matlab" = "xyes"], AX_MEXOPTS)
-AX_MEXOPTS
+AX_MATLAB_DIR
+AX_MEX_OPTIONS
+AX_MEXEXT
+AM_CONDITIONAL([HAVE_MATLAB],[test "x$ax_enable_matlab" = "xyes"])
 
 # Checks for header files.
 AC_CHECK_HEADERS([float.h stdlib.h string.h sys/time.h])

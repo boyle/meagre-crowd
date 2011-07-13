@@ -18,54 +18,98 @@
 
 # build to GNU standards
 AUTOMAKE_OPTIONS = gnu
-
+ACLOCAL_AMFLAGS = -I m4
 
 # the actual program to be installed at the end
 bin_PROGRAMS = meagre-crowd
-meagre_crowd_SOURCES = src/meagre-crowd.c \
-    src/perftimer.c src/matrix.c src/matrix_share.c src/args.c src/file.c src/solvers.c
+meagre_crowd_SOURCES = src/meagre-crowd.c src/args.c src/file.c
+meagre_crowd_LDADD = libmeagrecrowd.la
+
+# the matlab interface
+EXTRA_DIST =
+if HAVE_MATLAB
+#noinst_PROGRAMS = null
+## The `null' program target forces GNU Automake adding C compiler
+## variables and rules to the generated `Makefile.in'.
+#matlab_DATA = mcsolve.m
+matlabarch_SCRIPTS = mcsolve.$(MEXEXT)
+mcsolve.$(MEXEXT): src/mcsolve.$(MEXEXT)
+#	cp $^ $@
+EXTRA_DIST += src/mcsolve.m src/mcsolve.c
+SUFFIXES = .$(MEXEXT)
+MEXLDADD2 = '-Wl,-rpath,.libs' -L.libs/ -lmeagrecrowd -lgomp
+.c.$(MEXEXT):
+	$(MEX) $(MEXOPTS) CFLAGS='$(CFLAGS) $(OPENMP_CFLAGS) -std=c99 -fPIC' $(MEXFLAGS) $< $(MEXLDADD) $(MEXLDADD2)
+mostlyclean-local:
+	test -z '$(MEXEXT)' || rm -f *.$(MEXEXT) src/*.$(MEXEXT)
+endif
+
+# library version is current:revision:age
+# current +=1 for each change of interface
+# revision +=1 for each release w/o interface changes
+# age is the how many prior interfaces are still supported (i.e. backward compatibility)
+MC_LIBRARY_VERSION=1:0:0
+lib_LTLIBRARIES = libmeagrecrowd.la
+libmeagrecrowd_la_LDFLAGS = -version-info $(MC_LIBRARY_VERSION)
+libmeagrecrowd_la_SOURCES = src/matrix.c src/matrix_share.c src/solvers.c src/perftimer.c
+libmeagrecrowd_la_LIBADD = ${SOLVER_LIBS}
 
 # the tests
 BUILT_TESTS = tests/file tests/helloworld-mpi tests/unit-perftimer tests/unit-matrix
 
 if HAVE_MUMPS
-meagre_crowd_SOURCES += src/solver_mumps.c
+libmeagrecrowd_la_SOURCES += src/solver_mumps.c
 BUILT_TESTS += tests/helloworld-mumps
 BUILT_TESTS += tests/mumps-file
 endif
 
 if HAVE_UMFPACK
-meagre_crowd_SOURCES += src/solver_umfpack.c
+libmeagrecrowd_la_SOURCES += src/solver_umfpack.c
 BUILT_TESTS += tests/hello-umfpack
 endif
 
 if HAVE_CHOLMOD
-meagre_crowd_SOURCES += src/solver_cholmod.c
+libmeagrecrowd_la_SOURCES += src/solver_cholmod.c
 endif
 
 if HAVE_TAUCS
-meagre_crowd_SOURCES += src/solver_taucs.c
+libmeagrecrowd_la_SOURCES += src/solver_taucs.c
 endif
 
 if HAVE_PARDISO
-meagre_crowd_SOURCES += src/solver_pardiso.c
+libmeagrecrowd_la_SOURCES += src/solver_pardiso.c
 BUILT_TESTS += tests/hello-pardiso
 endif
 
 if HAVE_WSMP
-meagre_crowd_SOURCES += src/solver_wsmp.c
+libmeagrecrowd_la_SOURCES += src/solver_wsmp.c
 BUILT_TESTS += tests/helloworld-wsmp
 endif
 
 if HAVE_SUPERLU_DIST
-meagre_crowd_SOURCES += src/solver_superlu_dist.c
+libmeagrecrowd_la_SOURCES += src/solver_superlu_dist.c
 endif
 
 # TODO make openMP optional... OPENMP_CFLAGS, PTHREADS and FLIBS are all required only for Paradiso!
-AM_LIBS = $(PTHREAD_LIBS) $(LIBS) $(FLIBS)
+AM_LIBS = $(PTHREAD_LIBS)
 AM_CFLAGS = $(CFLAGS) $(OPENMP_CFLAGS) $(PTHREAD_CFLAGS) -Werror #-Wextra
 # this is required for Sun systems, but will break when we want to do the same for MPI... (mpicc)
 #meagre_crowd_CC = $(PTHREAD_CC)
+
+debugvar:
+	@echo "CFLAGS=$(CFLAGS)"
+	@echo "OPENMP_CFLAGS=$(OPEMP_CFLAGS)"
+	@echo "SOLVER_LIBS=$(SOLVER_LIBS)"
+	@echo "LIBS=$(LIBS)"
+	@echo "libmeagrecrowd_la_LIBADD=$(libmeagrecrowd_la_LIBADD)"
+	@echo "meagre_crowd_LIBADD=$(meagre_crowd_LIBADD)"
+	@echo "MATLAB_CPPFLAGS=$(MATLAB_CPPFLAGS)"
+	@echo "MATLAB_CFLAGS=$(MATLAB_CFLAGS)"
+	@echo "MATLAB_CXXFLAGS=$(MATLAB_CXXFLAGS)"
+	@echo "MATLAB_DEFS=$(MATLAB_DEFS)"
+	@echo "MATLAB_LDFLAGS=$(MATLAB_LDFLAGS)"
+	@echo "MEXLDADD=$(MEXLDADD)"
+
 
 # header files that need to be distributed but not installed
 noinst_HEADERS = src/perftimer.h src/matrix.h src/matrix_share.h src/args.h src/file.h \
@@ -77,7 +121,7 @@ noinst_HEADERS = src/perftimer.h src/matrix.h src/matrix_share.h src/args.h src/
 # want these scripts installed in the end
 bin_SCRIPTS = launch_jobs collect_results
 # some random files we want to distribute with the package tar
-EXTRA_DIST = get_dependencies $(bin_SCRIPTS) \
+EXTRA_DIST += get_dependencies $(bin_SCRIPTS) \
 	     tests/unsym.mm tests/sym.mm tests/sym_posdef.mm \
 	     tests/rhs1.mm \
 	     tests/unsym-default-ans.mm tests/sym-default-ans.mm tests/sym_posdef-default-ans.mm \
