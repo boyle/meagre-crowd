@@ -124,6 +124,13 @@ static inline int _convert_matrix_A( const int solver, matrix_t* A ) {
       break;
   }
 
+  // If you've given us a dense matrix for A, we need to convert it
+  // to COO before going to some other format, so start there.
+  if(A->format == DROW || A->format == DCOL) {
+    int ierr = convert_matrix(A, SM_COO, base);
+    assert(ierr == 0);
+  }
+
   // TODO should we prefer CSC/CSR over COO (more efficient?)
   enum matrix_format_t format = A->format;
   switch(format) {
@@ -416,7 +423,7 @@ int select_solver( matrix_t* A, matrix_t* b ) {
 // wrapper function: solve 'A x = b' for 'x'
 // calls initialize, analyze, factorize, evaluate, finalize
 // returns x, the solution
-void solver( const int solver, const int verbosity, const int mpi_rank, matrix_t* A, matrix_t* b, matrix_t* x ) {
+void mc_solver( const int solver, const int verbosity, const int mpi_rank, matrix_t* A, matrix_t* b, matrix_t* x ) {
   solver_state_t* s = solver_init( solver, verbosity, mpi_rank, NULL );
   assert( s != NULL ); // malloc failure
   solver_analyze( s, A );

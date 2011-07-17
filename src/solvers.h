@@ -79,7 +79,7 @@ int select_solver( matrix_t* A, matrix_t* b );
 // calls initialize, analyze, factorize, evaluate, finalize
 // returns x, the solution
 // TODO cleaner way of passing in MPI info, if required?
-void solver( const int solver, const int verbosity, const int mpi_rank, matrix_t* A, matrix_t* b, matrix_t* x );
+void mc_solver( const int solver, const int verbosity, const int mpi_rank, matrix_t* A, matrix_t* b, matrix_t* x );
 
 // wrapper function: solve 'A x = b' for 'x' w/o re-initializing solver
 // calls analyze, factorize, evaluate
