@@ -23,6 +23,7 @@
 #include <assert.h>
 #include <string.h> // memcpy()
 #include <stdlib.h> // malloc, free, etc.
+#include <mpi.h>
 #include "solvers.h"
 #include "matrix.h"
 
@@ -95,12 +96,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   }
   mexPrintf("A is %dx%d, B is %dx%d with %s\n", A.m, A.n, b.m, b.n, solver2str(solver));
 
-solver = 0; // TODO rm (only UMFPACK works until MPI loader is working)
-mexPrintf("TODO Only solving with UMFPACK so far...\n");
-
   // TODO initialize MPI if required - can we keep them alive between calls?
+  int is_mpi, is_omp;
+  mc_mpi_omp_initialize( solver, &is_mpi, &is_omp );
   // TODO launch forks for slaves?
-  
+
+  // TODO remove mpi_rank from solver function args (we can discover it through the MPI interface
+  int mpi_rank = 0;
+  if ( is_mpi ) {
+    int ierr = MPI_Comm_rank( MPI_COMM_WORLD, &mpi_rank );
+    if(ierr != 0) {
+      mpi_rank = 0;
+    }
+  }
+
   // We'd like to create x's data using mxCreateArray ahead of time
   // so that we don't have to do a memcpy after the solve but we might
   // lose the pointer through conversions and we use malloc/free inside
@@ -108,7 +117,6 @@ mexPrintf("TODO Only solving with UMFPACK so far...\n");
 
   // run solver
   const int verbosity = 0; // silent
-  const int mpi_rank = 0; // TODO
   mc_solver(solver, verbosity, mpi_rank, &A, &b, &x); 
 
   // TODO close down mpi if required

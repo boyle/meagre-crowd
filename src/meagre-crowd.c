@@ -117,64 +117,20 @@ int main( int argc, char ** argv ) {
     perftimer_inc( timer, "MPI init", -1 );
   }
 
-  // if this solver is not thread/mpi safe, report an error if its been launched that way
-  const int uses_mpi     = solver_uses_mpi( args->solver );
-  const int requires_mpi = solver_requires_mpi( args->solver );
-  const int uses_omp     = solver_uses_omp( args->solver );
-  const int requires_omp = solver_requires_omp( args->solver );
-  int c_mpi;
-  {
-    const char* mpi_world_size = getenv( "OMPI_COMM_WORLD_SIZE" );
-    if ( mpi_world_size == NULL ) { // no env value configured
-      c_mpi = 0;
-      // printf( "no OMPI_COMM_WORLD_SIZE\n" );
-    }
-    else { // works #ifdef OPEN_MPI -- we're using openMPI rather than lam or mpich...
-      int ret = sscanf( mpi_world_size, "%d", &c_mpi );
-      assert( ret == 1 );
-      // printf( "OMPI_COMM_WORLD_SIZE=%d\n", c_mpi );
-    }
-  }
-  int c_omp;
-  {
-    const char* omp_threads = getenv( "OMP_NUM_THREADS" );
-    if ( omp_threads == NULL ) { // no env value configured
-      c_omp = 0;
-      // printf( "no OMP_NUM_THREADS\n" );
-    }
-    else { // works #ifdef OPEN_MP -- we're using openMP
-      int ret = sscanf( omp_threads, "%d", &c_omp );
-      assert( ret == 1 );
-      // printf( "OMP_NUM_THREADS=%d\n", c_omp );
-    }
-  }
-  const int is_mpi = ( requires_mpi || ( uses_mpi && ( c_mpi != 0 ) ) );
-  const int is_omp = ( requires_omp || ( uses_omp && ( c_omp != 0 ) ) );
-  const int is_single_threaded = ( !is_mpi && !is_omp );
+  int is_mpi, is_omp;
+  int ret = mc_mpi_omp_initialize( args->solver, &is_mpi, &is_omp );
+  if(ret != 0)
+    return ret;
 
+  // TODO remove mpi_rank from solver function args (we can discover it through the MPI interface
+  int c_mpi = 0;
+  int c_omp = 0;
+  if ( is_mpi ) {
+    int ierr = MPI_Comm_rank( MPI_COMM_WORLD, &( args->mpi_rank ) );
+    assert( ierr == 0 );
 
-  // start up MPI, if we're using it
-  const int is_single_threaded_but_mpi = is_single_threaded && ( c_mpi > 1 );
-  if ( is_mpi || is_single_threaded_but_mpi ) {
-    int ierr;
-    int provided_threading;
-    ierr = MPI_Init_thread( &argc, &argv, MPI_THREAD_MULTIPLE, &provided_threading );
-    assert( ierr == 0 );
-//    assert(provided_threading == MPI_THREAD_MULTIPLE);
-    ierr = MPI_Comm_rank( MPI_COMM_WORLD, &( args->mpi_rank ) );
-    assert( ierr == 0 );
     ierr = MPI_Comm_size( MPI_COMM_WORLD, &c_mpi );
-    assert( ierr == 0 );
-  }
-
-  // wait till after firing up MPI, so we only put out an error on the rank=0 machine
-  if ( is_single_threaded_but_mpi ) {
-    if ( args->mpi_rank == 0 )
-      fprintf( stderr, "error: selected solver (%s) is single threaded but was launched with %d threads\n",
-               solver2str( args->solver ), c_mpi );
-    int ierr = MPI_Finalize();
-    assert( ierr == 0 );
-    return 10;
+    assert( ierr == 0 );	 
   }
 
   // Define the problem on the host
@@ -457,11 +413,8 @@ int main( int argc, char ** argv ) {
     perftimer_inc( timer, "MPI", -1 );
   }
 
-  if ( is_mpi ) {
-    int ierr = MPI_Finalize();
-    assert( ierr == 0 );
-  }
-
+  // clean up MPI / OpenMP
+  mc_mpi_omp_finalize( args->solver );
 
   // clean up matrices
   free_matrix( b );

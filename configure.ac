@@ -78,8 +78,9 @@ AM_SILENT_RULES([yes]) # enable kernel like cleaner build
 AC_CONFIG_FILES([Makefile])
 
 # Checks for programs.
-AC_PROG_CC
+AX_PROG_CC_MPI
 AM_PROG_CC_C_O
+AC_OPENMP
 
 # Checks for libraries.
 
@@ -159,6 +160,8 @@ SOLVER_LIBS="${LIBS} ${FLIBS}"
 LIBS=${back_LIBS}
 AC_SUBST(SOLVER_LIBS)
 # output of finding the solver libraries is stored in SOLVER_LIBS
+
+# TODO MPI config stuff (matlab interface needs this, so does the executable meagre-crowd)
 
 # matlab interface
 # TODO must force matlab version since the check doesn't find it (see m4/matlabver.m4)

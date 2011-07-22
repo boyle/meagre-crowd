@@ -62,10 +62,10 @@ void printf_solvers( const unsigned int verbosity );
 //   e.g. can the solver only handle Symmetric Postive Definite (SPD) matrices
 // returns: 1 yes, 0 no
 int solver_can_do( const int solver, matrix_t* A, matrix_t* b );
-inline int solver_uses_mpi( const int solver );
-inline int solver_requires_mpi( const int solver );
-inline int solver_uses_omp( const int solver );
-inline int solver_requires_omp( const int solver );
+int solver_uses_mpi( const int solver );
+int solver_requires_mpi( const int solver );
+int solver_uses_omp( const int solver );
+int solver_requires_omp( const int solver );
 
 
 // select the most appropriate solver for this problem
@@ -73,6 +73,17 @@ inline int solver_requires_omp( const int solver );
 //  - is it moderate and should be solved SMP (shared memory)
 //  - is it huge and should be solved MPI (distributed memory)
 int select_solver( matrix_t* A, matrix_t* b );
+
+
+// --------------------------------------------
+// Helper functions will initalize and clean up MPI and OpenMP.
+// They must be called before mc_solver() and friends or MPI/OpenMP
+// must be initialized in the normal manner. These only get called
+// once per session and MPI is quite slow to start up.
+// Returns zero on success.
+// TODO remove is_omp and is_mpi from interface (can be discovered through MPI interface
+int mc_mpi_omp_initialize(const int solver, int* is_mpi, int* is_omp);
+int mc_mpi_omp_finalize(const int solver);
 
 // --------------------------------------------
 // wrapper function: solve 'A x = b' for 'x'

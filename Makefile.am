@@ -37,9 +37,11 @@ mcsolve.$(MEXEXT): src/mcsolve.$(MEXEXT)
 #	cp $^ $@
 EXTRA_DIST += src/mcsolve.m src/mcsolve.c
 SUFFIXES = .$(MEXEXT)
-MEXLDADD2 = '-Wl,-rpath,.libs' -L.libs/ -lmeagrecrowd -lgomp
+MEXLDADD2 = '-Wl,-rpath,$(MATLAB)/bin/glnxa64/' -L$(MATLAB)/bin/glnxa64/ '-Wl,-rpath,${PWD}/.libs' -L${PWD}/.libs/ -lmeagrecrowd -lgomp ${LIBS} ${SOLVER_LIBS}
+# TODO shouldn't need all SOLVER_LIBS but we do need MPI if we're using it
 .c.$(MEXEXT):
-	$(MEX) $(MEXOPTS) CFLAGS='$(CFLAGS) $(OPENMP_CFLAGS) -std=c99 -fPIC' $(MEXFLAGS) $< $(MEXLDADD) $(MEXLDADD2)
+	@echo "  MEX    $@"
+	$(AM_V_at)$(MEX) $(MEXOPTS) CFLAGS='$(CFLAGS) $(OPENMP_CFLAGS) -std=c99 -fPIC' $(MEXFLAGS) $< $(LDFLAGS) $(MEXLDADD2) -o $@ > /dev/null
 mostlyclean-local:
 	test -z '$(MEXEXT)' || rm -f *.$(MEXEXT) src/*.$(MEXEXT)
 endif
@@ -57,15 +59,21 @@ libmeagrecrowd_la_LIBADD = ${SOLVER_LIBS}
 # the tests
 BUILT_TESTS = tests/file tests/helloworld-mpi tests/unit-perftimer tests/unit-matrix
 
+tests_file_LDADD = libmeagrecrowd.la
+tests_unit_matrix_LDADD = libmeagrecrowd.la
+
 if HAVE_MUMPS
 libmeagrecrowd_la_SOURCES += src/solver_mumps.c
 BUILT_TESTS += tests/helloworld-mumps
+tests_helloworld_mumps_LDADD = libmeagrecrowd.la
 BUILT_TESTS += tests/mumps-file
+tests_mumps_file_LDADD = libmeagrecrowd.la
 endif
 
 if HAVE_UMFPACK
 libmeagrecrowd_la_SOURCES += src/solver_umfpack.c
 BUILT_TESTS += tests/hello-umfpack
+tests_hello_umfpack_LDADD = libmeagrecrowd.la
 endif
 
 if HAVE_CHOLMOD
@@ -79,11 +87,13 @@ endif
 if HAVE_PARDISO
 libmeagrecrowd_la_SOURCES += src/solver_pardiso.c
 BUILT_TESTS += tests/hello-pardiso
+tests_hello_pardiso_LDADD = libmeagrecrowd.la
 endif
 
 if HAVE_WSMP
 libmeagrecrowd_la_SOURCES += src/solver_wsmp.c
 BUILT_TESTS += tests/helloworld-wsmp
+tests_helloworld_wsmp_LDADD = libmeagrecrowd.la
 endif
 
 if HAVE_SUPERLU_DIST
@@ -98,6 +108,7 @@ AM_CFLAGS = $(CFLAGS) $(OPENMP_CFLAGS) $(PTHREAD_CFLAGS) -Werror #-Wextra
 
 debugvar:
 	@echo "CFLAGS=$(CFLAGS)"
+	@echo "LDFLAGS=$(LDFLAGS)"
 	@echo "OPENMP_CFLAGS=$(OPEMP_CFLAGS)"
 	@echo "SOLVER_LIBS=$(SOLVER_LIBS)"
 	@echo "LIBS=$(LIBS)"
@@ -108,7 +119,8 @@ debugvar:
 	@echo "MATLAB_CXXFLAGS=$(MATLAB_CXXFLAGS)"
 	@echo "MATLAB_DEFS=$(MATLAB_DEFS)"
 	@echo "MATLAB_LDFLAGS=$(MATLAB_LDFLAGS)"
-	@echo "MEXLDADD=$(MEXLDADD)"
+	@echo "MEXLDADD2=$(MEXLDADD2)"
+	@echo "AM_V_CC=$(AM_V_CC)"
 
 
 # header files that need to be distributed but not installed
