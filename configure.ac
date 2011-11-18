@@ -152,6 +152,10 @@ MC_WITH_LIB([SuperLU_DIST], [superlu_gridinit],[superlu_dist])
 MC_WITH_LIB([Pardiso], [pardisoinit],   [pardiso], [[AC_OPENMP AX_PTHREAD AC_F77_LIBRARY_LDFLAGS]], $FLIBS $OPENMP_CFLAGS $LIB_PTHREAD)
 MC_WITH_LIB([WSMP],    [pwgsmp_],       [pwsmp],   [[AC_OPENMP AX_PTHREAD AC_F77_LIBRARY_LDFLAGS]], $FLIBS $OPENMP_CFLAGS $LIB_PTHREAD)
 
+# MPI checks (meagre-crowd usees this too)
+AX_MPI()
+AC_SUBST(MPILIBS)
+
 # Checks for header files.
 AC_CHECK_HEADERS([float.h stdlib.h string.h sys/time.h])
 AC_HEADER_ASSERT

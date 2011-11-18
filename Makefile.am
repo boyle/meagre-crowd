@@ -62,10 +62,13 @@ meagre_crowd_SOURCES += src/solver_superlu_dist.c
 endif
 
 # TODO make openMP optional... OPENMP_CFLAGS, PTHREADS and FLIBS are all required only for Paradiso!
-AM_LIBS = $(PTHREAD_LIBS) $(LIBS) $(FLIBS)
+LIBS += $(PTHREAD_LIBS) $(FLIBS) $(MPILIBS)
 AM_CFLAGS = $(CFLAGS) $(OPENMP_CFLAGS) $(PTHREAD_CFLAGS) -Werror #-Wextra
 # this is required for Sun systems, but will break when we want to do the same for MPI... (mpicc)
 #meagre_crowd_CC = $(PTHREAD_CC)
+
+debugthis:
+	@echo "AM_LIBS=$(AM_LIBS)"
 
 # header files that need to be distributed but not installed
 noinst_HEADERS = src/perftimer.h src/matrix.h src/matrix_share.h src/args.h src/file.h \
