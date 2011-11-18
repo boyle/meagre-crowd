@@ -392,75 +392,76 @@ fi
 LAPACK_DLIB="-L${LAPACK_PATH} -llapack"
 info "  using ${LAPACK_PATH}/liblapack.so"
 
-if [[ -n $BLACS ]]; then
-  # get BLACS [ScaLAPACK communications]
-  info "BLACS"
-  cd ${S}
-  get_and_unpack blacs http://www.netlib.org/blacs/mpiblacs.tgz
-  info "  patching"
-  get_and_unpack blacs http://www.netlib.org/blacs/mpiblacs-patch03.tgz
-  cd ${S}/blacs/BLACS
-  cp BMAKES/Bmake.MPI-LINUX Bmake.inc
-  # fix up makefile
-  # Note: have to escape paths to make sed happy
-  sed -i "s/\(F77  *=\) .*/\1 ${MPIF77//\//\\/}/" Bmake.inc
-  sed -i "s/\(CC  *=\) .*/\1 ${MPICC//\//\\/}/" Bmake.inc
-  sed -i "s/\(BTOPdir =\) .*/\1 ${PWD//\//\\/}/" Bmake.inc
-  sed -i "s/\(PLAT =\) .*/\1 ${MACHINE}/" Bmake.inc
-  sed -i "s/\(MPIdir =\) .*/\1 ${MPI_PATH//\//\\/}/" Bmake.inc
-  sed -i "s/\(MPILIB =\) .*/\1 ${MPI_DLIB//\//\\/}/" Bmake.inc
-  sed -i "s/\(F77NO_OPTFLAGS =\) .*/\1 -fPIC/" Bmake.inc
-  sed -i "s/\(CCFLAGS.*=\) .*/\1 -O4 -fPIC/" Bmake.inc
-  # from INSTALL/EXE/xintface helper program
-  sed -i "s/\(INTFACE.*=\) .*/\1 -DAdd_/" Bmake.inc
-  # from INSTALL/EXE/xtc_CsameF77 helper program
-  # TODO when next line is uncommented F works C fails, and vice-versa for commenting it (C works, but not F)
-  # TODO F version hangs on repeated sums test (xFbtest)
-  sed -i "s/\(TRANSCOMM.*=\) .*/\1 -DUseMpi2/" Bmake.inc
-  #sed -i "s/\(TRANSCOMM.*=\) .*/\1 /" Bmake.inc
-  #sed -i "s/\(WHATMPI.*=\) .*/\1 -DUseCMpi/" Bmake.inc
-  # for openmpi, must fix for mpif.h
-  info "    MPI is ${MPI}"
-  if [ ${MPI} == "openmpi" ]; then
-    sed -i 's/ln -s $(MPIINCdir)\/mpif.h mpif.h/ln -s $(MPIINCdir)\/mpif*.h ./' SRC/MPI/Makefile
-    sed -i 's/mpif.h/mpif*.h/' SRC/MPI/Makefile
-  fi
-  info "  build"
-  ${MAKE} mpi &> /dev/null || err blacs "build failed"
-  for i in blacsCinit blacsF77init blacs; do # rename
-    cp LIB/${i}_MPI-${MACHINE}-0.a  ${INSTALL_LIB_DIR}/libmpi${i}.a
-  done
-  # Note: blacs is stupid - try and fix the broken circular dependancies w/in
-  mkdir t
-  cd t
-  cp ${INSTALL_LIB_DIR}/libmpiblacsCinit.a .
-  cp ${INSTALL_LIB_DIR}/libmpiblacsF77init.a .
-  cp ${INSTALL_LIB_DIR}/libmpiblacs.a .
-  ar x libmpiblacsF77init.a
-  ar x libmpiblacs.a
-  ar x libmpiblacsF77init.a
-  for i in *.C; do
-    mv $i ${i/.C/.oo}
-  done
-  gcc -shared *.o *.oo -Wl,-rpath,${INSTALL_LIB_DIR} -o libblacs-mpi-f77.so ${MPI_DLIB} -lmpi_f77
-  mv libblacs-mpi-f77.so ${INSTALL_LIB_DIR}/
-  rm *.o
-  ar x libmpiblacsCinit.a
-  ar x libmpiblacs.a
-  ar x libmpiblacsCinit.a
-  for i in *.C; do
-    mv $i ${i/.C/.oo}
-  done
-  gcc -shared *.o *.oo -Wl,-rpath,${INSTALL_LIB_DIR} -o libblacs-mpi-c.so ${MPI_DLIB} -lmpi_f77
-  mv libblacs-mpi-c.so ${INSTALL_LIB_DIR}/
-  cd ..
-  rm -rf t
-fi
-BLACS_PATH=${INSTALL_LIB_DIR}
-[[ ! -f ${BLACS_PATH}/libblacs-mpi-f77.so ]] && err blacs "can't find libblacs-mpi-f77.so at ${BLACS_PATH}"
-info "  using ${BLACS_PATH}/libblacs-mpi-f77.so"
-BLACSF_DLIB="-L${BLACS_PATH} -lblacs-mpi-f77"
-BLACSC_DLIB="-L${BLACS_PATH} -lblacs-mpi-c"
+# BLACS is now included in scaLAPACK as of 2.0
+## if [[ -n $BLACS ]]; then
+##   # get BLACS [ScaLAPACK communications]
+##   info "BLACS"
+##   cd ${S}
+##   get_and_unpack blacs http://www.netlib.org/blacs/mpiblacs.tgz
+##   info "  patching"
+##   get_and_unpack blacs http://www.netlib.org/blacs/mpiblacs-patch03.tgz
+##   cd ${S}/blacs/BLACS
+##   cp BMAKES/Bmake.MPI-LINUX Bmake.inc
+##   # fix up makefile
+##   # Note: have to escape paths to make sed happy
+##   sed -i "s/\(F77  *=\) .*/\1 ${MPIF77//\//\\/}/" Bmake.inc
+##   sed -i "s/\(CC  *=\) .*/\1 ${MPICC//\//\\/}/" Bmake.inc
+##   sed -i "s/\(BTOPdir =\) .*/\1 ${PWD//\//\\/}/" Bmake.inc
+##   sed -i "s/\(PLAT =\) .*/\1 ${MACHINE}/" Bmake.inc
+##   sed -i "s/\(MPIdir =\) .*/\1 ${MPI_PATH//\//\\/}/" Bmake.inc
+##   sed -i "s/\(MPILIB =\) .*/\1 ${MPI_DLIB//\//\\/}/" Bmake.inc
+##   sed -i "s/\(F77NO_OPTFLAGS =\) .*/\1 -fPIC/" Bmake.inc
+##   sed -i "s/\(CCFLAGS.*=\) .*/\1 -O4 -fPIC/" Bmake.inc
+##   # from INSTALL/EXE/xintface helper program
+##   sed -i "s/\(INTFACE.*=\) .*/\1 -DAdd_/" Bmake.inc
+##   # from INSTALL/EXE/xtc_CsameF77 helper program
+##   # TODO when next line is uncommented F works C fails, and vice-versa for commenting it (C works, but not F)
+##   # TODO F version hangs on repeated sums test (xFbtest)
+##   sed -i "s/\(TRANSCOMM.*=\) .*/\1 -DUseMpi2/" Bmake.inc
+##   #sed -i "s/\(TRANSCOMM.*=\) .*/\1 /" Bmake.inc
+##   #sed -i "s/\(WHATMPI.*=\) .*/\1 -DUseCMpi/" Bmake.inc
+##   # for openmpi, must fix for mpif.h
+##   info "    MPI is ${MPI}"
+##   if [ ${MPI} == "openmpi" ]; then
+##     sed -i 's/ln -s $(MPIINCdir)\/mpif.h mpif.h/ln -s $(MPIINCdir)\/mpif*.h ./' SRC/MPI/Makefile
+##     sed -i 's/mpif.h/mpif*.h/' SRC/MPI/Makefile
+##   fi
+##   info "  build"
+##   ${MAKE} mpi &> /dev/null || err blacs "build failed"
+##   for i in blacsCinit blacsF77init blacs; do # rename
+##     cp LIB/${i}_MPI-${MACHINE}-0.a  ${INSTALL_LIB_DIR}/libmpi${i}.a
+##   done
+##   # Note: blacs is stupid - try and fix the broken circular dependancies w/in
+##   mkdir t
+##   cd t
+##   cp ${INSTALL_LIB_DIR}/libmpiblacsCinit.a .
+##   cp ${INSTALL_LIB_DIR}/libmpiblacsF77init.a .
+##   cp ${INSTALL_LIB_DIR}/libmpiblacs.a .
+##   ar x libmpiblacsF77init.a
+##   ar x libmpiblacs.a
+##   ar x libmpiblacsF77init.a
+##   for i in *.C; do
+##     mv $i ${i/.C/.oo}
+##   done
+##   gcc -shared *.o *.oo -Wl,-rpath,${INSTALL_LIB_DIR} -o libblacs-mpi-f77.so ${MPI_DLIB} -lmpi_f77
+##   mv libblacs-mpi-f77.so ${INSTALL_LIB_DIR}/
+##   rm *.o
+##   ar x libmpiblacsCinit.a
+##   ar x libmpiblacs.a
+##   ar x libmpiblacsCinit.a
+##   for i in *.C; do
+##     mv $i ${i/.C/.oo}
+##   done
+##   gcc -shared *.o *.oo -Wl,-rpath,${INSTALL_LIB_DIR} -o libblacs-mpi-c.so ${MPI_DLIB} -lmpi_f77
+##   mv libblacs-mpi-c.so ${INSTALL_LIB_DIR}/
+##   cd ..
+##   rm -rf t
+## fi
+## BLACS_PATH=${INSTALL_LIB_DIR}
+## [[ ! -f ${BLACS_PATH}/libblacs-mpi-f77.so ]] && err blacs "can't find libblacs-mpi-f77.so at ${BLACS_PATH}"
+## info "  using ${BLACS_PATH}/libblacs-mpi-f77.so"
+## BLACSF_DLIB="-L${BLACS_PATH} -lblacs-mpi-f77"
+## BLACSC_DLIB="-L${BLACS_PATH} -lblacs-mpi-c"
 
 
 if [[ -n $SCALAPACK ]]; then
@@ -473,28 +474,33 @@ if [[ -n $SCALAPACK ]]; then
   cd ${S}
   get_and_unpack scalapack http://www.netlib.org/scalapack/scalapack.tgz
   # compile ScaLAPACK
-  cd ${S}/scalapack/scalapack-1.8.0 || err scalapack "unexpected version"
-  cp INSTALL/SLmake.LINUX SLmake.inc
-  sed -i "s/\(^home *=\) .*/\1 ${PWD//\//\\/}/" SLmake.inc
-  sed -i "s/\(^PLAT *=\) .*/\1 ${MACHINE}/" SLmake.inc
-  sed -i "s/\(^BLACSdir *=\) .*/\1 ${BLACS_PATH//\//\\/}/" SLmake.inc
-  sed -i "s/\(^SMPLIB *=\) .*/\1 ${MPI_DLIB//\//\\/}/" SLmake.inc
-  sed -i "s/-p4//" SLmake.inc # fix BLACS library names
+  # now at scalapack-2.0 but no version number
+  # note: no longer requires BLACS (its built in)
+  cd ${S}/scalapack/scalapack || err scalapack "unexpected version"
+  cp SLmake.inc.example SLmake.inc
+#  sed -i "s/\(^home *=\) .*/\1 ${PWD//\//\\/}/" SLmake.inc
+#  sed -i "s/\(^PLAT *=\) .*/\1 ${MACHINE}/" SLmake.inc
+#  sed -i "s/\(^BLACSdir *=\) .*/\1 ${BLACS_PATH//\//\\/}/" SLmake.inc
+#  sed -i "s/\(^SMPLIB *=\) .*/\1 ${MPI_DLIB//\//\\/}/" SLmake.inc
+#  sed -i "s/-p4//" SLmake.inc # fix BLACS library names
     #TODO and convert from .a -> .so?
-  sed -i "s/mpif77/${MPI_PATH//\//\\/}\/bin\/mpif77/" SLmake.inc
+  sed -i "s/mpif90/${MPI_PATH//\//\\/}\/bin\/mpif90/" SLmake.inc
   sed -i "s/mpicc/${MPI_PATH//\//\\/}\/bin\/mpicc/" SLmake.inc
-  sed -i "s/\(^NOOPT.*=\) .*/\1 -fPIC/" SLmake.inc
-  sed -i "s/\(^CCFLAGS.*=\) .*/\1 -O4 -fPIC/" SLmake.inc
+  sed -i "s/\(^NOOPT.*=\) .*/\1 -O0 -fPIC/" SLmake.inc
+  sed -i "s/\(^CCFLAGS.*=\) .*/\1 -O3 -fPIC/" SLmake.inc
+  sed -i "s/\(^FCFLAGS.*=\) .*/\1 -O3 -fPIC/" SLmake.inc
   sed -i "s/\(^BLASLIB *=\) .*/\1 ${BLAS_DLIB//\//\\/}/" SLmake.inc
   sed -i "s/\(^LAPACKLIB *=\) .*/\1 ${LAPACK_DLIB//\//\\/}/" SLmake.inc
-  sed -i "s/\(^BLACSFINIT *=\) .*/\1 ${BLACSF_DLIB//\//\\/}/" SLmake.inc
-  sed -i "s/\(^BLACSCINIT *=\) .*/\1 ${BLACSC_DLIB//\//\\/}/" SLmake.inc
-  sed -i "s/\(^BLACSLIB *=\) .*/\1 /" SLmake.inc
+# sed -i "s/\(^BLACSFINIT *=\) .*/\1 ${BLACSF_DLIB//\//\\/}/" SLmake.inc
+# sed -i "s/\(^BLACSCINIT *=\) .*/\1 ${BLACSC_DLIB//\//\\/}/" SLmake.inc
+# sed -i "s/\(^BLACSLIB *=\) .*/\1 /" SLmake.inc
   sed -i "s/\(^CDEFS.*=\) .*/\1 -DAdd_ -DNO_IEEE \$(USEMPI)/" SLmake.inc
   info "  build"
   ${MAKE} lib > /dev/null || err scalapack "build failed"
   cp libscalapack.a  ${INSTALL_LIB_DIR}
-  a2so ${INSTALL_LIB_DIR}/libscalapack.a ${LAPACK_DLIB} ${BLAS_DLIB} ${BLACSC_DLIB} -lgfortran -lm
+#  a2so ${INSTALL_LIB_DIR}/libscalapack.a ${LAPACK_DLIB} ${BLAS_DLIB} ${BLACSC_DLIB} -lgfortran -lm
+  # need muldefs for BLACS
+  a2so ${INSTALL_LIB_DIR}/libscalapack.a -Wl,-z,muldefs ${LAPACK_DLIB} ${BLAS_DLIB} ${MPI_DLIB} -lgfortran -lm
 
   MAKE=${MAKE_SAVE}
 fi
@@ -578,7 +584,7 @@ if [[ -n $METIS_BUILD ]]; then
   case ${METIS} in
     "parmetis" )
       info "ParMETIS"
-      get_and_unpack metis http://glaros.dtc.umn.edu/gkhome/fetch/sw/parmetis/ParMetis-${PARMETIS_VER}.tar.gz
+      get_and_unpack metis http://glaros.dtc.umn.edu/gkhome/fetch/sw/parmetis/OLD/ParMetis-${PARMETIS_VER}.tar.gz
       cd ${S}/metis/ParMetis-${PARMETIS_VER} || err metis "bad dir"
       sed -i "s/\(^CC *=\) .*/\1 ${MPICC//\//\\/}/" Makefile.in
       sed -i "s/\(^COPTIONS *= \).*/\1 -DNDEBUG -fPIC/" Makefile.in
@@ -628,7 +634,7 @@ if [[ -n $SCOTCH ]]; then
   sed -i "s/\(^CFLAGS.*= *-O3\)/\1 -fPIC -I${MPI_INC//\//\\/}/" Makefile.inc
   sed -i "s/\(^CCP.*=\).*/\1 ${MPICC//\//\\/}/" Makefile.inc
   info "  build"
-  ${MAKE} scotch &> /dev/null || err scotch "scotch build failed"
+#  ${MAKE} scotch &> /dev/null || err scotch "scotch build failed"
   MAKE_SAVE=${MAKE}
   MAKE=make
   ${MAKE} ptscotch &> /dev/null || err scotch "ptscotch build failed"
@@ -636,19 +642,19 @@ if [[ -n $SCOTCH ]]; then
   info "  install"
   ${MAKE} prefix=${INSTALL_BASE_DIR} install &> /dev/null || err scotch "install failed"
   cp ../lib/*mumps.a ${INSTALL_LIB_DIR}/
-  a2so ${INSTALL_LIB_DIR}/libscotcherr.a
-  a2so ${INSTALL_LIB_DIR}/libscotch.a   -L${INSTALL_LIB_DIR} -lscotcherr -lz -lrt -lpthread -lm
+#  a2so ${INSTALL_LIB_DIR}/libscotcherr.a
+#  a2so ${INSTALL_LIB_DIR}/libscotch.a   -L${INSTALL_LIB_DIR} -lscotcherr -lz -lrt -lpthread -lm
   a2so ${INSTALL_LIB_DIR}/libptscotcherr.a ${MPI_DLIB}
   a2so ${INSTALL_LIB_DIR}/libptscotch.a -L${INSTALL_LIB_DIR} -lptscotcherr ${MPI_DLIB} -lz
-  a2so ${INSTALL_LIB_DIR}/libscotchmetis.a -L${INSTALL_LIB_DIR} -lscotch
-  a2so ${INSTALL_LIB_DIR}/libesmumps.a   -L${INSTALL_LIB_DIR} -lscotch
+#  a2so ${INSTALL_LIB_DIR}/libscotchmetis.a -L${INSTALL_LIB_DIR} -lscotch
+#  a2so ${INSTALL_LIB_DIR}/libesmumps.a   -L${INSTALL_LIB_DIR} -lscotch
   a2so ${INSTALL_LIB_DIR}/libptesmumps.a -L${INSTALL_LIB_DIR} -lptscotch
 fi
-[[ ! -f ${INSTALL_LIB_DIR}/libscotch.so ]] && err scotch "can't find libscotch.so at ${INSTALL_LIB_DIR}"
+#[[ ! -f ${INSTALL_LIB_DIR}/libscotch.so ]] && err scotch "can't find libscotch.so at ${INSTALL_LIB_DIR}"
 [[ ! -f ${INSTALL_LIB_DIR}/libptscotch.so ]] && err scotch "can't find libptscotch.so at ${INSTALL_LIB_DIR}"
-SCOTCH_DLIB="-L${INSTALL_LIB_DIR} -lscotch -lesmumps"
+#SCOTCH_DLIB="-L${INSTALL_LIB_DIR} -lscotch -lesmumps"
 PTSCOTCH_DLIB="-L${INSTALL_LIB_DIR} -lptscotch -lptesmumps"
-info "  using ${INSTALL_LIB_DIR}/libscotch.so"
+#info "  using ${INSTALL_LIB_DIR}/libscotch.so"
 info "  using ${INSTALL_LIB_DIR}/libptscotch.so"
 
 # TODO get AMF
@@ -740,7 +746,8 @@ if [[ -n $MUMPS ]]; then
 
   sed -i "s/^ORDERINGSF.*/ORDERINGSF = -Dscotch -Dmetis -Dpord -Dptscotch -D${METIS}/" Makefile.inc
   sed -i "s/^\(OPT.*=\) /\1 -fPIC /" Makefile.inc
-  sed -i "s/^\(OPTL.*=\) /\1 -fPIC/" Makefile.inc #-nofor_main seems to break here
+  sed -i "s/^\(OPTL.*=\).*/\1 -fPIC/" Makefile.inc #-nofor_main seems to break here
+  sed -i "s/^\(OPTF.*=\).*/\1 -fPIC -O -Dintel_ -DALLOW_NON_INIT/" Makefile.inc #-nofor_main seems to break here
 
   # TODO configure links to dependancies, vars: LIBBLAS, SCALAP, INCPAR, LIBPAR
   # d: double precision real (default), c: complex double, s: single precision real, z: single precision complex
