@@ -80,7 +80,10 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 
 # Checks for libraries.
+# BeBOP: matrix market file format
 AC_SEARCH_LIBS([load_sparse_matrix], [sparse_matrix_converter],,AC_MSG_ERROR([missing BeBOP sparse matrix I/O library]))
+#  BeBOP: some OSes don't see bebop_util.so properly even though its marked as a dependency of sparse_matrix_converter.so
+AC_SEARCH_LIBS([bebop_default_initialize], [bebop_util],,AC_MSG_ERROR([missing BeBOP utils]))
 
 AC_ARG_WITH(all-solvers, AS_HELP_STRING(--with-all-solvers, Force presence of all solvers))
 
