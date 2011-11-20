@@ -22,6 +22,7 @@
 * A = diag(1 2) and RHS = [1 4]ˆT
 * Solution is [1 2]ˆT */
 #include <stdio.h>
+#include <assert.h>
 #include "mpi.h"
 #include "dmumps_c.h"
 #define JOB_INIT -1
@@ -38,7 +39,9 @@ int main( int argc, char ** argv ) {
   int myid, ierr;
 
   ierr = MPI_Init( &argc, &argv );
+  assert(ierr == 0);
   ierr = MPI_Comm_rank( MPI_COMM_WORLD, &myid );
+  assert(ierr == 0);
   /* Define A and rhs */
   rhs[0] = 1.0;
   rhs[1] = 4.0;

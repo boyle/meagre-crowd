@@ -28,6 +28,8 @@ void do_nothing( int i ) {
   int j;
   for ( j = 0;j < i*1000;j++ )
     a[j%10] = i + j * ( i - 2 );
+  // avoid "variable set but not used" with -Werror -Wall
+  assert(a[0] != 0);
 }
 
 void test_basic();
