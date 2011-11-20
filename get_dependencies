@@ -622,6 +622,7 @@ else
 fi
 [[ ! -f ${METIS_PATH}/lib${METIS}.so ]] && err metis "can't find lib${METIS}.so at ${METIS_PATH}"
 METIS_DLIB="-L${METIS_PATH} -l${METIS}"
+[[ "$METIS" == "parmetis" ]] && METIS_DLIB="${METIS_DLIB} -lmetis ${MPI_DLIB}"
 info "  using ${METIS_PATH}/lib${METIS}.so"
 
 if [[ -n $SCOTCH ]]; then

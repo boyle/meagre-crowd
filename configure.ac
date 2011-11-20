@@ -80,10 +80,16 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 
 # Checks for libraries.
+
 # BeBOP: matrix market file format
 AC_SEARCH_LIBS([load_sparse_matrix], [sparse_matrix_converter],,AC_MSG_ERROR([missing BeBOP sparse matrix I/O library]))
 #  BeBOP: some OSes don't see bebop_util.so properly even though its marked as a dependency of sparse_matrix_converter.so
 AC_SEARCH_LIBS([bebop_default_initialize], [bebop_util],,AC_MSG_ERROR([missing BeBOP utils]))
+
+# MPI checks (meagre-crowd usees this too)
+AX_MPI()
+AC_SUBST(MPILIBS)
+
 
 AC_ARG_WITH(all-solvers, AS_HELP_STRING(--with-all-solvers, Force presence of all solvers))
 
@@ -154,10 +160,6 @@ MC_WITH_LIB([SuperLU_DIST], [superlu_gridinit],[superlu_dist])
 # TODO FIXME any MC_WITH_LIBS that come after pardiso is detected will fail if they don't have $OPENMP_CFLAGS since the .so doesn't have the dependency it needs
 MC_WITH_LIB([Pardiso], [pardisoinit],   [pardiso], [[AC_OPENMP AX_PTHREAD AC_F77_LIBRARY_LDFLAGS]], $FLIBS $OPENMP_CFLAGS $LIB_PTHREAD)
 MC_WITH_LIB([WSMP],    [pwgsmp_],       [pwsmp],   [[AC_OPENMP AX_PTHREAD AC_F77_LIBRARY_LDFLAGS]], $FLIBS $OPENMP_CFLAGS $LIB_PTHREAD)
-
-# MPI checks (meagre-crowd usees this too)
-AX_MPI()
-AC_SUBST(MPILIBS)
 
 # Checks for header files.
 AC_CHECK_HEADERS([float.h stdlib.h string.h sys/time.h])
