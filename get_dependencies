@@ -44,7 +44,7 @@ function info() {
   echo "* $*"
 }
 
-DEP_DIRS="mpi blas lapack blacs scalapack amd camd ccolamd colamd metis scotch cholmod mumps umfpack pardiso wsmp taucs superlu bebop"
+DEP_DIRS="mpi blas lapack blacs scalapack amd camd ccolamd colamd metis scotch cholmod mumps umfpack pardiso wsmp taucs superlu bebop matio"
 function help() {
   echo "$(basename $0) [options]"
   echo "  all: ${DEP_DIRS}"
@@ -82,6 +82,7 @@ while [ $# != 0 ]; do
     "taucs") TAUCS=1;;
     "superlu") SUPERLU=1;;
     "bebop") BEBOP=1;;
+    "matio") MATIO=1;;
     "nopar") PARALLEL_MAKE_DISABLED=yes;;
     "clean") echo "cleaning..." && rm -rf ${DEP_DIRS} && exit 0;;
     "distclean") echo "cleaning..." && rm -rf ${DEP_DIRS} && rm -rf ${INSTALL_BASE_DIR} && exit 0;;
@@ -111,6 +112,7 @@ if [[ -n $ALL ]]; then
   TAUCS=1
   SUPERLU=1
   BEBOP=1
+  MATIO=1
 fi
 
 # dependencies
@@ -957,9 +959,23 @@ if [[ -n $BEBOP ]]; then
   cp ${S}/bebop/sparse_matrix_converter/include/bebop/smc/*.h ${INSTALL_INC_DIR}/bebop/smc/
 fi
 
+if [[ -n $MATIO ]]; then
+  info "MAT File I/O Library"
+  # the last release hasn't been in more than a year: use the git repo
+  git clone git://matio.git.sourceforge.net/gitroot/matio/matio ${S}/matio
+  cd ${S}/matio
+  # wow: software that has been properly packaged!
+  ./bootstrap || err matio "bootstrap"
+  ./configure --prefix="${INSTALL_BASE_DIR}" || err matio "configure"
+  make || err matio "make"
+  make install || err matio "make install"
+fi
+
 #sleep 2
 touch ${INSTALL_LIB_DIR}
 
 TOC=$(date +%s)
 let DELTA=${TOC}-${TIC}
+
+
 info "Finished $(date) (${DELTA}s)"  #TODO $(date --date=${DELTA} +%T))"
