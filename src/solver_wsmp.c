@@ -47,7 +47,7 @@ void pwgsmp_( int* N, int* IA, int* JA, double* AVALS, double* B, int* LDB, int*
 
 enum wsmp_solver_stages { WSMP_INIT = 0, WSMP_ANALYZE = 1, WSMP_FACTORIZE = 2, WSMP_EVALUATE = 3, WSMP_ITERATIVE_REFINEMENT = 4 }; // IPARM(2,3)
 enum wsmp_solver_format { WSMP_CSR = 0, WSMP_CSC = 1 }; // IPARM(4)
-enum wsmp_solver_errors { NO_ERROR = 0 };
+enum wsmp_solver_errors { NO_ERROR = 0, LICENSE_ERROR = -900 };
 
 
 #define IPARM(I) iparm[(I)-1]
@@ -207,8 +207,14 @@ void solver_analyze_wsmp( solver_state_t* s, matrix_t* A ) {
     pwgsmp_( &N, NULL, NULL, NULL, NULL, &TEST, NULL, NULL, p->iparm, p->dparm);
   }
   const int error_code = p->IPARM(64);
-  if ( error_code != NO_ERROR )
-    fprintf( stderr, "error: wsmp analyze code %d\n", error_code ); // TODO decode
+  if ( error_code != NO_ERROR ) {
+    if( error_code == LICENSE_ERROR ) {
+      fprintf( stderr, "error: wsmp analyze code %d -- license expired or not found\n", error_code ); // TODO decode
+    }
+    else {
+      fprintf( stderr, "error: wsmp analyze code %d\n", error_code ); // TODO decode
+    }
+  }
   assert( error_code == NO_ERROR );
 }
 
