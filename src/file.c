@@ -42,6 +42,14 @@ static inline
   int read_mat(char const *const filename,
                matrix_t *const A);
 
+
+// save a .mat matlab matrix
+// will store a single matrix (sparse or dense) in a .mat file
+// returns 0 on success
+static
+  int write_mat(char const *const filename,
+               matrix_t *const A);
+
 // Other formats we should support:
 //   Harwell-Boeing (CSC format),
 //   GAMFF (NASA Ames) (graphs, sparse matrices as HB?, dense matrices)
@@ -658,6 +666,9 @@ int load_matrix( char* n, matrix_t* A ) {
   return 0; // success
 }
 
+static inline
+int writemm( char const* const filename, matrix_t* AA, char const * const comment, enum sparse_matrix_file_format_t ext );
+
 // save a matrix into file "n" from matrix A
 // returns 0: success, 1: failure
 int save_matrix( matrix_t* AA, char* n ) {
@@ -671,7 +682,20 @@ int save_matrix( matrix_t* AA, char* n ) {
   if (( ret = _identify_format_from_extension( n, &ext, 0 ) ) != 0 )
     return ret;
 
+  switch(ext) {
+    case MATRIX_MARKET:  ret = writemm( n, AA, NULL, ext ); break; // NULL = ignore comments
+    case MATLAB:         ret = write_mat( n, AA ); break;
+    case HARWELL_BOEING: ret = 100; assert(0); break; // shouldn't be able to get here
+  }
+  if ( ret != 0 )
+    fprintf( stderr, "output error: Failed to store matrix\n"); // TODO move these printouts to main...
+  return ret;
+}
+
+static inline
+int writemm( char const* const filename, matrix_t* AA, char const * const comment, enum sparse_matrix_file_format_t ext ) {
   // make sure we're in the right format (COO) and base 0
+  int ret;
   if (( ret = convert_matrix( AA, SM_COO, FIRST_INDEX_ZERO ) ) != 0 )
     return ret;
   assert( AA->format == SM_COO );
@@ -696,7 +720,7 @@ int save_matrix( matrix_t* AA, char* n ) {
   Acoo.value_type = REAL;
   Acoo.ownership = USER_DEALLOCATES; // don't let BeBOP blow away our data
 
-  save_sparse_matrix( n, &A, ext );
+  save_sparse_matrix( filename, &A, ext );
   return 0; // success
 }
 
@@ -738,15 +762,16 @@ static int _identify_format_from_extension( char* n, enum sparse_matrix_file_for
   }
   else if (( s > 4 ) && ( strncmp( e - 1, ".mat", 100 ) == 0 ) ) {
     *ext = MATLAB;
-    if ( is_input )
 #ifdef HAVE_MATIO
-      return 0;
+    return 0;
 #else
+    if ( is_input )
       fprintf( stderr, "input error: Matlab file reader was not enabled\n" );
-#endif // HAVE_MATIO
     else
-      fprintf( stderr, "error: Sorry Matlab writer is broken\n" );
+      fprintf( stderr, "output error: Matlab file writer was not enabled\n" );
     return 1; // failure
+#endif // HAVE_MATIO
+      fprintf( stderr, "error: Sorry Matlab writer is broken\n" );
   } // TODO test if the matlab reader is actually busted
   else {
     if ( is_input )
@@ -757,6 +782,60 @@ static int _identify_format_from_extension( char* n, enum sparse_matrix_file_for
   }
 }
 
+// save a .mat matlab matrix
+// will store a single matrix (sparse or dense) in a .mat file
+// returns 0 on success
+static
+  int write_mat(char const *const filename,
+               matrix_t *const A) {
+#ifndef HAVE_MATIO
+  return 1;
+#else
+  const char created_by[] = "created by " PACKAGE_STRING; // "created by Meagre-Crowd x.y.z"
+  mat_t* matfp;
+  matfp = Mat_Create(filename, created_by);
+  if(matfp == NULL)
+    return 1; // failed to open file
+
+  // create a matrix convert into
+  matvar_t* t = NULL;
+  int ret = 0;
+  if(A->format == DCOL || A->format == DROW) { // dense
+    ret = convert_matrix(A, DCOL, FIRST_INDEX_ZERO); // DROW -> DCOL if DROW
+    if(ret != 0)
+      ret = 2; // conversion failure
+
+    if(ret == 0) {
+      // TODO check for integer overflow in cast from unsigned int -> int
+      size_t dims[] = { A->m, A->n };
+      t = Mat_VarCreate( "x",
+			 MAT_C_DOUBLE,
+			 MAT_T_DOUBLE,
+			 2, // always at least rank 2
+			 dims,
+			 A->dd,
+			 0 // MAT_F_COMPLEX if complex, could avoid copying data: MAT_F_DONT_COPY_DATA if not sparse
+		       );
+
+      if(t == NULL) {
+	ret = 3; // failed to malloc data for storage
+      }
+      else {
+	ret = Mat_VarWrite(matfp, t, 1); // compress
+	if(ret != 0)
+	  ret = 4; // failed data write
+      }
+    }
+  }
+  else { // sparse
+    assert(0); // do we ever get sparse results?
+  }
+
+  Mat_Close(matfp);
+  Mat_VarFree(t);
+  return ret; // success?
+#endif
+}
 
 // load a .mat matlab matrix
 // will load the first matrix (sparse or dense) in the file
@@ -877,3 +956,4 @@ static
   return ret; // success?
 #endif
 }
+
