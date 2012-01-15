@@ -22,7 +22,7 @@
 AC_PREREQ([2.65])
 AC_INIT([meagre-crowd],[0.4.6],[<meagre-crowd@googlegroups.com>])
 
-AC_COPYRIGHT([Copyright (C) 2010, 2011 Alistair Boyle])
+AC_COPYRIGHT([Copyright (C) 2010, 2011, 2012 Alistair Boyle])
 
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -83,12 +83,32 @@ AM_PROG_CC_C_O
 
 # BeBOP: matrix market file format
 AC_SEARCH_LIBS([load_sparse_matrix], [sparse_matrix_converter],,AC_MSG_ERROR([missing BeBOP sparse matrix I/O library]))
-#  BeBOP: some OSes don't see bebop_util.so properly even though its marked as a dependency of sparse_matrix_converter.so
-AC_SEARCH_LIBS([bebop_default_initialize], [bebop_util],,AC_MSG_ERROR([missing BeBOP utils]))
+ #  BeBOP: some OSes don't see bebop_util.so properly even though its marked as a dependency of sparse_matrix_converter.so
+ AC_SEARCH_LIBS([bebop_default_initialize], [bebop_util],,AC_MSG_ERROR([missing BeBOP utils]))
+
+# MATio: matlab matrix I/O library
+AC_ARG_WITH(mat,
+    AS_HELP_STRING(--without-mat, [Ignore presence of matlab .mat library (matio) and disable it]))
+ dnl test for library unless explicitly disabled
+ AS_IF([test "x$with_mat" != "xno"],
+      [
+        AC_SEARCH_LIBS([Mat_Open],[matio],have_matio=yes,have_matio=no)
+      ],
+      [have_matio=no
+      AC_MSG_CHECKING(for library containing Mat_Open)
+      AC_MSG_RESULT(<skipped>)]
+      )
+ dnl if its found, then all good
+ dnl if it wasn't found and it was required, then error
+ AS_IF([test "x$have_matio" = "xyes"], [AC_DEFINE(HAVE_MATIO,1,[matlab .mat library (matio) is available])],
+       [test "x$with_mat" = "xyes"], [AC_MSG_ERROR([matlab .mat library (matio) requested but not found])]
+      )
+ AM_CONDITIONAL([HAVE_MATIO],[test "x$have_matio" = "xyes"])
+ AC_SUBST([have_matio])
 
 # MPI checks (meagre-crowd usees this too)
 AX_MPI()
-AC_SUBST(MPILIBS)
+ AC_SUBST(MPILIBS)
 
 
 AC_ARG_WITH(all-solvers, AS_HELP_STRING(--with-all-solvers, Force presence of all solvers))
@@ -184,3 +204,33 @@ AC_MSG_CHECKING(for beer in the fridge)
   AC_MSG_RESULT(all systems go)
 
 AC_OUTPUT
+
+
+AC_MSG_RESULT([])
+AC_MSG_RESULT([   Meagre-Crowd Configuration Summary       ])
+AC_MSG_RESULT([==============================================================])
+AC_MSG_RESULT([           C Compiler: $CC])
+dnl AC_MSG_RESULT([     Fortran Compiler: $FC])
+AC_MSG_RESULT([               CFLAGS: $CFLAGS])
+dnl AC_MSG_RESULT([              FCFLAGS: $FCFLAGS])
+dnl AC_MSG_RESULT([            FCLDFLAGS: $FCLDFLAGS])
+dnl AC_MSG_RESULT([     Shared Libraries: $enable_shared])
+dnl AC_MSG_RESULT([     Static Libraries: $enable_static])
+AC_MSG_RESULT([])
+AC_MSG_RESULT([Features --------------------------------------------])
+dnl AC_MSG_RESULT([    Fortran Interface: $enable_fortran])
+dnl AC_MSG_RESULT([MAT v7.3 file support: $mat73])
+AC_MSG_RESULT([])
+AC_MSG_RESULT([Packages --------------------------------------------])
+AC_MSG_RESULT([                MatIO: $have_matio])
+AC_MSG_RESULT([])
+AC_MSG_RESULT([Solvers  --------------------------------------------])
+AC_MSG_RESULT([              UMFPACK: $have_umfpack])
+AC_MSG_RESULT([                MUMPS: $have_mumps])
+AC_MSG_RESULT([              CHOLMOD: $have_cholmod])
+AC_MSG_RESULT([                TAUCS: $have_taucs])
+AC_MSG_RESULT([              Pardiso: $have_pardiso])
+AC_MSG_RESULT([                 WSMP: $have_wsmp])
+AC_MSG_RESULT([         SuperLU_DIST: $have_superlu_dist])
+AC_MSG_RESULT([])
+AC_MSG_RESULT([])

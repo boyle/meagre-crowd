@@ -31,6 +31,16 @@
 #include <bebop/smc/sparse_matrix_ops.h> // load_sparse_matrix
 #include <bebop/smc/coo_matrix.h> // convert to coo
 
+#ifdef HAVE_MATIO
+  #include <matio.h>
+#endif
+
+// load a .mat matlab matrix
+// will load the first matrix (sparse or dense) in the file
+// returns 0 on success
+static inline
+  int read_mat(char const *const filename,
+               matrix_t *const A);
 
 // Other formats we should support:
 //   Harwell-Boeing (CSC format),
@@ -50,6 +60,27 @@
 static inline int readmm_header(FILE* f, int* object, int* format, int* datatype, int* symmetry, int* rows, int* cols, int* nz, char** comments);
 static inline int readmm_data_dense(FILE* f, matrix_t* A, int datatype, int symmetry, int rows, int cols, int nz);
 static inline int readmm_data_sparse(FILE* f, matrix_t* A, int datatype, int symmetry, int rows, int cols, int nz);
+
+
+// read a MatrixMarket formatted file
+// input  'filename' to read
+//        'pref_dense_format'  - if the file turns out to be a dense matrix we'd prefer it to be stored in this format
+//           valid values: DCOL, DROW
+//        'pref_sparse_format' - if the file turns out to be a sparse matrix we'd prefer it to be stored in this format
+//           valid values: SM_COO, SM_CSC, SM_CSR
+// output '*A' is a pointer to the matrix structure to load the data into,
+//                   if NULL no data is loaded
+//        '**comments' is a pointer to a string that will be allocated, of all
+//                   comments collected from the file (for use with
+//                   structured comments, parsed by some other function,
+//                   if NULL, no comments are returned
+// returns  0 on success, <0 on failure
+//          readmm_error(ret) gives a string explaining the error
+int readmm(char const *const filename,
+           matrix_t *const A,
+	   char** comments);
+
+char const * readmm_strerror(int err);
 
 char const * readmm_strerror(int err) {
   char const * ret;
@@ -298,7 +329,7 @@ int readmm_data_dense(FILE* f, matrix_t* A, int datatype, int symmetry, int rows
 // TODO refactor and merge with readmm_data_dense?
 int readmm_data_sparse(FILE* f, matrix_t* A, int datatype, int symmetry, int rows, int cols, int nz) {
   A->format = SM_COO;
-  
+
   switch(symmetry) { // 0 general, 1 symmetric, 2 skew-symmetric, 3 hermitian
     case 0:
       A->sym = SM_UNSYMMETRIC;
@@ -593,6 +624,8 @@ int is_eol(const char c) { // end of line excluding ' ' & \t
   return isspace(c) && !isblank(c);
 }
 
+static int _identify_format_from_extension( char* n, enum sparse_matrix_file_format_t* ext, int is_input );
+
 // load a matrix from file "n" into matrix A
 // returns 0: success, <0 failure
 int load_matrix( char* n, matrix_t* A ) {
@@ -601,8 +634,19 @@ int load_matrix( char* n, matrix_t* A ) {
     fprintf( stderr, "input error: No input specified (-i)\n" );
     return 1; // failure
   }
+  // make sure we don't have a memory leak
+  clear_matrix(A);
 
-  int ret = readmm( n, A, NULL ); // NULL = ignore comments
+  int ret;
+  enum sparse_matrix_file_format_t ext;
+  if (( ret = _identify_format_from_extension( n, &ext, 1 ) ) != 0 )
+    return ret;
+
+  switch(ext) {
+    case MATRIX_MARKET:  ret = readmm( n, A, NULL ); break; // NULL = ignore comments
+    case MATLAB:         ret = read_mat( n, A ); break;
+    case HARWELL_BOEING: ret = 100; assert(0); break; // shouldn't be able to get here
+  }
   if ( ret != 0 ) {
     fprintf( stderr, "input error: Failed to load matrix\n"); // TODO move these printouts to main...
     return ret;
@@ -613,8 +657,6 @@ int load_matrix( char* n, matrix_t* A ) {
 
   return 0; // success
 }
-
-static int _identify_format_from_extension( char* n, enum sparse_matrix_file_format_t* ext, int is_input );
 
 // save a matrix into file "n" from matrix A
 // returns 0: success, 1: failure
@@ -697,7 +739,11 @@ static int _identify_format_from_extension( char* n, enum sparse_matrix_file_for
   else if (( s > 4 ) && ( strncmp( e - 1, ".mat", 100 ) == 0 ) ) {
     *ext = MATLAB;
     if ( is_input )
-      fprintf( stderr, "input error: Sorry Matlab reader is broken\n" );
+#ifdef HAVE_MATIO
+      return 0;
+#else
+      fprintf( stderr, "input error: Matlab file reader was not enabled\n" );
+#endif // HAVE_MATIO
     else
       fprintf( stderr, "error: Sorry Matlab writer is broken\n" );
     return 1; // failure
@@ -709,4 +755,125 @@ static int _identify_format_from_extension( char* n, enum sparse_matrix_file_for
       fprintf( stderr, "output error: Unrecognized file extension\n" );
     return 1; // failure
   }
+}
+
+
+// load a .mat matlab matrix
+// will load the first matrix (sparse or dense) in the file
+// returns 0 on success
+static
+  int read_mat(char const *const filename,
+               matrix_t *const A) {
+#ifndef HAVE_MATIO
+  return 1;
+#else
+  const int LOCAL_DEBUG = 0;
+  mat_t* matfp;
+  matfp = Mat_Open(filename, MAT_ACC_RDONLY);
+  if(matfp == NULL)
+    return 1; // failed to open file
+
+  matvar_t* t;
+  int more_data = 1;
+
+  while (more_data) {
+    t = Mat_VarReadNextInfo(matfp);
+    if(t == NULL) {
+      return 2; // no suitable variable found
+    }
+// TODO decide if this is the one:    if(t->
+    if(1) {
+      more_data = 0;
+    }
+    else { // keep going
+      Mat_VarFree(t);
+      t = NULL;
+    }
+  }
+
+  { // load the selected variable, including data
+    Mat_Rewind(matfp);
+    matvar_t* tt = Mat_VarRead(matfp, t->name);
+    Mat_VarFree(t);
+    t = tt;
+    if(LOCAL_DEBUG) Mat_VarPrint(tt, 1);
+  }
+
+  // debug info
+  if(LOCAL_DEBUG && t->name != NULL)
+    printf("%s: loaded variable %s\n", filename, t->name);
+
+  // checks and data handling
+  int ret = 0;
+
+  if(t->rank > 2 || t->rank <= 0) { // number of dimensions
+    ret = 2;
+  }
+  else if(t->data_type != MAT_T_DOUBLE) {
+    if(LOCAL_DEBUG) printf("data_type=%d\n",t->data_type);
+    ret = 3;
+  }
+  else if(t->isComplex) {
+    ret = 10; // TODO can't handle complex matrices yet
+  }
+  else if(t->isLogical) {
+    ret = 11; // TODO can't handle logicals yet
+  }
+  else {
+    if(t->rank == 1) {
+      A->m = t->dims[0]; // rows
+      A->n = 1; // cols
+    }
+    else {
+      A->m = t->dims[0]; // rows
+      A->n = t->dims[1]; // cols
+    }
+    A->sym = SM_UNSYMMETRIC;
+    //if(t->data_type == MAT_T_DOUBLE) {
+    A->data_type = REAL_DOUBLE;
+    //} // TODO complex, single precision, various sized integers
+
+    if(t->class_type == MAT_C_SPARSE) { // t.data = sparse_t in CSC format
+      // Note that Matlab will save('-v4'...) a sparse matrix
+      // to version 4 format without complaint but it appears
+      // to be gibberish as far as MatIO is concerned
+      sparse_t* st = t->data;
+      A->nz = st->ndata; //st->nzmax has the actual size of the allocated st->data
+      A->format = SM_CSC;
+      // transfer the data pointer into our strucut
+      // TODO check for negative values in ir/jc before throwing away their signs
+      A->ii = (unsigned int*) st->ir;
+      st->ir = NULL;
+      A->jj = (unsigned int*) st->jc;
+      st->jc = NULL;
+      A->dd = st->data;
+      st->data = NULL;
+    }
+    else if(t->class_type == MAT_C_DOUBLE) {
+      A->nz = A->m * A->n;
+      A->format = DCOL;
+      // transfer the data pointer into our struct
+      A->dd = t->data;
+      t->data = NULL;
+    }
+    else {
+      ret = 4; // unknown class of data structure
+    }
+  }
+
+  // DEBUG
+  if(LOCAL_DEBUG && validate_matrix(A) != 0) {
+    ret = 50;
+    fprintf(stderr, "problem loading .mat matrix file\n");
+    printf_matrix("  ", A);
+  }
+
+  // sanity checks
+  // t.dims[] is don't-care
+  // t.isGlobal is don't-care
+
+  Mat_Close(matfp);
+  Mat_VarFree(t);
+  return ret; // success?
+#endif
 }

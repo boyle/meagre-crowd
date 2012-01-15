@@ -158,9 +158,9 @@ heterogeneous solvers (generally using SMP).\n\
 Matrices are available through the Harwell-Boeing sparse matrix\n\
 collection and the University of Florida sparse matrix collection.\n\
 \n\
-Limitations: currently only 'Matrix Market' format is supported (*.mm).\n\
+Limitations: currently only 'Matrix Market' format (*.mm) and\n\
+  Matlab format (*.mat) are supported (if enabled).\n\
   (The Rutherford/Harwell-Boeing format loader is broken. *.hb, *.rb)\n\
-  (MatLab format *.mat is unsupported.)\n\
 \n\
 Options:"
                         ;

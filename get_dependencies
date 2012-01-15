@@ -966,7 +966,7 @@ if [[ -n $MATIO ]]; then
   cd ${S}/matio
   # wow: software that has been properly packaged!
   ./bootstrap || err matio "bootstrap"
-  ./configure --prefix="${INSTALL_BASE_DIR}" || err matio "configure"
+  ./configure --prefix="${INSTALL_BASE_DIR}" --disable-static || err matio "configure"
   make || err matio "make"
   make install || err matio "make install"
 fi

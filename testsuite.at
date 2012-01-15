@@ -1,5 +1,5 @@
  # Meagre-Crowd: A sparse distributed matrix solver testbench for performance benchmarking.
- # Copyright (C) 2010 Alistair Boyle <alistair.js.boyle@gmail.com>
+ # Copyright (C) 2010,2011,2012 Alistair Boyle <alistair.js.boyle@gmail.com>
  #
  #     This file is part of Meagre-Crowd.
  #
@@ -17,7 +17,7 @@
  #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 AT_INIT()
-AT_COPYRIGHT([Copyright (C) 2010, Alistair Boyle])
+AT_COPYRIGHT([Copyright (C) 2010,2011,2012 Alistair Boyle])
 AT_COLOR_TESTS
 
 AT_TESTED(AT_PACKAGE_NAME)
@@ -25,7 +25,14 @@ AT_TESTED(AT_PACKAGE_NAME)
 m4_define(MC_DATA_FILE_TEST_MM,[AT_DATA([unsym.mm],]m4_include(tests/unsym.mm)[)])
 m4_define(MC_DATA_FILE_TEST_RB,[AT_DATA([test.rb],]m4_include(tests/test.rb)[)])
 m4_define(MC_DATA_FILE_TEST_HB,[AT_DATA([test.hb],]m4_include(tests/test.hb)[)])
-m4_define(MC_DATA_FILE_TEST_MAT,[AT_DATA([test.mat],]m4_include(tests/test.mat)[)])
+dnl need to convert the binary file to safe text to stash it in the testsuite script
+m4_define(MC_DATA_FILE_TEST_MAT,
+  [AT_DATA([unsym7.mat-xxd],m4_esyscmd(xxd -p tests/unsym7sp.mat))]
+  xxd -r -p unsym7.mat-xxd > unsym7.mat
+  diff unsym7.mat ../../../tests/unsym7.mat
+)
+dnl m4_define(MC_DATA_FILE_TEST_MAT,[AT_DATA([unsym7.mat-xxd],]m4_esyscmd(xxd tests/unsym7.mat)[)])
+dnl  m4_syscmd(xxd -r unsym7.mat-xxd > unsym7.mat)])
 m4_define(MC_DATA_FILE_TEST_MM_SYM,[AT_DATA([sym.mm],]m4_include(tests/sym.mm)[)])
 m4_define(MC_DATA_FILE_TEST_MM_SYM_POSDEF,[AT_DATA([sym_posdef.mm],]m4_include(tests/sym_posdef.mm)[)])
 
@@ -270,20 +277,17 @@ AT_KEYWORDS([func])
 MC_DATA_FILE_TEST_MM
 AT_CHECK(AT_PACKAGE_NAME -i unsym.mm,0,ignore)
 MC_DATA_FILE_TEST_RB
-dnl AT_CHECK(AT_PACKAGE_NAME -i test.rb,1,,[input error: Sorry Rutherford-Boeing reader is broken
-dnl ])
-AT_CHECK(AT_PACKAGE_NAME -i test.rb,1,,[input error: Failed to load matrix
+AT_CHECK(AT_PACKAGE_NAME -i test.rb,1,,[input error: Sorry Rutherford-Boeing reader is broken
 ])
 MC_DATA_FILE_TEST_HB
-dnl AT_CHECK(AT_PACKAGE_NAME -i test.hb,1,,[input error: Sorry Harwell-Boeing reader is broken
-dnl ])
-AT_CHECK(AT_PACKAGE_NAME -i test.rb,1,,[input error: Failed to load matrix
+AT_CHECK(AT_PACKAGE_NAME -i test.hb,1,,[input error: Sorry Harwell-Boeing reader is broken
 ])
 MC_DATA_FILE_TEST_MAT
-dnl AT_CHECK(AT_PACKAGE_NAME -i test.mat,1,,[input error: Sorry Matlab reader is broken
-dnl ])
-AT_CHECK(AT_PACKAGE_NAME -i test.rb,1,,[input error: Failed to load matrix
+AS_IF([test "x$have_matio" == "xyes"],
+  AT_CHECK(AT_PACKAGE_NAME -i unsym7.mat,0,ignore),
+  AT_CHECK(AT_PACKAGE_NAME -i unsym7.mat,1,,[input error: Sorry Matlab reader is broken
 ])
+)
 AT_CLEANUP
 
 

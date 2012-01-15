@@ -132,7 +132,8 @@ static inline int _convert_matrix_A( const int solver, matrix_t* A ) {
       break;
     case DROW:
     case DCOL:
-      assert(0); // TODO .. decide if we should be doing this in a sparse format?
+      format = SM_COO; // set default, then drop through to COO
+//      assert(0); // TODO .. decide if we should be doing this in a sparse format?
     case SM_COO:
       if(!(c & SOLVES_FORMAT_COO)) { // can't handle COO format... figure out what to do next
         if(c & SOLVES_FORMAT_CSR) {

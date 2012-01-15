@@ -1,4 +1,5 @@
-dnl config setup for skipping various tests
+# config setup for skipping various tests
+have_matio=@have_matio@
 have_mumps=@have_mumps@
 have_umfpack=@have_umfpack@
 have_cholmod=@have_cholmod@

@@ -82,7 +82,7 @@ EXTRA_DIST = get_dependencies $(bin_SCRIPTS) \
 	     tests/rhs1.mm \
 	     tests/unsym-default-ans.mm tests/sym-default-ans.mm tests/sym_posdef-default-ans.mm \
 	     tests/unsym-rhs1-ans.mm tests/sym-rhs1-ans.mm tests/sym_posdef-rhs1-ans.mm \
-	     tests/test.hb tests/test.rb tests/test.mat \
+	     tests/test.hb tests/test.rb tests/unsym7sp.mat \
              ChangeLog README NEWS INSTALL LICENSE COPYING COPYING.LESSER
 
 #TESTS = $(BUILT_TESTS)
@@ -93,6 +93,8 @@ tests_unit_matrix_SOURCES = tests/unit-matrix.c src/matrix.c
 tests_unit_matrix_CPPFLAGS = -I$(srcdir)/src
 
 clean-local: clean-local-check
+	  -rm -f src/*.lo
+
 maintainer-clean-local:
 	-rm -f COPYING COPYING.LESSER aclocal.m4 configure ChangeLog Makefile.in src/config.h.in*
 	-rm -rf build-aux .deps
