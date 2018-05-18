@@ -15,21 +15,26 @@ MPICH2_MPI_VER="1.2.1p1"
 MPICH1_MPI_VER="1.2.7p1"
 OPENMPI_MPI_VER="1.4.3"
 CILK_VER="5.4.6"
-ATLAS_BLAS_VER=3.8.3 #latest stable
+ATLAS_BLAS_VER=3.8.3
+NETLIB_BLAS_VER=3.8.0
+SCALAPACK_VER=2.0.2
 LAPACK_VER=3.3.0
+SUITESPARSE_VER=5.1.2
+# SuiteSparse now includes: cholmod, umfpack, metis, spqr, blu/btf, amd, camd, colamd, ccolamd, ... etc
+
 # orderings
-AMD_VER=2.2.1
-CAMD_VER=2.2.1
-CCOLAMD_VER=2.7.2 # required by CHOLMOD
-COLAMD_VER=2.7.2
-  UFPACK_VER=3.5.0
-PARMETIS_VER=3.1.1
-METIS_VER=4.0.3
-SCOTCH_VER="5.1.10b"
-CHOLMOD_VER=1.7.1 # can use Metis-4
+# AMD_VER=2.2.1
+# CAMD_VER=2.2.1
+# CCOLAMD_VER=2.7.2 # required by CHOLMOD
+# COLAMD_VER=2.7.2
+#   UFPACK_VER=3.5.0
+# PARMETIS_VER=3.1.1
+# METIS_VER=5.1.0 # was 4.0.3
+# SCOTCH_VER="5.1.10b"
+# CHOLMOD_VER=1.7.1 # can use Metis-4
+
 # solvers
 MUMPS_VER=4.9.2
-# Note: no versionable downloads for netlib BLAS, ScaLAPACK
 UMFPACK_VER=5.5.0
 TAUCS_VER=2.2
 SUPERLU_VER=2.5
@@ -44,7 +49,8 @@ function info() {
   echo "* $*"
 }
 
-DEP_DIRS="mpi blas lapack blacs scalapack amd camd ccolamd colamd metis scotch cholmod mumps umfpack pardiso wsmp taucs superlu bebop matio"
+DEP_DIRS="mpi blas lapack blacs scalapack suitesparse mumps pardiso wsmp taucs superlu bebop matio"
+# suitesparse = amd camd ccolamd colamd cholmod umfpack metis scotch
 function help() {
   echo "$(basename $0) [options]"
   echo "  all: ${DEP_DIRS}"
@@ -61,6 +67,7 @@ INSTALL_BASE_DIR=${PWD}/${MACHINE}
 
 while [ $# != 0 ]; do
   case $1 in
+    "all") ALL=1;;
     "mpi") MPI_BUILD=1;;
     "cilk") CILK=1;;
     "blas") BLAS_BUILD=1;;
@@ -68,15 +75,8 @@ while [ $# != 0 ]; do
     "lapack") LAPACK_BUILD=1;;
     "blacs") BLACS=1;;
     "scalapack") SCALAPACK=1;;
-    "amd") AMD=1;;
-    "camd") CAMD=1;;
-    "ccolamd") CCOLAMD=1;;
-    "colamd") COLAMD=1;;
-    "metis") METIS_BUILD=1;;
-    "scotch") SCOTCH=1;;
-    "cholmod") CHOLMOD=1;;
+    "suitesparse") SUITESPARSE=1;;
     "mumps") MUMPS=1;;
-    "umfpack") UMFPACK=1;;
     "pardiso") PARDISO=1;;
     "wsmp") WSMP_BUILD=1;;
     "taucs") TAUCS=1;;
@@ -92,25 +92,18 @@ while [ $# != 0 ]; do
 done
 if [[ -n $ALL ]]; then
   MPI_BUILD=1
-  CILK=1
+#  CILK=1
   BLAS_BUILD=1
   CBLAS_BUILD=1
   LAPACK_BUILD=1
   BLACS=1
   SCALAPACK=1
-  AMD=1
-  CAMD=1
-  CCOLAMD=1
-  COLAMD=1
-  METIS_BUILD=1
-  SCOTCH=1
-  CHOLMOD=1
+  SUITESPARSE=1
   MUMPS=1
-  UMFPACK=1
   PARDISO=1
   WSMP_BUILD=1
-  TAUCS=1
-  SUPERLU=1
+#  TAUCS=1
+#  SUPERLU=1
   BEBOP=1
   MATIO=1
 fi
@@ -332,8 +325,8 @@ if [[ -n $BLAS_BUILD ]]; then
       ${MAKE} install || err blas "install failed"
     ;;
     "netlib" )
-      get_and_unpack blas http://www.netlib.org/blas/blas.tgz
-      cd ${S}/blas/BLAS
+      get_and_unpack blas http://www.netlib.org/blas/blas-${NETLIB_BLAS_VER}.tgz
+      cd ${S}/blas/BLAS-${NETLIB_BLAS_VER}
       sed -i s/_LINUX/-${MACHINE}/ make.inc
       sed -i s/g77/gfortran/ make.inc
       sed -i "s/\(^OPTS *=\) .*/\1 -O3 -fPIC/" make.inc
@@ -394,77 +387,6 @@ fi
 LAPACK_DLIB="-L${LAPACK_PATH} -llapack"
 info "  using ${LAPACK_PATH}/liblapack.so"
 
-# BLACS is now included in scaLAPACK as of 2.0
-## if [[ -n $BLACS ]]; then
-##   # get BLACS [ScaLAPACK communications]
-##   info "BLACS"
-##   cd ${S}
-##   get_and_unpack blacs http://www.netlib.org/blacs/mpiblacs.tgz
-##   info "  patching"
-##   get_and_unpack blacs http://www.netlib.org/blacs/mpiblacs-patch03.tgz
-##   cd ${S}/blacs/BLACS
-##   cp BMAKES/Bmake.MPI-LINUX Bmake.inc
-##   # fix up makefile
-##   # Note: have to escape paths to make sed happy
-##   sed -i "s/\(F77  *=\) .*/\1 ${MPIF77//\//\\/}/" Bmake.inc
-##   sed -i "s/\(CC  *=\) .*/\1 ${MPICC//\//\\/}/" Bmake.inc
-##   sed -i "s/\(BTOPdir =\) .*/\1 ${PWD//\//\\/}/" Bmake.inc
-##   sed -i "s/\(PLAT =\) .*/\1 ${MACHINE}/" Bmake.inc
-##   sed -i "s/\(MPIdir =\) .*/\1 ${MPI_PATH//\//\\/}/" Bmake.inc
-##   sed -i "s/\(MPILIB =\) .*/\1 ${MPI_DLIB//\//\\/}/" Bmake.inc
-##   sed -i "s/\(F77NO_OPTFLAGS =\) .*/\1 -fPIC/" Bmake.inc
-##   sed -i "s/\(CCFLAGS.*=\) .*/\1 -O4 -fPIC/" Bmake.inc
-##   # from INSTALL/EXE/xintface helper program
-##   sed -i "s/\(INTFACE.*=\) .*/\1 -DAdd_/" Bmake.inc
-##   # from INSTALL/EXE/xtc_CsameF77 helper program
-##   # TODO when next line is uncommented F works C fails, and vice-versa for commenting it (C works, but not F)
-##   # TODO F version hangs on repeated sums test (xFbtest)
-##   sed -i "s/\(TRANSCOMM.*=\) .*/\1 -DUseMpi2/" Bmake.inc
-##   #sed -i "s/\(TRANSCOMM.*=\) .*/\1 /" Bmake.inc
-##   #sed -i "s/\(WHATMPI.*=\) .*/\1 -DUseCMpi/" Bmake.inc
-##   # for openmpi, must fix for mpif.h
-##   info "    MPI is ${MPI}"
-##   if [ ${MPI} == "openmpi" ]; then
-##     sed -i 's/ln -s $(MPIINCdir)\/mpif.h mpif.h/ln -s $(MPIINCdir)\/mpif*.h ./' SRC/MPI/Makefile
-##     sed -i 's/mpif.h/mpif*.h/' SRC/MPI/Makefile
-##   fi
-##   info "  build"
-##   ${MAKE} mpi &> /dev/null || err blacs "build failed"
-##   for i in blacsCinit blacsF77init blacs; do # rename
-##     cp LIB/${i}_MPI-${MACHINE}-0.a  ${INSTALL_LIB_DIR}/libmpi${i}.a
-##   done
-##   # Note: blacs is stupid - try and fix the broken circular dependancies w/in
-##   mkdir t
-##   cd t
-##   cp ${INSTALL_LIB_DIR}/libmpiblacsCinit.a .
-##   cp ${INSTALL_LIB_DIR}/libmpiblacsF77init.a .
-##   cp ${INSTALL_LIB_DIR}/libmpiblacs.a .
-##   ar x libmpiblacsF77init.a
-##   ar x libmpiblacs.a
-##   ar x libmpiblacsF77init.a
-##   for i in *.C; do
-##     mv $i ${i/.C/.oo}
-##   done
-##   gcc -shared *.o *.oo -Wl,-rpath,${INSTALL_LIB_DIR} -o libblacs-mpi-f77.so ${MPI_DLIB} -lmpi_f77
-##   mv libblacs-mpi-f77.so ${INSTALL_LIB_DIR}/
-##   rm *.o
-##   ar x libmpiblacsCinit.a
-##   ar x libmpiblacs.a
-##   ar x libmpiblacsCinit.a
-##   for i in *.C; do
-##     mv $i ${i/.C/.oo}
-##   done
-##   gcc -shared *.o *.oo -Wl,-rpath,${INSTALL_LIB_DIR} -o libblacs-mpi-c.so ${MPI_DLIB} -lmpi_f77
-##   mv libblacs-mpi-c.so ${INSTALL_LIB_DIR}/
-##   cd ..
-##   rm -rf t
-## fi
-## BLACS_PATH=${INSTALL_LIB_DIR}
-## [[ ! -f ${BLACS_PATH}/libblacs-mpi-f77.so ]] && err blacs "can't find libblacs-mpi-f77.so at ${BLACS_PATH}"
-## info "  using ${BLACS_PATH}/libblacs-mpi-f77.so"
-## BLACSF_DLIB="-L${BLACS_PATH} -lblacs-mpi-f77"
-## BLACSC_DLIB="-L${BLACS_PATH} -lblacs-mpi-c"
-
 
 if [[ -n $SCALAPACK ]]; then
   # get ScaLAPACK
@@ -474,11 +396,11 @@ if [[ -n $SCALAPACK ]]; then
 
   info "ScaLAPACK"
   cd ${S}
-  get_and_unpack scalapack http://www.netlib.org/scalapack/scalapack.tgz
+  get_and_unpack scalapack http://www.netlib.org/scalapack/scalapack-${SCALAPACK_VER}.tgz
   # compile ScaLAPACK
   # now at scalapack-2.0 but no version number
   # note: no longer requires BLACS (its built in)
-  cd ${S}/scalapack/scalapack || err scalapack "unexpected version"
+  cd ${S}/scalapack/scalapack-${SCALAPACK_VER} || err scalapack "unexpected version"
   cp SLmake.inc.example SLmake.inc
 #  sed -i "s/\(^home *=\) .*/\1 ${PWD//\//\\/}/" SLmake.inc
 #  sed -i "s/\(^PLAT *=\) .*/\1 ${MACHINE}/" SLmake.inc
@@ -512,212 +434,11 @@ info "  using ${SCALAPACK_PATH}/libscalapack.so"
 SCALAPACK_DLIB="-L${SCALAPACK_PATH} -lscalapack"
 
 
-# orderings:
-info "== orderings =="
-
-if [[ -n $AMD ]]; then
-  info "AMD"
-  get_and_unpack amd http://www.cise.ufl.edu/research/sparse/amd/AMD-${AMD_VER}.tar.gz
-  get_and_unpack amd http://www.cise.ufl.edu/research/sparse/UFconfig/UFconfig-${UFPACK_VER}.tar.gz
-  cd ${S}/amd/AMD || err amd "bad dir"
-  echo "CFLAGS = -O3 -fexceptions -fPIC" >> ../UFconfig/UFconfig.mk
-  sed -i '/CC/d' ../UFconfig/UFconfig.mk
-  info "  build"
-  ${MAKE} lib &> /dev/null || err amd "build failed"
-  cp Include/amd.h ${INSTALL_INC_DIR}/
-  cp Include/amd_internal.h ${INSTALL_INC_DIR}/
-  cp Lib/libamd.a  ${INSTALL_LIB_DIR}/
-  a2so ${INSTALL_LIB_DIR}/libamd.a -lm
-
-  info "CAMD"
-  get_and_unpack camd http://www.cise.ufl.edu/research/sparse/camd/CAMD-${CAMD_VER}.tar.gz
-  get_and_unpack camd http://www.cise.ufl.edu/research/sparse/UFconfig/UFconfig-${UFPACK_VER}.tar.gz
-  cd ${S}/camd/CAMD || err camd "bad dir"
-  echo "CFLAGS = -O3 -fexceptions -fPIC" >> ../UFconfig/UFconfig.mk
-  sed -i '/CC/d' ../UFconfig/UFconfig.mk
-  info "  build"
-  ${MAKE} lib &> /dev/null || err camd "build failed"
-  cp Include/camd.h ${INSTALL_INC_DIR}/
-  cp Lib/libcamd.a  ${INSTALL_LIB_DIR}/
-  a2so ${INSTALL_LIB_DIR}/libcamd.a -lm
-fi
-[[ ! -f ${INSTALL_LIB_DIR}/libamd.so ]] && err amd "can't find libamd.so ${INSTALL_LIB_DIR}"
-[[ ! -f ${INSTALL_LIB_DIR}/libcamd.so ]] && err amd "can't find libcamd.so ${INSTALL_LIB_DIR}"
-AMD_DLIB="-L${INSTALL_LIB_DIR} -lamd"
-CAMD_DLIB="-L${INSTALL_LIB_DIR} -lcamd"
-info "  using ${INSTALL_LIB_DIR}/libamd.so"
-info "  using ${INSTALL_LIB_DIR}/libcamd.so"
-
-if [[ -n $CCOLAMD ]]; then
-  info "CCOLAMD"
-  get_and_unpack ccolamd http://www.cise.ufl.edu/research/sparse/ccolamd/CCOLAMD-${CCOLAMD_VER}.tar.gz
-  get_and_unpack ccolamd http://www.cise.ufl.edu/research/sparse/UFconfig/UFconfig-${UFPACK_VER}.tar.gz
-  cd ${S}/ccolamd/CCOLAMD || err ccolamd "bad dir"
-  echo "CFLAGS = -O3 -fexceptions -fPIC" >> ../UFconfig/UFconfig.mk
-  sed -i '/CC/d' ../UFconfig/UFconfig.mk
-  info "  build"
-  ${MAKE} lib &> /dev/null || err ccolamd "build failed"
-  cp Include/ccolamd.h ${INSTALL_INC_DIR}/
-  cp Lib/libccolamd.a  ${INSTALL_LIB_DIR}/
-  a2so ${INSTALL_LIB_DIR}/libccolamd.a -lm
-fi
-[[ ! -f ${INSTALL_LIB_DIR}/libccolamd.so ]] && err ccolamd "can't find libccolamd.so ${INSTALL_LIB_DIR}"
-CCOLAMD_DLIB="-L${INSTALL_LIB_DIR} -lccolamd"
-info "  using ${INSTALL_LIB_DIR}/libccolamd.so"
-
-if [[ -n $COLAMD ]]; then
-  info "COLAMD"
-  get_and_unpack colamd http://www.cise.ufl.edu/research/sparse/colamd/COLAMD-${COLAMD_VER}.tar.gz
-  get_and_unpack colamd http://www.cise.ufl.edu/research/sparse/UFconfig/UFconfig-${UFPACK_VER}.tar.gz
-  cd ${S}/colamd/COLAMD || err colamd "bad dir"
-  echo "CFLAGS = -O3 -fexceptions -fPIC" >> ../UFconfig/UFconfig.mk
-  sed -i '/CC/d' ../UFconfig/UFconfig.mk
-  info "  build"
-  ${MAKE} lib &> /dev/null || err colamd "build failed"
-  cp Include/colamd.h ${INSTALL_INC_DIR}/
-  cp Lib/libcolamd.a  ${INSTALL_LIB_DIR}/
-  a2so ${INSTALL_LIB_DIR}/libcolamd.a -lm
-fi
-[[ ! -f ${INSTALL_LIB_DIR}/libcolamd.so ]] && err colamd "can't find libcolamd.so ${INSTALL_LIB_DIR}"
-COLAMD_DLIB="-L${INSTALL_LIB_DIR} -lcolamd"
-info "  using ${INSTALL_LIB_DIR}/libcolamd.so"
-
-if [[ -n $METIS_BUILD ]]; then
-  case ${METIS} in
-    "parmetis" )
-      info "ParMETIS"
-      get_and_unpack metis http://glaros.dtc.umn.edu/gkhome/fetch/sw/parmetis/OLD/ParMetis-${PARMETIS_VER}.tar.gz
-      cd ${S}/metis/ParMetis-${PARMETIS_VER} || err metis "bad dir"
-      sed -i "s/\(^CC *=\) .*/\1 ${MPICC//\//\\/}/" Makefile.in
-      sed -i "s/\(^COPTIONS *= \).*/\1 -DNDEBUG -fPIC/" Makefile.in
-      info "  build"
-      ${MAKE} &> /dev/null || err "build failed"
-      cp parmetis.h     ${INSTALL_INC_DIR}/
-      for i in libmetis.a libparmetis.a; do
-      cp ${i} ${INSTALL_LIB_DIR}/
-      done
-      a2so ${INSTALL_LIB_DIR}/libmetis.a -lm
-      a2so ${INSTALL_LIB_DIR}/libparmetis.a -L${INSTALL_LIB_DIR} -lmetis ${MPI_DLIB}
-    ;;
-    "metis" )
-      info "METIS"
-      get_and_unpack metis http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/metis-${METIS_VER}.tar.gz
-      cd ${S}/metis/metis-${METIS_VER} || err metis "bad dir"
-      sed -i "s/\(^COPTIONS *= \).*/\1 -DNDEBUG -fPIC/" Makefile.in
-      sed -i '/CC/d' Makefile.in
-      # for some reason metis redefines log2_local -- its in glibc
-      sed -i "s/log2_local\([^_]\)/log2_local\1/g" $(grep -lr log2_local .)
-      sed -i "s/log2_local\$/log2_local/g" $(grep -lr log2_local .)
-      info "  build"
-      ${MAKE} &> /dev/null || err metis "build failed"
-      cp libmetis.a ${INSTALL_LIB_DIR}/
-      a2so ${INSTALL_LIB_DIR}/libmetis.a -lm
-    ;;
-    * ) err metis "bad selection - ${METIS}";;
-  esac
-fi
-# find blas install dir, prefer local install
-if [[ -f ${INSTALL_LIB_DIR}/lib${METIS}.so ]]; then
-  METIS_PATH=${INSTALL_LIB_DIR}
-else
-  METIS_PATH=/usr/lib
-fi
-[[ ! -f ${METIS_PATH}/lib${METIS}.so ]] && err metis "can't find lib${METIS}.so at ${METIS_PATH}"
-METIS_DLIB="-L${METIS_PATH} -l${METIS}"
-[[ "$METIS" == "parmetis" ]] && METIS_DLIB="${METIS_DLIB} -lmetis ${MPI_DLIB}"
-info "  using ${METIS_PATH}/lib${METIS}.so"
-
-if [[ -n $SCOTCH ]]; then
-  # Note: parallel make broken for esmumps releases
-  info "pt-SCOTCH/SCOTCH"
-  get_and_unpack scotch https://gforge.inria.fr/frs/download.php/27584/scotch_${SCOTCH_VER}_esmumps.tar.gz
-  cd ${S}/scotch/scotch_${SCOTCH_VER}_esmumps || err scotch "bad dir"
-  cd src
-  cp Make.inc/Makefile.inc.x86-64_pc_linux2 Makefile.inc
-  sed -i "s/\(^CFLAGS.*= *-O3\)/\1 -fPIC -I${MPI_INC//\//\\/}/" Makefile.inc
-  sed -i "s/\(^CCP.*=\).*/\1 ${MPICC//\//\\/}/" Makefile.inc
-  info "  build"
-#  ${MAKE} scotch &> /dev/null || err scotch "scotch build failed"
-  MAKE_SAVE=${MAKE}
-  MAKE=make
-  ${MAKE} ptscotch &> /dev/null || err scotch "ptscotch build failed"
-  MAKE=${MAKE_SAVE}
-  info "  install"
-  ${MAKE} prefix=${INSTALL_BASE_DIR} install &> /dev/null || err scotch "install failed"
-  cp ../lib/*mumps.a ${INSTALL_LIB_DIR}/
-#  a2so ${INSTALL_LIB_DIR}/libscotcherr.a
-#  a2so ${INSTALL_LIB_DIR}/libscotch.a   -L${INSTALL_LIB_DIR} -lscotcherr -lz -lrt -lpthread -lm
-  a2so ${INSTALL_LIB_DIR}/libptscotcherr.a ${MPI_DLIB}
-  a2so ${INSTALL_LIB_DIR}/libptscotch.a -L${INSTALL_LIB_DIR} -lptscotcherr ${MPI_DLIB} -lz
-#  a2so ${INSTALL_LIB_DIR}/libscotchmetis.a -L${INSTALL_LIB_DIR} -lscotch
-#  a2so ${INSTALL_LIB_DIR}/libesmumps.a   -L${INSTALL_LIB_DIR} -lscotch
-  a2so ${INSTALL_LIB_DIR}/libptesmumps.a -L${INSTALL_LIB_DIR} -lptscotch
-fi
-#[[ ! -f ${INSTALL_LIB_DIR}/libscotch.so ]] && err scotch "can't find libscotch.so at ${INSTALL_LIB_DIR}"
-[[ ! -f ${INSTALL_LIB_DIR}/libptscotch.so ]] && err scotch "can't find libptscotch.so at ${INSTALL_LIB_DIR}"
-#SCOTCH_DLIB="-L${INSTALL_LIB_DIR} -lscotch -lesmumps"
-PTSCOTCH_DLIB="-L${INSTALL_LIB_DIR} -lptscotch -lptesmumps"
-#info "  using ${INSTALL_LIB_DIR}/libscotch.so"
-info "  using ${INSTALL_LIB_DIR}/libptscotch.so"
-
-# TODO get AMF
-# Note: PORD is included in MUMPS
-
-info "== solvers =="
-
-if [[ -n $CHOLMOD ]]; then
-  info "CHOLMOD"
-  get_and_unpack cholmod http://www.cise.ufl.edu/research/sparse/cholmod/CHOLMOD-${CHOLMOD_VER}.tar.gz
-  get_and_unpack cholmod http://www.cise.ufl.edu/research/sparse/UFconfig/UFconfig-${UFPACK_VER}.tar.gz
-  info "  contains metis-${METIS_VER} (can't untangle: CHOLMOD wants internals)"
-  get_and_unpack cholmod http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/metis-${METIS_VER}.tar.gz
-  info "  config"
-  cd ${S}/cholmod/metis-${METIS_VER}
-  # for some reason metis redefines log2_local -- its in glibc
-  #sed -i "s/log2_local\([^_]\)/log2_local\1/g" $(grep -lr log2_local .)
-  #sed -i "s/log2_local\$/log2_local/g" $(grep -lr log2_local .)
-  cd ${S}/cholmod; mkdir -p AMD; cd AMD; ln -s ${INSTALL_INC_DIR} Include
-  cd ${S}/cholmod; mkdir -p COLAMD; cd COLAMD; ln -s ${INSTALL_INC_DIR} Include
-  cd ${S}/cholmod; mkdir -p CCOLAMD; cd CCOLAMD; ln -s ${INSTALL_INC_DIR} Include
-  cd ${S}/cholmod; mkdir -p CAMD; cd CAMD; ln -s ${INSTALL_INC_DIR} Include
-  cd ${S}/cholmod/CHOLMOD || err cholmod "bad dir"
-  echo "CFLAGS = -O3 -fexceptions -fPIC" >> ../UFconfig/UFconfig.mk
-  sed -i "s/\(METIS_PATH =\).*/\1 ..\/..\/metis-$METIS_VER/" ../UFconfig/UFconfig.mk
-  sed -i "s/\(METIS =\).*/\1 \$(METIS_PATH)\/libmetis.a/" ../UFconfig/UFconfig.mk
-  sed -i '/CC/d' ../UFconfig/UFconfig.mk
-  info "  build"
-  ${MAKE} library &> /dev/null || err cholmod "build failed"
-  cp Include/cholmod*.h ${INSTALL_INC_DIR}/
-  cp Lib/libcholmod.a  ${INSTALL_LIB_DIR}/
-  a2so ${INSTALL_LIB_DIR}/libcholmod.a ${AMD_DLIB} ${CAMD_DLIB} ${METIS_DLIB} ${BLAS_DLIB} ${CCOLAMD_DLIB} ${COLAMD_DLIB} ${LAPACK_DLIB} -lm
-fi
-[[ ! -f ${INSTALL_LIB_DIR}/libcholmod.so ]] && err cholmod "can't find libcholmod.so at ${INSTALL_LIB_DIR}"
-CHOLMOD_DLIB="-L${INSTALL_LIB_DIR} -lcholmod"
-info "  using ${INSTALL_LIB_DIR}/libcholmod.so"
-
-
-if [[ -n $UMFPACK ]]; then
-  info "UMFPACK"
-  rm -rf umfpack # doing this twice breaks things, so delete any old version before starting again
-  get_and_unpack umfpack http://www.cise.ufl.edu/research/sparse/umfpack/UMFPACK-${UMFPACK_VER}.tar.gz
-  get_and_unpack umfpack http://www.cise.ufl.edu/research/sparse/UFconfig/UFconfig-${UFPACK_VER}.tar.gz
-  info "  config"
-  cd ${S}/umfpack; mkdir AMD; cd AMD; ln -s ${INSTALL_INC_DIR} Include
-  cd ${S}/umfpack; mkdir CCOLAMD; cd CCOLAMD; ln -s ${INSTALL_INC_DIR} Include
-  cd ${S}/umfpack; mkdir CAMD; cd CAMD; ln -s ${INSTALL_INC_DIR} Include
-  cd ${S}/umfpack; mkdir CHOLMOD; cd CHOLMOD; ln -s ${INSTALL_INC_DIR} Include
-  cd ${S}/umfpack; mkdir metis-4.0; cd metis-4.0; ln -s ${INSTALL_INC_DIR} Lib
-  cd ${S}/umfpack/UMFPACK || err amd "bad dir"
-  echo "CFLAGS = -O3 -fexceptions -fPIC" >> ../UFconfig/UFconfig.mk
-  sed -i '/CC/d' ../UFconfig/UFconfig.mk
-  info "  build"
-  cd ${S}/umfpack/UMFPACK/Lib
-  ${MAKE} -f Makefile &> /dev/null || err umfpack "build failed"
-  cd ${S}/umfpack/UMFPACK
-  cp ../UFconfig/UFconfig.h ${INSTALL_INC_DIR}/
-  cp Include/umfpack*.h ${INSTALL_INC_DIR}/
-  cp Lib/libumfpack.a  ${INSTALL_LIB_DIR}/
-  a2so ${INSTALL_LIB_DIR}/libumfpack.a ${CHOLMOD_DLIB} -lm
+if [[ -n $SUITESPARSE ]]; then
+  info "SuiteSparse"
+  get_and_unpack suitesparse http://faculty.cse.tamu.edu/davis/SuiteSparse/SuiteSparse-${SUITESPARSE_VER}.tar.gz
+  cd ${S}/suitesparse/SuiteSparse || err "no SuiteSparse"
+  make BLAS="-lblas" INSTALL="${INSTALL_BASE_DIR}" config || err "build failed"
 fi
 
 if [[ -n $MUMPS ]]; then
@@ -740,14 +461,15 @@ if [[ -n $MUMPS ]]; then
   sed -i "s/\(^LIBBLAS *=\) .*/\1 -L${BLAS_DLIB//\//\\/}/" Makefile.inc
 
   # update for AMD, METIS/parMETIS, SCOTCH/ptSCOTCH
-  sed -i "s/^#SCOTCHDIR.*/SCOTCHDIR = ${INSTALL_BASE_DIR//\//\\/}/" Makefile.inc
-  sed -i "s/^#ISCOTCH/ISCOTCH/" Makefile.inc
-  sed -i "s/^#LSCOTCH/LSCOTCH/" Makefile.inc
+#  sed -i "s/^#SCOTCHDIR.*/SCOTCHDIR = ${INSTALL_BASE_DIR//\//\\/}/" Makefile.inc
+#  sed -i "s/^#ISCOTCH/ISCOTCH/" Makefile.inc
+#  sed -i "s/^#LSCOTCH/LSCOTCH/" Makefile.inc
 
   sed -i "s/^#LMETISDIR.*/LMETISDIR = ${INSTALL_LIB_DIR//\//\\/}/" Makefile.inc
   sed -i "s/^#LMETIS/LMETIS/" Makefile.inc
 
-  sed -i "s/^ORDERINGSF.*/ORDERINGSF = -Dscotch -Dmetis -Dpord -Dptscotch -D${METIS}/" Makefile.inc
+#  sed -i "s/^ORDERINGSF.*/ORDERINGSF = -Dscotch -Dmetis -Dpord -Dptscotch -D${METIS}/" Makefile.inc
+  sed -i "s/^ORDERINGSF.*/ORDERINGSF = -Dmetis -Dpord -D${METIS}/" Makefile.inc
   sed -i "s/^\(OPT.*=\) /\1 -fPIC /" Makefile.inc
   sed -i "s/^\(OPTL.*=\).*/\1 -fPIC/" Makefile.inc #-nofor_main seems to break here
   sed -i "s/^\(OPTF.*=\).*/\1 -fPIC -O -Dintel_ -DALLOW_NON_INIT/" Makefile.inc #-nofor_main seems to break here
@@ -755,7 +477,6 @@ if [[ -n $MUMPS ]]; then
   # TODO configure links to dependancies, vars: LIBBLAS, SCALAP, INCPAR, LIBPAR
   # d: double precision real (default), c: complex double, s: single precision real, z: single precision complex
   info "  build"
-  #${MAKE} d > /dev/null || err mumps "build failed"
   ${MAKE} s d c z &> /dev/null || err mumps "build failed"
   # install MUMPS
   for i in lib/lib?mumps.a lib/libmumps_common.a lib/libpord.a include/*.h; do
@@ -922,6 +643,7 @@ if [[ -n $SUPERLU ]]; then
   sed -i "s/\(^CDEFS.*=\).*/\1 -DAdd__/"  make.inc
   # d: double precision real (default), c: complex double, s: single precision real, z: single precision complex
   info "  build"
+#  ${MAKE} || err superlu "build failed"
   ${MAKE} &> /dev/null || err superlu "build failed"
   info "  install"
   a2so ${INSTALL_LIB_DIR}/libsuperlu_dist_${SUPERLU_VER}.a -L${INSTALL_LIB_DIR} ${METIS_DLIB} ${BLAS_DLIB}
@@ -962,10 +684,10 @@ fi
 if [[ -n $MATIO ]]; then
   info "MAT File I/O Library"
   # the last release hasn't been in more than a year: use the git repo
-  git clone git://matio.git.sourceforge.net/gitroot/matio/matio ${S}/matio
+  git clone --depth=1 git://matio.git.sourceforge.net/gitroot/matio/matio ${S}/matio
   cd ${S}/matio
   # wow: software that has been properly packaged!
-  ./bootstrap || err matio "bootstrap"
+  ./autogen.sh || err matio "autogen.sh"
   ./configure --prefix="${INSTALL_BASE_DIR}" --disable-static || err matio "configure"
   make || err matio "make"
   make install || err matio "make install"
