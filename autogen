@@ -48,7 +48,6 @@ fi
 echo "get macros"
 [ ! -d m4 ] && mkdir m4
 [ ! -f m4/ax_pthread.m4 ] && wget "http://git.savannah.gnu.org/gitweb/?p=autoconf-archive.git;a=blob_plain;f=m4/ax_pthread.m4" --output-document=m4/ax_pthread.m4
-[ ! -f m4/ax_mpi.m4 ] && wget "http://git.savannah.gnu.org/gitweb/?p=autoconf-archive.git;a=blob_plain;f=m4/ax_mpi.m4" --output-document=m4/ax_mpi.m4
 
 echo "update configure.ac, etc"
 cd ${distdir} && autoreconf --install --warnings=all --include=m4 $*

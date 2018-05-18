@@ -62,10 +62,10 @@ void printf_solvers( const unsigned int verbosity );
 //   e.g. can the solver only handle Symmetric Postive Definite (SPD) matrices
 // returns: 1 yes, 0 no
 int solver_can_do( const int solver, matrix_t* A, matrix_t* b );
-inline int solver_uses_mpi( const int solver );
-inline int solver_requires_mpi( const int solver );
-inline int solver_uses_omp( const int solver );
-inline int solver_requires_omp( const int solver );
+int solver_uses_mpi( const int solver );
+int solver_requires_mpi( const int solver );
+int solver_uses_omp( const int solver );
+int solver_requires_omp( const int solver );
 
 
 // select the most appropriate solver for this problem

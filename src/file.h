@@ -31,6 +31,6 @@ int load_matrix( char* n, matrix_t* A );
 int save_matrix( matrix_t* A, char* n );
 
 // returns number of rows in matrix A
-inline unsigned int matrix_rows( const matrix_t* const A );
+unsigned int matrix_rows( const matrix_t* const A );
 
 #endif

@@ -47,7 +47,7 @@ static int _qsort_coo_cmp_cols_rows( const void* a, const void* b );
 
 // TODO this is quick, dirty and cheap.. can be much improved and maybe avoid the two extra copies for SPEED
 static void _qsort_coo( matrix_t* m, int x ) {
-  assert( m->format = SM_COO );
+  assert( m->format == SM_COO );
   assert( m->data_type == REAL_DOUBLE );
 
   struct _qsort_coo_data_double* data = malloc(( m->nz ) * sizeof( _qsort_coo_data_double ) );
@@ -1079,7 +1079,7 @@ int convert_matrix( matrix_t* m, enum matrix_format_t f, enum matrix_base_t b ) 
 static inline void _symmetry_swap( matrix_t* m );
 static inline void _symmetry_swap( matrix_t* m ) {
   assert( m->format == SM_COO );
-  assert( m->sym = SM_SYMMETRIC );
+  assert( m->sym == SM_SYMMETRIC );
   assert( m->location != MC_STORE_BOTH );
 
   // swap ii and jj (rows and column indices)
@@ -1101,7 +1101,7 @@ static inline void _symmetry_swap( matrix_t* m ) {
 static inline int _symmetry_both( matrix_t* m );
 static inline int _symmetry_both( matrix_t* m ) {
   assert( m->format == SM_COO );
-  assert( m->sym = SM_SYMMETRIC );
+  assert( m->sym == SM_SYMMETRIC );
   assert( m->location != MC_STORE_BOTH );
 
   const size_t dwidth = _data_width( m->data_type );

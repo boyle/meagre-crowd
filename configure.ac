@@ -19,7 +19,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.65])
+AC_PREREQ([2.69])
 AC_INIT([meagre-crowd],[0.4.6],[<meagre-crowd@googlegroups.com>])
 
 AC_COPYRIGHT([Copyright (C) 2010, 2011, 2012 Alistair Boyle])
@@ -27,6 +27,7 @@ AC_COPYRIGHT([Copyright (C) 2010, 2011, 2012 Alistair Boyle])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([build-aux])
 m4_include([m4/ax_pthread.m4])
+m4_include([m4/acx_mpi.m4])
 
 AC_CONFIG_SRCDIR([src/meagre-crowd.c])
 AC_CONFIG_HEADERS([src/config.h])
@@ -76,8 +77,11 @@ AM_SILENT_RULES([yes]) # enable kernel like cleaner build
 AC_CONFIG_FILES([Makefile])
 
 # Checks for programs.
-AC_PROG_CC
-AM_PROG_CC_C_O
+ACX_MPI
+ AC_PROG_CC([$MPICC])
+ AC_SUBST(MPILIBS)
+dnl AC_PROG_CC
+dnl AM_PROG_CC_C_O
 
 # Checks for libraries.
 
@@ -105,10 +109,6 @@ AC_ARG_WITH(mat,
       )
  AM_CONDITIONAL([HAVE_MATIO],[test "x$have_matio" = "xyes"])
  AC_SUBST([have_matio])
-
-# MPI checks (meagre-crowd usees this too)
-AX_MPI()
- AC_SUBST(MPILIBS)
 
 
 AC_ARG_WITH(all-solvers, AS_HELP_STRING(--with-all-solvers, Force presence of all solvers))

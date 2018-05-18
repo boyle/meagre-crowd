@@ -30,6 +30,7 @@
 #include <bebop/smc/sparse_matrix.h>
 #include <bebop/smc/sparse_matrix_ops.h> // load_sparse_matrix
 #include <bebop/smc/coo_matrix.h> // convert to coo
+#include <bebop/smc/csc_matrix.h> // convert to csc
 
 #ifdef HAVE_MATIO
   #include <matio.h>
@@ -912,21 +913,21 @@ static
     A->data_type = REAL_DOUBLE;
     //} // TODO complex, single precision, various sized integers
 
-    if(t->class_type == MAT_C_SPARSE) { // t.data = sparse_t in CSC format
+    if(t->class_type == MAT_C_SPARSE) { // t.data = sparse_matrix_t in CSC format
       // Note that Matlab will save('-v4'...) a sparse matrix
       // to version 4 format without complaint but it appears
       // to be gibberish as far as MatIO is concerned
-      sparse_t* st = t->data;
-      A->nz = st->ndata; //st->nzmax has the actual size of the allocated st->data
+      struct csc_matrix_t* st = t->data;
+      A->nz = st->nnz; //st->nzmax has the actual size of the allocated st->data
       A->format = SM_CSC;
       // transfer the data pointer into our strucut
       // TODO check for negative values in ir/jc before throwing away their signs
-      A->ii = (unsigned int*) st->ir;
-      st->ir = NULL;
-      A->jj = (unsigned int*) st->jc;
-      st->jc = NULL;
-      A->dd = st->data;
-      st->data = NULL;
+      A->ii = (unsigned int*) st->rowidx;
+      st->rowidx = NULL;
+      A->jj = (unsigned int*) st->colptr;
+      st->colptr = NULL;
+      A->dd = st->values;
+      st->values = NULL;
     }
     else if(t->class_type == MAT_C_DOUBLE) {
       A->nz = A->m * A->n;
